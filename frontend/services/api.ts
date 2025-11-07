@@ -29,7 +29,7 @@ const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T
 };
 
 // Products API
-export const getProducts = (): Promise<Product[]> => apiRequest('/products');
+export const getProducts = (): Promise<Product[]> => apiRequest('/api/products');
 export const addProduct = (productData: Omit<Product, 'id'>): Promise<Product> =>
   apiRequest('/api/products', {
     method: 'POST',
@@ -46,7 +46,7 @@ export const deleteProduct = (productId: string): Promise<void> =>
   apiRequest(`/api/products/${productId}`, { method: 'DELETE' });
 
 // Subscriptions API
-export const getSubscriptions = (): Promise<Subscription[]> => apiRequest('/subscriptions');
+export const getSubscriptions = (): Promise<Subscription[]> => apiRequest('/api/subscriptions');
 export const addSubscription = (subData: Omit<Subscription, 'id'>): Promise<Subscription> =>
   apiRequest('/api/subscriptions', {
     method: 'POST',
@@ -63,7 +63,7 @@ export const deleteSubscription = (subId: string): Promise<void> =>
   apiRequest(`/api/subscriptions/${subId}`, { method: 'DELETE' });
 
 // Sales API
-export const getSales = (): Promise<Sale[]> => apiRequest('/sales');
+export const getSales = (): Promise<Sale[]> => apiRequest('/api/sales');
 export const addSale = (saleData: Omit<Sale, 'id'>): Promise<Sale> =>
   apiRequest('/api/sales', {
     method: 'POST',
@@ -80,7 +80,7 @@ export const deleteSale = (saleId: string): Promise<void> =>
   apiRequest(`/api/sales/${saleId}`, { method: 'DELETE' });
 
 // Wholesale Sales API
-export const getWholesaleSales = (): Promise<WholesaleSale[]> => apiRequest('/wholesale-sales');
+export const getWholesaleSales = (): Promise<WholesaleSale[]> => apiRequest('/api/wholesale-sales');
 export const addWholesaleSale = (saleData: Omit<WholesaleSale, 'id'>): Promise<WholesaleSale> =>
     apiRequest('/api/wholesale-sales', {
         method: 'POST',
@@ -97,7 +97,7 @@ export const deleteWholesaleSale = (saleId: string): Promise<void> =>
     apiRequest(`/api/wholesale-sales/${saleId}`, { method: 'DELETE' });
 
 // Expenses API
-export const getExpenses = (): Promise<Expense[]> => apiRequest('/expenses');
+export const getExpenses = (): Promise<Expense[]> => apiRequest('/api/expenses');
 export const addExpense = (expenseData: Omit<Expense, 'id'>): Promise<Expense> =>
   apiRequest('/api/expenses', {
     method: 'POST',
