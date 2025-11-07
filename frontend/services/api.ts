@@ -31,13 +31,13 @@ const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T
 // Products API
 export const getProducts = (): Promise<Product[]> => apiRequest('/products');
 export const addProduct = (productData: Omit<Product, 'id'>): Promise<Product> =>
-  apiRequest('//api/products', {
+  apiRequest('/api/products', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(productData),
   });
 export const updateProduct = (updatedProduct: Product): Promise<Product> =>
-  apiRequest(`//api/products/${updatedProduct.id}`, {
+  apiRequest(`/api/products/${updatedProduct.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updatedProduct),
