@@ -64,7 +64,8 @@ const UnitEconomics: React.FC = () => {
         const product = products.find(p => p.id === selectedProductId);
         if (!product) return;
         
-        const totalVariableCost = Object.values(costs).reduce((sum, cost) => sum + cost, 0);
+        // Fix: Explicitly sum properties to avoid potential type inference issues with reduce.
+        const totalVariableCost = costs.substrate + costs.spawn + costs.packaging + costs.other;
         const sellingPrice = product.defaultPrice;
         const contributionMargin = sellingPrice - totalVariableCost;
         const contributionMarginRatio = sellingPrice > 0 ? (contributionMargin / sellingPrice) * 100 : 0;

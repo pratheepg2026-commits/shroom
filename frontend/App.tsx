@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
@@ -8,22 +7,32 @@ import Products from './components/Products';
 import ProfitLoss from './components/ProfitLoss';
 import Expenses from './components/Expenses';
 import UnitEconomics from './components/UnitEconomics';
-import Wholesale from './components/Wholesale';
-import { View } from './types';
+import SalesReturn from './components/SalesReturn';
+import Inventory from './components/Inventory';
+import StockPrep from './components/StockPrep';
+import Reporting from './components/Reporting';
+import Customers from './components/Customers';
+import { View, Status } from './types';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [viewState, setViewState] = useState<any>({});
+
+  const navigate = (view: View, state: any = {}) => {
+    setCurrentView(view);
+    setViewState(state);
+  };
 
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard navigate={navigate} />;
       case 'subscriptions':
-        return <Subscriptions />;
+        return <Subscriptions initialFilterStatus={viewState.filterStatus} />;
       case 'sales':
         return <Sales />;
-      case 'wholesale':
-        return <Wholesale />;
+      case 'salesReturn':
+        return <SalesReturn />;
       case 'products':
         return <Products />;
       case 'pnl':
@@ -32,8 +41,16 @@ const App: React.FC = () => {
         return <Expenses />;
       case 'unitEconomics':
         return <UnitEconomics />;
+      case 'inventory':
+        return <Inventory />;
+      case 'stockPrep':
+        return <StockPrep />;
+      case 'reporting':
+        return <Reporting />;
+      case 'customers':
+        return <Customers />;
       default:
-        return <Dashboard />;
+        return <Dashboard navigate={navigate} />;
     }
   };
 

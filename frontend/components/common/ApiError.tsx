@@ -15,17 +15,8 @@ const ApiError: React.FC<ApiErrorProps> = ({ onRetry }) => {
       </div>
       <h2 className="text-2xl font-bold text-white mb-2">Connection to Server Failed</h2>
       <p className="text-gray-400 max-w-md mb-6">
-        The application could not connect to the backend server. This usually means the Python Flask server is not running.
+        The application could not connect to the backend server. Please check your internet connection and try again. If the problem persists, the server may be temporarily unavailable.
       </p>
-      <div className="bg-gray-800/50 border border-white/10 rounded-md p-4 text-left max-w-md w-full mb-6">
-        <h3 className="font-semibold text-white mb-2">How to Fix:</h3>
-        <ol className="list-decimal list-inside text-sm text-gray-300 space-y-1">
-          <li>Open a <span className="font-mono bg-gray-700/50 px-1 rounded">new terminal</span> window.</li>
-          <li>Navigate to the <span className="font-mono bg-gray-700/50 px-1 rounded">backend</span> directory.</li>
-          <li>Run the command: <span className="font-mono bg-gray-700/50 px-1 rounded">python app.py</span></li>
-          <li>Once the server is running, click the retry button below.</li>
-        </ol>
-      </div>
       <Button onClick={onRetry} variant="primary">
         Retry Connection
       </Button>

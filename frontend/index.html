@@ -37,6 +37,11 @@
   }
   .animation-delay-2000 { animation-delay: 2s; }
   .animation-delay-4000 { animation-delay: 4s; }
+  /* Fix for dropdown option visibility in dark mode */
+  select option {
+    background-color: #1f2937; /* base-200 */
+    color: #e5e7eb; /* base-content */
+  }
 </style>
 <script type="importmap">
 {
@@ -49,7 +54,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-base-100 text-base-content">
   <div id="root"></div>

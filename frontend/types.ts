@@ -1,5 +1,5 @@
 // Fix: Create types file to define data structures and resolve module resolution errors.
-export type View = 'dashboard' | 'subscriptions' | 'sales' | 'wholesale' | 'products' | 'pnl' | 'expenses' | 'unitEconomics';
+export type View = 'dashboard' | 'subscriptions' | 'sales' | 'salesReturn' | 'products' | 'pnl' | 'expenses' | 'unitEconomics' | 'inventory' | 'stockPrep' | 'reporting' | 'customers';
 
 export enum Status {
   ACTIVE = 'Active',
@@ -16,14 +16,18 @@ export enum ExpenseCategory {
   MISC = 'Miscellaneous',
 }
 
+export type SaleStatus = 'Paid' | 'Unpaid' | 'GPay' | 'Cash' | 'Free';
+
 export interface Product {
   id: string;
   name: string;
   defaultPrice: number;
+  unit: string;
 }
 
 export interface Subscription {
-  id: string;
+  id:string;
+  invoiceNumber: string;
   name: string;
   email: string;
   phone: string;
@@ -33,6 +37,7 @@ export interface Subscription {
   plan: string; // Should correspond to a Product name
   status: Status;
   startDate: string; // YYYY-MM-DD
+  preferredDeliveryDay?: string;
 }
 
 export interface SaleProduct {
@@ -43,22 +48,24 @@ export interface SaleProduct {
 
 export interface Sale {
   id: string;
+  invoiceNumber: string;
   customerName: string;
   products: SaleProduct[];
   totalAmount: number;
   date: string; // YYYY-MM-DD
-  status: 'Paid' | 'Unpaid';
+  status: SaleStatus;
 }
 
 export interface WholesaleSale {
     id: string;
+    invoiceNumber: string;
     shopName: string;
     contact: string;
     address: string;
     products: SaleProduct[];
     totalAmount: number;
     date: string; // YYYY-MM-DD
-    status: 'Paid' | 'Unpaid';
+    status: SaleStatus;
 }
 
 export interface Expense {
@@ -71,6 +78,8 @@ export interface Expense {
 
 export interface DashboardStats {
     currentMonthSales: number;
+    currentMonthRetailSales: number;
+    currentMonthWholesaleSales: number;
     activeSubscriptions: number;
     currentMonthExpenses: number;
     currentMonthProfit: number;
@@ -84,4 +93,69 @@ export interface DashboardStats {
         name: string;
         value: number;
     }[];
+}
+
+export interface Warehouse {
+    id: string;
+    name: string;
+}
+
+export interface InventoryItem {
+    id: string;
+    productId: string;
+    warehouseId: string;
+    quantity: number;
+    productName?: string;
+    warehouseName?: string;
+}
+
+export interface SalesReturnProduct {
+    name: string;
+    quantity: number;
+    price: number;
+}
+
+export interface SalesReturn {
+    id: string;
+    originalSaleId: string;
+    originalInvoiceNumber: string;
+    customerName: string; // Could be customer or shop name
+    returnedProducts: SalesReturnProduct[];
+    totalRefundAmount: number;
+    date: string; // YYYY-MM-DD
+}
+
+// Types for Customer Hub
+export type CustomerType = 'Subscription' | 'Retail' | 'Wholesale';
+
+export type Transaction = 
+  (Sale & { transactionType: 'Retail' }) | 
+  (WholesaleSale & { transactionType: 'Wholesale' }) | 
+  (Subscription & { transactionType: 'Subscription' });
+
+export interface Customer {
+    id: string; 
+    name: string;
+    types: Set<CustomerType>; 
+    contact: {
+        email: string;
+        phone: string;
+        address: string;
+    };
+    totalSpent: number;
+    firstActivityDate: string;
+    lastActivityDate: string;
+    lastSaleDate?: string;
+    transactionHistory: Transaction[];
+}
+
+// Types for Reporting
+export interface PnlAnalysisData {
+    type: 'pnl';
+    totalRevenue: number;
+    totalExpenses: number;
+    totalReturns: number;
+    netProfit: number;
+    expenseBreakdown: { name: ExpenseCategory; value: number }[];
+    profitTrend: { date: string; profit: number }[];
 }

@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { getDashboardStats } from '../services/api';
-import { DashboardStats } from '../types';
+import { DashboardStats, View, Status } from '../types';
 import Card from './common/Card';
 import Button from './common/Button';
 import ApiError from './common/ApiError';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+
+interface DashboardProps {
+    navigate: (view: View, state?: any) => void;
+}
 
 // Icons
 const CurrencyRupeeIcon: React.FC<{className?: string}> = ({className}) => (
@@ -51,7 +55,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   return null;
 };
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC<DashboardProps> = ({ navigate }) => {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -125,7 +129,7 @@ const Dashboard: React.FC = () => {
     
     const PIE_COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5', '#fde047', '#facc15'];
     
-    const salesChartData = stats.salesByDay.filter(d => d.sales > 0);
+    const salesChartData = stats.salesByDay.filter(d => d.sales > 0).sort((a, b) => a.day - b.day);
 
     return (
         <div ref={dashboardRef} className="p-2">
@@ -136,27 +140,36 @@ const Dashboard: React.FC = () => {
                 </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card 
-                    title="Current Month Sales" 
-                    value={formatCurrency(stats.currentMonthSales)}
-                    icon={<CurrencyRupeeIcon className="h-8 w-8" />}
-                />
-                <Card 
-                    title="Active Subscriptions" 
-                    value={stats.activeSubscriptions}
-                    icon={<UsersIcon className="h-8 w-8" />}
-                />
-                <Card 
-                    title="Current Month Expenses" 
-                    value={formatCurrency(stats.currentMonthExpenses)}
-                    icon={<ExpenseIcon />}
-                />
-                <Card 
-                    title="Current Month Profit" 
-                    value={formatCurrency(stats.currentMonthProfit)}
-                    icon={<ProfitLossIcon />}
-                    description={stats.currentMonthProfit >= 0 ? 'In profit' : 'In loss'}
-                />
+                <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('reporting')}>
+                    <Card 
+                        title="Current Month Sales" 
+                        value={formatCurrency(stats.currentMonthSales)}
+                        icon={<CurrencyRupeeIcon className="h-8 w-8" />}
+                        description={`Retail: ${formatCurrency(stats.currentMonthRetailSales)} | Wholesale: ${formatCurrency(stats.currentMonthWholesaleSales)}`}
+                    />
+                </div>
+                 <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('subscriptions', { filterStatus: Status.ACTIVE })}>
+                    <Card 
+                        title="Active Subscriptions" 
+                        value={stats.activeSubscriptions}
+                        icon={<UsersIcon className="h-8 w-8" />}
+                    />
+                </div>
+                 <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('expenses')}>
+                    <Card 
+                        title="Current Month Expenses" 
+                        value={formatCurrency(stats.currentMonthExpenses)}
+                        icon={<ExpenseIcon />}
+                    />
+                </div>
+                 <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('pnl')}>
+                    <Card 
+                        title="Current Month Profit" 
+                        value={formatCurrency(stats.currentMonthProfit)}
+                        icon={<ProfitLossIcon />}
+                        description={stats.currentMonthProfit >= 0 ? 'In profit' : 'In loss'}
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

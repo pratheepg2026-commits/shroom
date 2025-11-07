@@ -44,13 +44,17 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) => {
       </div>
       <nav className="flex-grow p-4">
         <NavItem view="dashboard" label="Dashboard" icon={<DashboardIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
+        <NavItem view="stockPrep" label="Stock Prep" icon={<StockPrepIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
+        <NavItem view="inventory" label="Inventory" icon={<InventoryIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
+        <NavItem view="customers" label="Customers" icon={<CustomersIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="subscriptions" label="Subscriptions" icon={<SubscriptionIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="sales" label="Sales" icon={<SalesIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
-        <NavItem view="wholesale" label="Wholesale" icon={<WholesaleIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
+        <NavItem view="salesReturn" label="Sales Return" icon={<SalesReturnIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="products" label="Products" icon={<ProductsIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="pnl" label="P&L" icon={<ProfitLossIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="expenses" label="Expenses" icon={<ExpenseIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="unitEconomics" label="Unit Economics" icon={<UnitEconomicsIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
+        <NavItem view="reporting" label="Reporting" icon={<ReportingIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
       </nav>
     </>
   );
@@ -95,14 +99,27 @@ const MushroomIcon: React.FC<{ className?: string }> = ({ className }) => (
 const DashboardIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
 );
+const StockPrepIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+);
+const InventoryIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+);
+const CustomersIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+);
 const SubscriptionIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
 );
 const SalesIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
 );
-const WholesaleIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m-1 4h1m5-4h1m-1 4h1m-1-4h1m-1 4h1" /></svg>
+const SalesReturnIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2z" />
+    </svg>
 );
 const ProductsIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m0 10l8 4m0 0l8-4m-8 4V7" /></svg>
@@ -116,5 +133,9 @@ const ExpenseIcon = () => (
 const UnitEconomicsIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h3m-3-10h.01M9 17h3m3 0h.01M12 3a1 1 0 00-1 1v1h2V4a1 1 0 00-1-1zM5.05 6.05a1 1 0 00-1.414 1.414l1.414-1.414zM18.95 6.05a1 1 0 001.414 1.414l-1.414-1.414zM5 12a1 1 0 00-1 1v1h2v-1a1 1 0 00-1-1zM19 12a1 1 0 00-1 1v1h2v-1a1 1 0 00-1-1zM5.05 17.95a1 1 0 001.414 1.414l-1.414-1.414zM18.95 17.95a1 1 0 00-1.414 1.414l1.414-1.414z" /></svg>
 );
+const ReportingIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+);
+
 
 export default Navbar;

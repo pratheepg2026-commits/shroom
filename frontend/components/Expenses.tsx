@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getExpenses, addExpense, deleteExpense } from '../services/api';
 import { Expense, ExpenseCategory } from '../types';
+import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
 import Modal from './common/Modal';
 import ConfirmModal from './common/ConfirmModal';
@@ -59,6 +60,7 @@ const Expenses: React.FC = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingCSV, setIsExportingCSV] = useState(false);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
 
@@ -146,6 +148,19 @@ const Expenses: React.FC = () => {
       setIsExporting(false);
     }
   };
+  
+  const handleExportCSV = () => {
+    setIsExportingCSV(true);
+    try {
+        const dataToExport = expenses.map(({ id, ...rest }) => rest);
+        exportToCSV(dataToExport, 'expenses.csv');
+    } catch (error) {
+        console.error("Error exporting CSV:", error);
+        alert("An error occurred while generating the CSV.");
+    } finally {
+        setIsExportingCSV(false);
+    }
+  };
 
   const openDeleteConfirm = (id: string) => {
     setExpenseToDelete(id);
@@ -160,6 +175,9 @@ const Expenses: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">Expenses</h1>
         <div className="flex items-center space-x-2">
+            <Button onClick={handleExportCSV} variant="secondary" disabled={isExportingCSV}>
+                {isExportingCSV ? 'Exporting...' : 'Export as CSV'}
+            </Button>
             <Button onClick={handleExportPDF} variant="secondary" disabled={isExporting}>
                 {isExporting ? 'Exporting...' : 'Export as PDF'}
             </Button>

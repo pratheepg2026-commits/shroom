@@ -2,10 +2,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSubscriptions, addSubscription, updateSubscription, deleteSubscription, getProducts } from '../services/api';
 import { Subscription, Status, Product } from '../types';
+import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
 import Modal from './common/Modal';
 import ConfirmModal from './common/ConfirmModal';
 import ApiError from './common/ApiError';
+
+interface SubscriptionsProps {
+    initialFilterStatus?: Status;
+}
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -14,13 +19,13 @@ const LoadingSpinner = () => (
 );
 
 const SubscriptionForm: React.FC<{
-  subscription: Omit<Subscription, 'id' | 'name'> | Subscription | null;
+  subscription: Omit<Subscription, 'id' | 'invoiceNumber'> | Subscription | null;
   products: Product[];
-  onSave: (subscription: Omit<Subscription, 'id' | 'name'> | Subscription) => void;
+  onSave: (subscription: Omit<Subscription, 'id' | 'invoiceNumber'> | Subscription) => void;
   onCancel: () => void;
 }> = ({ subscription, products, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    customerName: '',
+    name: '',
     email: '',
     phone: '',
     address: '',
@@ -29,15 +34,14 @@ const SubscriptionForm: React.FC<{
     plan: '',
     status: Status.ACTIVE,
     startDate: new Date().toISOString().split('T')[0],
+    preferredDeliveryDay: 'Any Day',
     ...subscription
   });
 
   useEffect(() => {
-    // If we are creating a new subscription and there are subscription products,
-    // default the plan to the first one.
-    const subscriptionProducts = products.filter(p => p.name.toLowerCase().includes('monthly'));
-    if (!subscription && subscriptionProducts.length > 0) {
-      setFormData(prev => ({...prev, plan: subscriptionProducts[0].name}));
+    if (!subscription && products.length > 0) {
+      const defaultPlanProduct = products.find(p => p.name.toLowerCase().includes('monthly')) || products[0];
+      setFormData(prev => ({...prev, plan: defaultPlanProduct.name}));
     }
   }, [subscription, products]);
 
@@ -48,20 +52,20 @@ const SubscriptionForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    onSave(formData as Omit<Subscription, 'id' | 'invoiceNumber'> | Subscription);
   };
   
-  const subscriptionProducts = products.filter(p => p.name.toLowerCase().includes('monthly'));
+  const deliveryDays = ['Any Day', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} placeholder="Name" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
+        <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Name" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
         <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
         <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
          <select name="plan" value={formData.plan} onChange={handleChange} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required>
             <option value="">Select Subscription Plan</option>
-            {subscriptionProducts.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+            {products.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
         </select>
       </div>
       <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Address" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
@@ -75,6 +79,12 @@ const SubscriptionForm: React.FC<{
         </select>
         <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
       </div>
+      <div>
+        <label htmlFor="preferredDeliveryDay" className="block text-sm font-medium text-gray-400 mb-1">Preferred Delivery Day</label>
+        <select name="preferredDeliveryDay" id="preferredDeliveryDay" value={formData.preferredDeliveryDay} onChange={handleChange} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200">
+            {deliveryDays.map(day => <option key={day} value={day}>{day}</option>)}
+        </select>
+      </div>
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
         <Button type="submit" variant="primary">Save Subscription</Button>
@@ -84,7 +94,7 @@ const SubscriptionForm: React.FC<{
 };
 
 
-const Subscriptions: React.FC = () => {
+const Subscriptions: React.FC<SubscriptionsProps> = ({ initialFilterStatus }) => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +104,8 @@ const Subscriptions: React.FC = () => {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [subscriptionToDelete, setSubscriptionToDelete] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<'All' | Status>(initialFilterStatus || 'All');
 
   const fetchData = useCallback(async () => {
     try {
@@ -114,13 +126,12 @@ const Subscriptions: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleSave = async (subscriptionData: Omit<Subscription, 'id' | 'name'> | Subscription) => {
+  const handleSave = async (subscriptionData: Omit<Subscription, 'id' | 'invoiceNumber'> | Subscription) => {
     try {
-      const dataToSave = {...subscriptionData, customerName: (subscriptionData as any).name || (subscriptionData as any).customerName };
-      if ('id' in dataToSave && dataToSave.id) {
-        await updateSubscription(dataToSave as Subscription);
+      if ('id' in subscriptionData && subscriptionData.id) {
+        await updateSubscription(subscriptionData as Subscription);
       } else {
-        await addSubscription(dataToSave as Omit<Subscription, 'id'>);
+        await addSubscription(subscriptionData as Omit<Subscription, 'id' | 'invoiceNumber'>);
       }
       fetchData();
       setIsModalOpen(false);
@@ -168,12 +179,14 @@ const Subscriptions: React.FC = () => {
 
       autoTable(doc, {
         startY: 40,
-        head: [['Customer', 'Contact', 'Plan', 'Status', 'Start Date']],
-        body: subscriptions.map(sub => [
+        head: [['ID', 'Customer', 'Contact', 'Plan', 'Status', 'Delivery Day', 'Start Date']],
+        body: filteredSubscriptions.map(sub => [
+          sub.invoiceNumber,
           sub.name,
           `${sub.email}\n${sub.phone}`,
           sub.plan,
           sub.status,
+          sub.preferredDeliveryDay || 'N/A',
           sub.startDate
         ]),
         headStyles: { fillColor: [34, 197, 94] },
@@ -185,6 +198,19 @@ const Subscriptions: React.FC = () => {
       alert("An error occurred while generating the PDF.");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    setIsExportingCSV(true);
+    try {
+        const dataToExport = filteredSubscriptions.map(({ id, ...rest }) => rest);
+        exportToCSV(dataToExport, 'subscriptions.csv');
+    } catch (error) {
+        console.error("Error exporting CSV:", error);
+        alert("An error occurred while generating the CSV.");
+    } finally {
+        setIsExportingCSV(false);
     }
   };
 
@@ -222,6 +248,11 @@ const Subscriptions: React.FC = () => {
       if (days <= 15) return 'bg-yellow-500';
       return 'bg-green-500';
   };
+  
+  const filteredSubscriptions = subscriptions.filter(sub => {
+    if (filterStatus === 'All') return true;
+    return sub.status === filterStatus;
+  });
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ApiError onRetry={fetchData} />
@@ -231,6 +262,9 @@ const Subscriptions: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">Subscriptions</h1>
         <div className="flex items-center space-x-2">
+            <Button onClick={handleExportCSV} variant="secondary" disabled={isExportingCSV}>
+                {isExportingCSV ? 'Exporting...' : 'Export as CSV'}
+            </Button>
             <Button onClick={handleExportPDF} variant="secondary" disabled={isExporting}>
                 {isExporting ? 'Exporting...' : 'Export as PDF'}
             </Button>
@@ -238,20 +272,39 @@ const Subscriptions: React.FC = () => {
         </div>
       </div>
       
+      <div className="mb-4 flex items-center space-x-2 bg-black/20 p-2 rounded-lg border border-white/10">
+        <span className="text-sm font-medium text-gray-400 mr-2">Filter by status:</span>
+        {(['All', ...Object.values(Status)] as const).map(status => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors duration-200 ${
+              filterStatus === status
+                ? 'bg-emerald-600 text-white'
+                : 'bg-transparent text-gray-300 hover:bg-white/10'
+            }`}
+          >
+            {status}
+          </button>
+        ))}
+      </div>
+
       <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-left text-gray-300">
             <thead className="bg-white/5 uppercase text-xs">
               <tr>
                 <th scope="col" className="px-6 py-3">Customer</th>
+                <th scope="col" className="px-6 py-3">Subscription ID</th>
                 <th scope="col" className="px-6 py-3">Plan</th>
+                <th scope="col" className="px-6 py-3">Delivery Day</th>
                 <th scope="col" className="px-6 py-3">Status</th>
                 <th scope="col" className="px-6 py-3">Renewal In</th>
                 <th scope="col" className="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {subscriptions.map(sub => {
+              {filteredSubscriptions.map(sub => {
                   const daysRemaining = getDaysUntilRenewal(sub.startDate);
                   return (
                     <tr key={sub.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
@@ -259,13 +312,22 @@ const Subscriptions: React.FC = () => {
                         <div className="font-medium text-white">{sub.name}</div>
                         <div className="text-xs text-gray-400">{sub.phone}</div>
                       </td>
+                       <td className="px-6 py-4 font-mono text-xs">{sub.invoiceNumber}</td>
                       <td className="px-6 py-4">{sub.plan}</td>
+                      <td className="px-6 py-4">{sub.preferredDeliveryDay}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor(sub.status)}`}>{sub.status}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                           <div className={`h-3 w-3 rounded-full mr-2 ${renewalIndicator(daysRemaining)}`}></div>
+                           <div 
+                              className={`h-3 w-3 rounded-full mr-2 ${renewalIndicator(daysRemaining)}`}
+                              title={
+                                daysRemaining <= 7 ? 'Renewal due in 7 days or less' :
+                                daysRemaining <= 15 ? 'Renewal due in 8-15 days' :
+                                'Renewal due in more than 15 days'
+                              }
+                           ></div>
                            <span>{daysRemaining} days</span>
                         </div>
                       </td>
