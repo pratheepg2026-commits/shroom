@@ -1,0 +1,218 @@
+// Fix: Removed extraneous file markers that were causing syntax errors.
+import React, { useState, useEffect, useCallback } from 'react';
+import { getExpenses, addExpense, deleteExpense } from '../services/api';
+import { Expense, ExpenseCategory } from '../types';
+import Button from './common/Button';
+import Modal from './common/Modal';
+import ConfirmModal from './common/ConfirmModal';
+import ApiError from './common/ApiError';
+
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
+  </div>
+);
+
+const ExpenseForm: React.FC<{
+  onSave: (expense: Omit<Expense, 'id'>) => void;
+  onCancel: () => void;
+}> = ({ onSave, onCancel }) => {
+  const [formData, setFormData] = useState<Omit<Expense, 'id'>>({
+    category: ExpenseCategory.MISC,
+    description: '',
+    amount: 0,
+    date: new Date().toISOString().split('T')[0],
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: name === 'amount' ? parseFloat(value) : value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <select name="category" value={formData.category} onChange={handleChange} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required>
+        {Object.values(ExpenseCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+      </select>
+      <input type="text" name="description" value={formData.description} onChange={handleChange} placeholder="Description" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
+      <input type="number" name="amount" value={formData.amount} min="0" step="0.01" onChange={handleChange} placeholder="Amount" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
+      <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" variant="primary">Add Expense</Button>
+      </div>
+    </form>
+  );
+};
+
+
+const Expenses: React.FC = () => {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const formatCurrency = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getExpenses();
+      setExpenses(data);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch expenses.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleSave = async (expenseData: Omit<Expense, 'id'>) => {
+    try {
+      await addExpense(expenseData);
+      fetchData();
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save expense.");
+    }
+  };
+  
+  const handleDelete = async () => {
+    if (!expenseToDelete) return;
+    try {
+        await deleteExpense(expenseToDelete);
+        fetchData();
+    } catch (err) {
+        console.error("Failed to delete expense", err);
+        alert("Failed to delete expense.");
+    } finally {
+        setIsConfirmOpen(false);
+        setExpenseToDelete(null);
+    }
+  };
+
+  const handleExportPDF = () => {
+    setIsExporting(true);
+    const jspdf = (window as any).jspdf;
+    const autoTable = (window as any).autoTable;
+
+    if (!jspdf || !autoTable) {
+        alert("PDF generation libraries not loaded. Please try again.");
+        setIsExporting(false);
+        return;
+    }
+
+    try {
+      const { jsPDF } = jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(18);
+      doc.text("SHROOMMUSH - Expenses Report", 14, 22);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      autoTable(doc, {
+        startY: 40,
+        head: [['Date', 'Description', 'Category', 'Amount']],
+        body: expenses.map(exp => [
+          exp.date,
+          exp.description,
+          exp.category,
+          formatCurrency(exp.amount),
+        ]),
+        headStyles: { fillColor: [34, 197, 94] },
+      });
+
+      doc.save('expenses-report.pdf');
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      alert("An error occurred while generating the PDF.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const openDeleteConfirm = (id: string) => {
+    setExpenseToDelete(id);
+    setIsConfirmOpen(true);
+  };
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ApiError onRetry={fetchData} />;
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">Expenses</h1>
+        <div className="flex items-center space-x-2">
+            <Button onClick={handleExportPDF} variant="secondary" disabled={isExporting}>
+                {isExporting ? 'Exporting...' : 'Export as PDF'}
+            </Button>
+            <Button onClick={() => setIsModalOpen(true)}>Add Expense</Button>
+        </div>
+      </div>
+      
+      <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-left text-gray-300">
+            <thead className="bg-white/5 uppercase text-xs">
+              <tr>
+                <th scope="col" className="px-6 py-3">Date</th>
+                <th scope="col" className="px-6 py-3">Description</th>
+                <th scope="col" className="px-6 py-3">Category</th>
+                <th scope="col" className="px-6 py-3">Amount</th>
+                <th scope="col" className="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {expenses.map(expense => (
+                <tr key={expense.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4">{expense.date}</td>
+                  <td className="px-6 py-4 font-medium text-white">{expense.description}</td>
+                  <td className="px-6 py-4">{expense.category}</td>
+                  <td className="px-6 py-4">{formatCurrency(expense.amount)}</td>
+                  <td className="px-6 py-4 text-right">
+                    <Button variant="ghost" className="text-red-400 hover:bg-red-500/10" onClick={() => openDeleteConfirm(expense.id)}>Delete</Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={'Add Expense'}>
+        <ExpenseForm 
+          onSave={handleSave} 
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
+
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense record? This action cannot be undone."
+      />
+
+    </div>
+  );
+};
+
+export default Expenses;
