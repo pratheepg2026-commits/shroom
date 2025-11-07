@@ -1,4 +1,3 @@
-// services/api.ts
 import {
   Product,
   Subscription,
@@ -8,7 +7,13 @@ import {
   DashboardStats,
 } from '../types';
 
-const BASE_URL = 'https://shroommush.onrender.com/api';
+// ✅ Use environment variable from Vite
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+// Optional: throw error if not set
+if (!BASE_URL) {
+  throw new Error('VITE_API_URL is not defined in your environment variables');
+}
 
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
