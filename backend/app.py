@@ -1,3 +1,8 @@
+"""
+Mushroom Business Management System - Backend API
+Flask + SQLAlchemy + PostgreSQL (Supabase)
+"""
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -9,9 +14,11 @@ import random
 import string
 from urllib.parse import quote_plus
 
+# --- ENVIRONMENT SETUP ---
 try:
     from dotenv import load_dotenv
-except Exception:
+except ImportError:
+    # Fallback dotenv implementation
     def load_dotenv(dotenv_path='.env', override=False):
         try:
             if not os.path.exists(dotenv_path):
@@ -34,20 +41,24 @@ except Exception:
 
 load_dotenv()
 
-# --- INITIALIZE FLASK ---
+# --- FLASK APP INITIALIZATION ---
 app = Flask(__name__)
+
+# Enable CORS for all routes and methods
 CORS(app, resources={
     r"/*": {
-        "origins": ["*"],  # Allow all origins for now
+        "origins": ["*"],  # In production, restrict to your frontend domain
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True,
+        "max_age": 3600
     }
 })
 
 # --- DATABASE CONFIGURATION ---
 db_user = os.getenv('DB_USER', 'postgres')
 db_password = quote_plus(os.getenv('DB_PASSWORD', ''))
-db_host = os.getenv('DB_HOST', '')
+db_host = os.getenv('DB_HOST', 'localhost')
 db_port = os.getenv('DB_PORT', '5432')
 db_name = os.getenv('DB_NAME', 'postgres')
 
@@ -58,17 +69,23 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
+    'pool_timeout': 30,
+    'pool_size': 10,
+    'max_overflow': 20
 }
 
 db = SQLAlchemy(app)
 
 # --- HELPER FUNCTIONS ---
-def generate_id(prefix):
+
+def generate_id(prefix='id'):
+    """Generate unique ID with timestamp and random string"""
     timestamp = int(time.time() * 1000)
     random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
     return f"{prefix}_{timestamp}_{random_str}"
 
 def is_current_month(date_str):
+    """Check if date string is in current month"""
     try:
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
         today = datetime.now()
@@ -79,17 +96,26 @@ def is_current_month(date_str):
 # --- DATABASE MODELS ---
 
 class Product(db.Model):
+    """Product catalog"""
     __tablename__ = 'products'
+    
     id = db.Column(db.String(50), primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), nullable=False, unique=True)
     defaultPrice = db.Column('default_price', db.Float, nullable=False)
     unit = db.Column(db.String(50), default='kg')
 
     def to_dict(self):
-        return {'id': self.id, 'name': self.name, 'defaultPrice': self.defaultPrice, 'unit': self.unit}
+        return {
+            'id': self.id,
+            'name': self.name,
+            'defaultPrice': self.defaultPrice,
+            'unit': self.unit
+        }
 
 class Subscription(db.Model):
+    """Subscription customers"""
     __tablename__ = 'subscriptions'
+    
     id = db.Column(db.String(50), primary_key=True)
     invoiceNumber = db.Column('invoice_number', db.String(50), unique=True)
     name = db.Column(db.String(100), nullable=False)
@@ -97,9 +123,11 @@ class Subscription(db.Model):
     phone = db.Column(db.String(20), default='')
     address = db.Column(db.String(200), default='')
     flatNo = db.Column('flat_no', db.String(50), default='')
+    flatName = db.Column('flat_name', db.String(100), default='')
     plan = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     startDate = db.Column('start_date', db.String(50), nullable=False)
+    preferredDeliveryDay = db.Column('preferred_delivery_day', db.String(50), default='')
 
     def to_dict(self):
         return {
@@ -110,14 +138,17 @@ class Subscription(db.Model):
             'phone': self.phone or '',
             'address': self.address or '',
             'flatNo': self.flatNo or '',
-            'flatName': self.flatNo or '',  # ✅ Add this - map to same field
+            'flatName': self.flatName or '',
             'plan': self.plan,
             'status': self.status,
-            'startDate': self.startDate
+            'startDate': self.startDate,
+            'preferredDeliveryDay': self.preferredDeliveryDay or ''
         }
 
 class Sale(db.Model):
+    """Retail sales"""
     __tablename__ = 'sales'
+    
     id = db.Column(db.String(50), primary_key=True)
     invoiceNumber = db.Column('invoice_number', db.String(50), unique=True)
     customerName = db.Column('customer_name', db.String(100), nullable=False)
@@ -131,14 +162,16 @@ class Sale(db.Model):
             'id': self.id,
             'invoiceNumber': self.invoiceNumber,
             'customerName': self.customerName,
-            'products': self.products,
+            'products': self.products or [],
             'totalAmount': self.totalAmount,
             'date': self.date,
             'status': self.status
         }
 
 class WholesaleSale(db.Model):
+    """Wholesale sales"""
     __tablename__ = 'wholesale_sales'
+    
     id = db.Column(db.String(50), primary_key=True)
     invoiceNumber = db.Column('invoice_number', db.String(50), unique=True)
     shopName = db.Column('shop_name', db.String(100), nullable=False)
@@ -156,14 +189,16 @@ class WholesaleSale(db.Model):
             'shopName': self.shopName,
             'contact': self.contact or '',
             'address': self.address or '',
-            'products': self.products,
+            'products': self.products or [],
             'totalAmount': self.totalAmount,
             'date': self.date,
             'status': self.status
         }
 
 class Expense(db.Model):
+    """Business expenses"""
     __tablename__ = 'expenses'
+    
     id = db.Column(db.String(50), primary_key=True)
     category = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(200), nullable=False)
@@ -180,15 +215,22 @@ class Expense(db.Model):
         }
 
 class Warehouse(db.Model):
+    """Warehouse locations"""
     __tablename__ = 'warehouses'
+    
     id = db.Column(db.String(50), primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), nullable=False, unique=True)
 
     def to_dict(self):
-        return {'id': self.id, 'name': self.name}
+        return {
+            'id': self.id,
+            'name': self.name
+        }
 
 class Inventory(db.Model):
+    """Product inventory per warehouse"""
     __tablename__ = 'inventory'
+    
     id = db.Column(db.String(50), primary_key=True)
     productId = db.Column('product_id', db.String(50), nullable=False)
     warehouseId = db.Column('warehouse_id', db.String(50), nullable=False)
@@ -203,7 +245,9 @@ class Inventory(db.Model):
         }
 
 class SalesReturn(db.Model):
+    """Sales returns/refunds"""
     __tablename__ = 'sales_returns'
+    
     id = db.Column(db.String(50), primary_key=True)
     saleId = db.Column('sale_id', db.String(50), nullable=False)
     returnedProducts = db.Column('returned_products', db.JSON)
@@ -213,12 +257,14 @@ class SalesReturn(db.Model):
         return {
             'id': self.id,
             'saleId': self.saleId,
-            'returnedProducts': self.returnedProducts,
+            'returnedProducts': self.returnedProducts or [],
             'date': self.date
         }
 
 class InvoiceCounter(db.Model):
+    """Invoice number counter"""
     __tablename__ = 'invoice_counters'
+    
     id = db.Column(db.String(50), primary_key=True)
     counterType = db.Column('counter_type', db.String(50), unique=True, nullable=False)
     currentNumber = db.Column('current_number', db.Integer, default=0)
@@ -230,11 +276,17 @@ class InvoiceCounter(db.Model):
             'currentNumber': self.currentNumber
         }
 
-# --- INVOICE NUMBER HELPER ---
+# --- INVOICE NUMBER GENERATION ---
+
 def get_next_invoice_number(counter_type):
+    """Generate sequential invoice numbers"""
     counter = InvoiceCounter.query.filter_by(counterType=counter_type).first()
     if not counter:
-        counter = InvoiceCounter(id=generate_id('ic'), counterType=counter_type, currentNumber=0)
+        counter = InvoiceCounter(
+            id=generate_id('ic'),
+            counterType=counter_type,
+            currentNumber=0
+        )
         db.session.add(counter)
         db.session.commit()
     
@@ -249,13 +301,24 @@ def get_next_invoice_number(counter_type):
     }
     return f"{prefix_map.get(counter_type, 'N/A')}-{current_number}"
 
-# --- INVENTORY HELPERS ---
+# --- INVENTORY MANAGEMENT ---
+
 def update_inventory(product_id, warehouse_id, quantity_change):
+    """Update inventory quantity (positive = add, negative = remove)"""
     try:
-        inventory = Inventory.query.filter_by(productId=product_id, warehouseId=warehouse_id).first()
+        inventory = Inventory.query.filter_by(
+            productId=product_id,
+            warehouseId=warehouse_id
+        ).first()
+        
         if not inventory:
             if quantity_change > 0:
-                inventory = Inventory(id=generate_id('inv'), productId=product_id, warehouseId=warehouse_id, quantity=quantity_change)
+                inventory = Inventory(
+                    id=generate_id('inv'),
+                    productId=product_id,
+                    warehouseId=warehouse_id,
+                    quantity=quantity_change
+                )
                 db.session.add(inventory)
             else:
                 raise ValueError(f"Not enough stock for product {product_id}")
@@ -263,24 +326,35 @@ def update_inventory(product_id, warehouse_id, quantity_change):
             inventory.quantity += quantity_change
             if inventory.quantity < 0:
                 raise ValueError(f"Not enough stock for product {product_id}")
+        
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         raise e
 
 def check_stock_availability(products_list, warehouse_id):
+    """Check if enough stock exists for products"""
     for product in products_list:
         product_id = product.get('productId')
         required_qty = product.get('quantity', 0)
-        inventory = Inventory.query.filter_by(productId=product_id, warehouseId=warehouse_id).first()
+        
+        inventory = Inventory.query.filter_by(
+            productId=product_id,
+            warehouseId=warehouse_id
+        ).first()
+        
         available_qty = inventory.quantity if inventory else 0
+        
         if required_qty > available_qty:
             return False, f"Not enough stock for {product_id}. Required: {required_qty}, Available: {available_qty}"
+    
     return True, ""
 
-# --- PRODUCTS ENDPOINTS ---
+# --- PRODUCTS API ---
+
 @app.route('/api/products', methods=['GET'])
 def get_products():
+    """Get all products"""
     try:
         products = Product.query.all()
         return jsonify([p.to_dict() for p in products])
@@ -289,10 +363,15 @@ def get_products():
 
 @app.route('/api/products', methods=['POST'])
 def add_product():
+    """Create new product"""
     try:
         data = request.get_json()
-        data['id'] = generate_id('prod')
-        product = Product(**data)
+        product = Product(
+            id=generate_id('prod'),
+            name=data['name'],
+            defaultPrice=data['defaultPrice'],
+            unit=data.get('unit', 'kg')
+        )
         db.session.add(product)
         db.session.commit()
         return jsonify(product.to_dict()), 201
@@ -300,39 +379,45 @@ def add_product():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/products<string:prod_id>', methods=['PUT'])
+@app.route('/api/products/<string:prod_id>', methods=['PUT'])
 def update_product(prod_id):
+    """Update existing product"""
     try:
+        product = Product.query.get(prod_id)
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+        
         data = request.get_json()
-        prod = Product.query.get(prod_id)
-        if not prod:
-            return jsonify({'error': 'Product not found'}), 404
         for key, value in data.items():
-            if hasattr(prod, key):
-                setattr(prod, key, value)
-        db.session.add(prod)
+            if hasattr(product, key) and key != 'id':
+                setattr(product, key, value)
+        
         db.session.commit()
-        return jsonify(prod.to_dict())
+        return jsonify(product.to_dict())
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/products<string:prod_id>', methods=['DELETE'])
+@app.route('/api/products/<string:prod_id>', methods=['DELETE'])
 def delete_product(prod_id):
+    """Delete product"""
     try:
-        prod = Product.query.get(prod_id)
-        if not prod:
+        product = Product.query.get(prod_id)
+        if not product:
             return jsonify({'error': 'Product not found'}), 404
-        db.session.delete(prod)
+        
+        db.session.delete(product)
         db.session.commit()
-        return jsonify({'message': 'Product deleted'}), 200
+        return '', 204
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# --- SUBSCRIPTIONS ENDPOINTS ---
+# --- SUBSCRIPTIONS API ---
+
 @app.route('/api/subscriptions', methods=['GET'])
 def get_subscriptions():
+    """Get all subscriptions"""
     try:
         subs = Subscription.query.all()
         return jsonify([s.to_dict() for s in subs])
@@ -341,62 +426,83 @@ def get_subscriptions():
 
 @app.route('/api/subscriptions', methods=['POST'])
 def add_subscription():
+    """Create new subscription"""
     try:
         data = request.get_json()
         
-        # Map flatName to flatNo if present
+        # Handle flatName field
         if 'flatName' in data and 'flatNo' not in data:
             data['flatNo'] = data.pop('flatName')
+        elif 'flatName' in data:
+            data.pop('flatName')
         
-        data['id'] = generate_id('sub')
-        data['invoiceNumber'] = get_next_invoice_number('subscription')
-        sub = Subscription(**data)
-        db.session.add(sub)
+        subscription = Subscription(
+            id=generate_id('sub'),
+            invoiceNumber=get_next_invoice_number('subscription'),
+            name=data['name'],
+            email=data['email'],
+            phone=data.get('phone', ''),
+            address=data.get('address', ''),
+            flatNo=data.get('flatNo', ''),
+            flatName=data.get('flatName', ''),
+            plan=data['plan'],
+            status=data['status'],
+            startDate=data['startDate'],
+            preferredDeliveryDay=data.get('preferredDeliveryDay', '')
+        )
+        db.session.add(subscription)
         db.session.commit()
-        return jsonify(sub.to_dict()), 201
+        return jsonify(subscription.to_dict()), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/subscriptions/<string:sub_id>', methods=['PUT'])
 def update_subscription(sub_id):
+    """Update subscription"""
     try:
+        subscription = Subscription.query.get(sub_id)
+        if not subscription:
+            return jsonify({'error': 'Subscription not found'}), 404
+        
         data = request.get_json()
         
-        # Map flatName to flatNo if present
-        if 'flatName' in data:
+        # Handle flatName field
+        if 'flatName' in data and 'flatNo' not in data:
             data['flatNo'] = data.pop('flatName')
+        elif 'flatName' in data:
+            data.pop('flatName')
         
-        sub = Subscription.query.get(sub_id)
-        if not sub:
-            return jsonify({'error': 'Subscription not found'}), 404
         for key, value in data.items():
-            if hasattr(sub, key):
-                setattr(sub, key, value)
-        db.session.add(sub)
+            if hasattr(subscription, key) and key != 'id':
+                setattr(subscription, key, value)
+        
         db.session.commit()
-        return jsonify(sub.to_dict())
+        return jsonify(subscription.to_dict())
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-
-@app.route('/api/subscriptions<string:sub_id>', methods=['DELETE'])
+@app.route('/api/subscriptions/<string:sub_id>', methods=['DELETE'])
 def delete_subscription(sub_id):
+    """Delete subscription"""
     try:
-        sub = Subscription.query.get(sub_id)
-        if not sub:
+        subscription = Subscription.query.get(sub_id)
+        if not subscription:
             return jsonify({'error': 'Subscription not found'}), 404
-        db.session.delete(sub)
+        
+        db.session.delete(subscription)
         db.session.commit()
-        return jsonify({'message': 'Subscription deleted'}), 200
+        return '', 204
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# --- SALES ENDPOINTS ---
+# --- SALES API ---
+
 @app.route('/api/sales', methods=['GET'])
 def get_sales():
+    """Get all retail sales"""
     try:
         sales = Sale.query.all()
         return jsonify([s.to_dict() for s in sales])
@@ -405,21 +511,31 @@ def get_sales():
 
 @app.route('/api/sales', methods=['POST'])
 def add_sale():
+    """Create new retail sale"""
     try:
         data = request.get_json()
         warehouse_id = data.get('warehouseId', 'default')
         products_in_sale = data.get('products', [])
         
+        # Check stock availability
         is_available, message = check_stock_availability(products_in_sale, warehouse_id)
         if not is_available:
             return jsonify({'error': message}), 400
         
+        # Deduct inventory
         for p in products_in_sale:
             update_inventory(p['productId'], warehouse_id, -p['quantity'])
         
-        data['id'] = generate_id('sale')
-        data['invoiceNumber'] = get_next_invoice_number('sale')
-        sale = Sale(**data)
+        # Create sale record
+        sale = Sale(
+            id=generate_id('sale'),
+            invoiceNumber=get_next_invoice_number('sale'),
+            customerName=data['customerName'],
+            products=products_in_sale,
+            totalAmount=data['totalAmount'],
+            date=data['date'],
+            status=data['status']
+        )
         db.session.add(sale)
         db.session.commit()
         return jsonify(sale.to_dict()), 201
@@ -427,44 +543,51 @@ def add_sale():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/sales<string:sale_id>', methods=['PUT'])
+@app.route('/api/sales/<string:sale_id>', methods=['PUT'])
 def update_sale(sale_id):
+    """Update retail sale"""
     try:
-        data = request.get_json()
         sale = Sale.query.get(sale_id)
         if not sale:
             return jsonify({'error': 'Sale not found'}), 404
+        
+        data = request.get_json()
         for key, value in data.items():
-            if hasattr(sale, key):
+            if hasattr(sale, key) and key != 'id':
                 setattr(sale, key, value)
-        db.session.add(sale)
+        
         db.session.commit()
         return jsonify(sale.to_dict())
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/sales<string:sale_id>', methods=['DELETE'])
+@app.route('/api/sales/<string:sale_id>', methods=['DELETE'])
 def delete_sale(sale_id):
+    """Delete retail sale and restore inventory"""
     try:
         sale = Sale.query.get(sale_id)
         if not sale:
             return jsonify({'error': 'Sale not found'}), 404
         
         warehouse_id = request.args.get('warehouseId', 'default')
+        
+        # Restore inventory
         for p in sale.products or []:
             update_inventory(p['productId'], warehouse_id, p['quantity'])
         
         db.session.delete(sale)
         db.session.commit()
-        return jsonify({'message': 'Sale deleted'}), 200
+        return '', 204
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# --- WHOLESALE SALES ENDPOINTS ---
+# --- WHOLESALE SALES API ---
+
 @app.route('/api/wholesale-sales', methods=['GET'])
 def get_wholesale_sales():
+    """Get all wholesale sales"""
     try:
         sales = WholesaleSale.query.all()
         return jsonify([s.to_dict() for s in sales])
@@ -473,21 +596,33 @@ def get_wholesale_sales():
 
 @app.route('/api/wholesale-sales', methods=['POST'])
 def add_wholesale_sale():
+    """Create new wholesale sale"""
     try:
         data = request.get_json()
         warehouse_id = data.get('warehouseId', 'default')
         products_in_sale = data.get('products', [])
         
+        # Check stock availability
         is_available, message = check_stock_availability(products_in_sale, warehouse_id)
         if not is_available:
             return jsonify({'error': message}), 400
         
+        # Deduct inventory
         for p in products_in_sale:
             update_inventory(p['productId'], warehouse_id, -p['quantity'])
         
-        data['id'] = generate_id('wsale')
-        data['invoiceNumber'] = get_next_invoice_number('wholesale_sale')
-        sale = WholesaleSale(**data)
+        # Create sale record
+        sale = WholesaleSale(
+            id=generate_id('wsale'),
+            invoiceNumber=get_next_invoice_number('wholesale_sale'),
+            shopName=data['shopName'],
+            contact=data.get('contact', ''),
+            address=data.get('address', ''),
+            products=products_in_sale,
+            totalAmount=data['totalAmount'],
+            date=data['date'],
+            status=data['status']
+        )
         db.session.add(sale)
         db.session.commit()
         return jsonify(sale.to_dict()), 201
@@ -495,44 +630,51 @@ def add_wholesale_sale():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/wholesale-sales<string:sale_id>', methods=['PUT'])
+@app.route('/api/wholesale-sales/<string:sale_id>', methods=['PUT'])
 def update_wholesale_sale(sale_id):
+    """Update wholesale sale"""
     try:
-        data = request.get_json()
         sale = WholesaleSale.query.get(sale_id)
         if not sale:
             return jsonify({'error': 'Wholesale sale not found'}), 404
+        
+        data = request.get_json()
         for key, value in data.items():
-            if hasattr(sale, key):
+            if hasattr(sale, key) and key != 'id':
                 setattr(sale, key, value)
-        db.session.add(sale)
+        
         db.session.commit()
         return jsonify(sale.to_dict())
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/wholesale-sales<string:sale_id>', methods=['DELETE'])
+@app.route('/api/wholesale-sales/<string:sale_id>', methods=['DELETE'])
 def delete_wholesale_sale(sale_id):
+    """Delete wholesale sale and restore inventory"""
     try:
         sale = WholesaleSale.query.get(sale_id)
         if not sale:
             return jsonify({'error': 'Wholesale sale not found'}), 404
         
         warehouse_id = request.args.get('warehouseId', 'default')
+        
+        # Restore inventory
         for p in sale.products or []:
             update_inventory(p['productId'], warehouse_id, p['quantity'])
         
         db.session.delete(sale)
         db.session.commit()
-        return jsonify({'message': 'Wholesale sale deleted'}), 200
+        return '', 204
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# --- EXPENSES ENDPOINTS ---
+# --- EXPENSES API ---
+
 @app.route('/api/expenses', methods=['GET'])
 def get_expenses():
+    """Get all expenses"""
     try:
         expenses = Expense.query.all()
         return jsonify([e.to_dict() for e in expenses])
@@ -541,10 +683,16 @@ def get_expenses():
 
 @app.route('/api/expenses', methods=['POST'])
 def add_expense():
+    """Create new expense"""
     try:
         data = request.get_json()
-        data['id'] = generate_id('exp')
-        expense = Expense(**data)
+        expense = Expense(
+            id=generate_id('exp'),
+            category=data['category'],
+            description=data['description'],
+            amount=data['amount'],
+            date=data['date']
+        )
         db.session.add(expense)
         db.session.commit()
         return jsonify(expense.to_dict()), 201
@@ -552,39 +700,26 @@ def add_expense():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/expenses<string:exp_id>', methods=['PUT'])
-def update_expense(exp_id):
-    try:
-        data = request.get_json()
-        exp = Expense.query.get(exp_id)
-        if not exp:
-            return jsonify({'error': 'Expense not found'}), 404
-        for key, value in data.items():
-            if hasattr(exp, key):
-                setattr(exp, key, value)
-        db.session.add(exp)
-        db.session.commit()
-        return jsonify(exp.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/expenses<string:exp_id>', methods=['DELETE'])
+@app.route('/api/expenses/<string:exp_id>', methods=['DELETE'])
 def delete_expense(exp_id):
+    """Delete expense"""
     try:
-        exp = Expense.query.get(exp_id)
-        if not exp:
+        expense = Expense.query.get(exp_id)
+        if not expense:
             return jsonify({'error': 'Expense not found'}), 404
-        db.session.delete(exp)
+        
+        db.session.delete(expense)
         db.session.commit()
-        return jsonify({'message': 'Expense deleted'}), 200
+        return '', 204
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# --- WAREHOUSES ENDPOINTS ---
+# --- WAREHOUSES API ---
+
 @app.route('/api/warehouses', methods=['GET'])
 def get_warehouses():
+    """Get all warehouses"""
     try:
         warehouses = Warehouse.query.all()
         return jsonify([w.to_dict() for w in warehouses])
@@ -593,9 +728,13 @@ def get_warehouses():
 
 @app.route('/api/warehouses', methods=['POST'])
 def add_warehouse():
+    """Create new warehouse"""
     try:
         data = request.get_json()
-        warehouse = Warehouse(id=generate_id('wh'), name=data['name'])
+        warehouse = Warehouse(
+            id=generate_id('wh'),
+            name=data['name']
+        )
         db.session.add(warehouse)
         db.session.commit()
         return jsonify(warehouse.to_dict()), 201
@@ -603,39 +742,44 @@ def add_warehouse():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/warehouses<string:wh_id>', methods=['PUT'])
+@app.route('/api/warehouses/<string:wh_id>', methods=['PUT'])
 def update_warehouse(wh_id):
+    """Update warehouse"""
     try:
-        data = request.get_json()
-        wh = Warehouse.query.get(wh_id)
-        if not wh:
+        warehouse = Warehouse.query.get(wh_id)
+        if not warehouse:
             return jsonify({'error': 'Warehouse not found'}), 404
-        wh.name = data['name']
-        db.session.add(wh)
+        
+        data = request.get_json()
+        warehouse.name = data['name']
         db.session.commit()
-        return jsonify(wh.to_dict())
+        return jsonify(warehouse.to_dict())
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/warehouses<string:wh_id>', methods=['DELETE'])
+@app.route('/api/warehouses/<string:wh_id>', methods=['DELETE'])
 def delete_warehouse(wh_id):
+    """Delete warehouse (only if empty)"""
     try:
         inventory_items = Inventory.query.filter_by(warehouseId=wh_id).all()
         if any(item.quantity > 0 for item in inventory_items):
             return jsonify({'error': 'Cannot delete warehouse with stock'}), 400
-        wh = Warehouse.query.get(wh_id)
-        if wh:
-            db.session.delete(wh)
+        
+        warehouse = Warehouse.query.get(wh_id)
+        if warehouse:
+            db.session.delete(warehouse)
             db.session.commit()
-        return jsonify({'message': 'Warehouse deleted'}), 200
+        return '', 204
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# --- INVENTORY ENDPOINTS ---
+# --- INVENTORY API ---
+
 @app.route('/api/inventory', methods=['GET'])
 def get_inventory():
+    """Get all inventory with product/warehouse names"""
     try:
         inventory = Inventory.query.all()
         products = {p.id: p for p in Product.query.all()}
@@ -644,21 +788,31 @@ def get_inventory():
         enriched = []
         for item in inventory:
             enriched_item = item.to_dict()
-            enriched_item['productName'] = products.get(item.productId, {}).name if item.productId in products else 'Unknown'
-            enriched_item['warehouseName'] = warehouses.get(item.warehouseId, {}).name if item.warehouseId in warehouses else 'Unknown'
+            enriched_item['productName'] = products[item.productId].name if item.productId in products else 'Unknown'
+            enriched_item['warehouseName'] = warehouses[item.warehouseId].name if item.warehouseId in warehouses else 'Unknown'
             enriched.append(enriched_item)
+        
         return jsonify(enriched)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/inventory/stock', methods=['POST'])
 def add_inventory_stock():
+    """Add stock to inventory"""
     try:
         data = request.get_json()
-        inventory = Inventory.query.filter_by(productId=data['productId'], warehouseId=data['warehouseId']).first()
+        inventory = Inventory.query.filter_by(
+            productId=data['productId'],
+            warehouseId=data['warehouseId']
+        ).first()
         
         if not inventory:
-            inventory = Inventory(id=generate_id('inv'), productId=data['productId'], warehouseId=data['warehouseId'], quantity=data['quantity'])
+            inventory = Inventory(
+                id=generate_id('inv'),
+                productId=data['productId'],
+                warehouseId=data['warehouseId'],
+                quantity=data['quantity']
+            )
             db.session.add(inventory)
         else:
             inventory.quantity += data['quantity']
@@ -669,9 +823,11 @@ def add_inventory_stock():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# --- SALES RETURNS ENDPOINTS ---
+# --- SALES RETURNS API ---
+
 @app.route('/api/sales-returns', methods=['GET'])
 def get_sales_returns():
+    """Get all sales returns"""
     try:
         returns = SalesReturn.query.all()
         return jsonify([r.to_dict() for r in returns])
@@ -680,16 +836,15 @@ def get_sales_returns():
 
 @app.route('/api/sales-returns', methods=['POST'])
 def add_sales_return():
+    """Process sales return and restore inventory"""
     try:
         data = request.get_json()
         
-        # Validate required fields
+        # Validate input
         if not data:
             return jsonify({'error': 'No data provided'}), 400
-        
         if not data.get('saleId'):
             return jsonify({'error': 'Missing required field: saleId'}), 400
-        
         if not data.get('returnedProducts'):
             return jsonify({'error': 'Missing required field: returnedProducts'}), 400
         
@@ -697,12 +852,11 @@ def add_sales_return():
         
         # Add stock back for returned products
         for p in data.get('returnedProducts', []):
-            product_id = p.get('productId') or p.get('id')
+            product_id = p.get('productId')
             quantity = p.get('quantity', 0)
             
             if not product_id:
                 return jsonify({'error': f'Product missing productId: {p}'}), 400
-            
             if quantity <= 0:
                 return jsonify({'error': f'Invalid quantity for product {product_id}'}), 400
             
@@ -719,7 +873,6 @@ def add_sales_return():
         db.session.commit()
         
         return jsonify(sales_return.to_dict()), 201
-    
     except KeyError as e:
         db.session.rollback()
         return jsonify({'error': f'Missing field: {str(e)}'}), 400
@@ -727,77 +880,11 @@ def add_sales_return():
         db.session.rollback()
         return jsonify({'error': f'Internal error: {str(e)}'}), 500
 
-# --- CUSTOMERS ENDPOINT ---
-@app.route('/api/customers', methods=['GET'])
-def get_customers():
-    try:
-        customers_map = {}
-        
-        def get_customer_key(name, phone):
-            return f"{name.lower().strip()}-{phone.strip()}"
-        
-        for sub in Subscription.query.all():
-            key = get_customer_key(sub.name, sub.phone or '')
-            if key not in customers_map:
-                customers_map[key] = {
-                    'id': sub.id,
-                    'name': sub.name,
-                    'types': set(),
-                    'contact': {'email': sub.email, 'phone': sub.phone, 'address': sub.address},
-                    'totalSpent': 0,
-                    'firstActivityDate': sub.startDate,
-                    'lastActivityDate': sub.startDate,
-                    'transactionHistory': []
-                }
-            customers_map[key]['types'].add('Subscription')
-            customers_map[key]['transactionHistory'].append({**sub.to_dict(), 'transactionType': 'Subscription'})
-        
-        for sale in Sale.query.all():
-            key = get_customer_key(sale.customerName, 'NA_RETAIL')
-            if key not in customers_map:
-                customers_map[key] = {
-                    'id': sale.id,
-                    'name': sale.customerName,
-                    'types': set(),
-                    'contact': {'email': '', 'phone': '', 'address': ''},
-                    'totalSpent': 0,
-                    'firstActivityDate': sale.date,
-                    'lastActivityDate': sale.date,
-                    'transactionHistory': []
-                }
-            customers_map[key]['types'].add('Retail')
-            customers_map[key]['totalSpent'] += sale.totalAmount
-            customers_map[key]['transactionHistory'].append({**sale.to_dict(), 'transactionType': 'Retail'})
-        
-        for sale in WholesaleSale.query.all():
-            key = get_customer_key(sale.shopName, sale.contact or '')
-            if key not in customers_map:
-                customers_map[key] = {
-                    'id': sale.id,
-                    'name': sale.shopName,
-                    'types': set(),
-                    'contact': {'email': '', 'phone': sale.contact, 'address': sale.address},
-                    'totalSpent': 0,
-                    'firstActivityDate': sale.date,
-                    'lastActivityDate': sale.date,
-                    'transactionHistory': []
-                }
-            customers_map[key]['types'].add('Wholesale')
-            customers_map[key]['totalSpent'] += sale.totalAmount
-            customers_map[key]['transactionHistory'].append({**sale.to_dict(), 'transactionType': 'Wholesale'})
-        
-        customer_list = list(customers_map.values())
-        for customer in customer_list:
-            customer['types'] = list(customer['types'])
-            customer['transactionHistory'].sort(key=lambda t: t.get('date') or t.get('startDate'), reverse=True)
-        
-        return jsonify(customer_list)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+# --- AGGREGATED DATA APIs ---
 
-# --- DASHBOARD STATS ---
 @app.route('/api/dashboard-stats', methods=['GET'])
 def get_dashboard_stats():
+    """Get dashboard statistics for current month"""
     try:
         current_month_sales = [s for s in Sale.query.all() if is_current_month(s.date)]
         current_month_wholesale = [ws for ws in WholesaleSale.query.all() if is_current_month(ws.date)]
@@ -846,12 +933,87 @@ def get_dashboard_stats():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/customers', methods=['GET'])
+def get_customers():
+    """Get aggregated customer data from all sources"""
+    try:
+        customers_map = {}
+        
+        def get_customer_key(name, phone):
+            return f"{name.lower().strip()}-{phone.strip()}"
+        
+        # Aggregate from subscriptions
+        for sub in Subscription.query.all():
+            key = get_customer_key(sub.name, sub.phone or '')
+            if key not in customers_map:
+                customers_map[key] = {
+                    'id': sub.id,
+                    'name': sub.name,
+                    'types': set(),
+                    'contact': {'email': sub.email, 'phone': sub.phone, 'address': sub.address},
+                    'totalSpent': 0,
+                    'firstActivityDate': sub.startDate,
+                    'lastActivityDate': sub.startDate,
+                    'transactionHistory': []
+                }
+            customers_map[key]['types'].add('Subscription')
+            customers_map[key]['transactionHistory'].append({**sub.to_dict(), 'transactionType': 'Subscription'})
+        
+        # Aggregate from retail sales
+        for sale in Sale.query.all():
+            key = get_customer_key(sale.customerName, 'N/A_RETAIL')
+            if key not in customers_map:
+                customers_map[key] = {
+                    'id': sale.id,
+                    'name': sale.customerName,
+                    'types': set(),
+                    'contact': {'email': '', 'phone': '', 'address': ''},
+                    'totalSpent': 0,
+                    'firstActivityDate': sale.date,
+                    'lastActivityDate': sale.date,
+                    'transactionHistory': []
+                }
+            customers_map[key]['types'].add('Retail')
+            customers_map[key]['totalSpent'] += sale.totalAmount
+            customers_map[key]['transactionHistory'].append({**sale.to_dict(), 'transactionType': 'Retail'})
+        
+        # Aggregate from wholesale sales
+        for sale in WholesaleSale.query.all():
+            key = get_customer_key(sale.shopName, sale.contact or '')
+            if key not in customers_map:
+                customers_map[key] = {
+                    'id': sale.id,
+                    'name': sale.shopName,
+                    'types': set(),
+                    'contact': {'email': '', 'phone': sale.contact, 'address': sale.address},
+                    'totalSpent': 0,
+                    'firstActivityDate': sale.date,
+                    'lastActivityDate': sale.date,
+                    'transactionHistory': []
+                }
+            customers_map[key]['types'].add('Wholesale')
+            customers_map[key]['totalSpent'] += sale.totalAmount
+            customers_map[key]['transactionHistory'].append({**sale.to_dict(), 'transactionType': 'Wholesale'})
+        
+        # Format output
+        customer_list = list(customers_map.values())
+        for customer in customer_list:
+            customer['types'] = list(customer['types'])
+            customer['transactionHistory'].sort(key=lambda t: t.get('date') or t.get('startDate'), reverse=True)
+        
+        return jsonify(customer_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # --- HEALTH CHECK ---
+
 @app.route('/api/health', methods=['GET'])
 def health():
+    """Health check endpoint"""
     return jsonify({'status': 'OK', 'message': 'Backend is running'}), 200
 
 # --- ERROR HANDLERS ---
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({'error': 'Not found'}), 404
@@ -861,16 +1023,16 @@ def internal_error(error):
     db.session.rollback()
     return jsonify({'error': 'Internal server error'}), 500
 
-# --- RUN ---
-if __name__ == '__main__':
+# --- DATABASE INITIALIZATION ---
+
+def init_db():
+    """Initialize database tables"""
     with app.app_context():
         db.create_all()
         print("✓ Database tables created/verified")
-    app.run(debug=True, port=5001)
 
+# --- RUN APPLICATION ---
 
-
-
-
-
-
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=True, port=5001, host='0.0.0.0')
