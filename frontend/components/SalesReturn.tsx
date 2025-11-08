@@ -18,11 +18,12 @@ type CombinedSale = (Sale & { type: 'Retail' }) | (WholesaleSale & { type: 'Whol
 interface ReturnFormProps {
     sale: CombinedSale;
     allReturnsForSale: SalesReturn[];
+    allProducts: Product[];
     onReturn: (updatedSale: Sale | WholesaleSale, salesReturnData: Omit<SalesReturn, 'id'>) => void;
     onCancel: () => void;
 }
 
-const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onReturn, onCancel }) => {
+const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onReturn,allProducts, onCancel }) => {
     const [returnedProducts, setReturnedProducts] = useState<SalesReturnProduct[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<string>('');
     const [currentQty, setCurrentQty] = useState<number>(1);
@@ -135,7 +136,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
         setReturnedProducts(returnedProducts.filter(p => p.name !== productName));
     }
     
-    const handleSubmit = () => {
+   const handleSubmit = () => {
     if (returnedProducts.length === 0) {
         alert("Please add at least one item to the return slip.");
         return;
@@ -151,7 +152,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
     
     const updatedSale = { ...sale, products: newProductsForSale, totalAmount: newTotalAmount };
     
-    // ✅ FIXED: Map returnedProducts to include productId
+    // ✅ Map returnedProducts to include productId
     const returnedProductsWithIds = returnedProducts.map(p => {
         const product = allProducts.find(prod => prod.name === p.name);
         if (!product) {
@@ -159,20 +160,20 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
             throw new Error(`Product not found: ${p.name}`);
         }
         return {
-            productId: product.id,  // ✅ Use product ID
+            productId: product.id,
             quantity: p.quantity
         };
     });
 
     const salesReturnData = {
-        saleId: sale.id,  // ✅ Changed from originalSaleId
-        warehouseId: 'default',  // ✅ Add warehouse
-        returnedProducts: returnedProductsWithIds,  // ✅ Use mapped products
+        returnedProducts: returnedProductsWithIds,  // ✅ Already has productId
+        warehouseId: 'default',
         date: new Date().toISOString().split('T')[0],
     };
 
     onReturn(updatedSale, salesReturnData);
 };
+
 
     const totalRefundAmount = returnedProducts.reduce((sum, p) => sum + p.quantity * p.price, 0);
     const maxQtyForSelectedProduct = getAvailableToReturnQty(selectedProduct);
@@ -517,7 +518,7 @@ const SalesReturn: React.FC = () => {
             </div>
 
              <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Process Sales Return">
-                {selectedSale && <ReturnForm sale={selectedSale} allReturnsForSale={returns.filter(r => r.originalSaleId === selectedSale.id)} onReturn={handleReturn} onCancel={() => setIsModalOpen(false)} />}
+                {selectedSale && <ReturnForm sale={selectedSale} allReturnsForSale={returns.filter(r => r.originalSaleId === selectedSale.id)}  allProducts={allProducts}  onReturn={handleReturn} onCancel={() => setIsModalOpen(false)} />}
             </Modal>
         </div>
     )
