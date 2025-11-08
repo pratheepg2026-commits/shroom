@@ -660,24 +660,54 @@ def get_sales_returns():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/sales-returns', methods=['POST'])
+@app.route('/sales-returns', methods=['POST'])
 def add_sales_return():
     try:
         data = request.get_json()
+        
+        # Validate required fields
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        if not data.get('saleId'):
+            return jsonify({'error': 'Missing required field: saleId'}), 400
+        
+        if not data.get('returnedProducts'):
+            return jsonify({'error': 'Missing required field: returnedProducts'}), 400
+        
         warehouse_id = data.get('warehouseId', 'default')
         
+        # Add stock back for returned products
         for p in data.get('returnedProducts', []):
             product_id = p.get('productId') or p.get('id')
-            if product_id:
-                update_inventory(product_id, warehouse_id, p['quantity'])
+            quantity = p.get('quantity', 0)
+            
+            if not product_id:
+                return jsonify({'error': f'Product missing productId: {p}'}), 400
+            
+            if quantity <= 0:
+                return jsonify({'error': f'Invalid quantity for product {product_id}'}), 400
+            
+            update_inventory(product_id, warehouse_id, quantity)
         
-        sales_return = SalesReturn(id=generate_id('ret'), saleId=data['saleId'], returnedProducts=data['returnedProducts'], date=data['date'])
+        # Create sales return record
+        sales_return = SalesReturn(
+            id=generate_id('ret'),
+            saleId=data['saleId'],
+            returnedProducts=data.get('returnedProducts'),
+            date=data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        )
         db.session.add(sales_return)
         db.session.commit()
+        
         return jsonify(sales_return.to_dict()), 201
+    
+    except KeyError as e:
+        db.session.rollback()
+        return jsonify({'error': f'Missing field: {str(e)}'}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Internal error: {str(e)}'}), 500
 
 # --- CUSTOMERS ENDPOINT ---
 @app.route('/api/customers', methods=['GET'])
@@ -819,4 +849,5 @@ if __name__ == '__main__':
         db.create_all()
         print("✓ Database tables created/verified")
     app.run(debug=True, port=5001)
+
 
