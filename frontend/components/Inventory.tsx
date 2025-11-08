@@ -128,16 +128,16 @@ const Inventory: React.FC = () => {
         fetchData();
     }, [fetchData]);
 
-    const handleAddStock = async (data: { productId: string; warehouseId: string; quantity: number }) => {
-        try {
-            await addStock(stockData);
-            fetchData();
-            setStockModalOpen(false);
-        } catch (err) {
-            console.error(err);
-            alert("Failed to add stock.");
-        }
-    };
+    const handleAddStock = async (stockData: { productId: string; warehouseId: string; quantity: number }) => {
+  try {
+    await addInventoryStock(stockData); // ✅ Now uses stockData correctly
+    await fetchData(); // ✅ Wait for refetch
+    setStockModalOpen(false);
+  } catch (err) {
+    console.error(err);
+    alert('Failed to add stock.');
+  }
+};
 
     const handleSaveWarehouse = async (warehouse: Warehouse | Omit<Warehouse, 'id'>) => {
         try {
