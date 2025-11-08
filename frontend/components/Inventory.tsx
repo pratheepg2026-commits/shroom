@@ -1,6 +1,6 @@
 // Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { getInventory, addInventoryStock, getWarehouses, addWarehouse, deleteWarehouse, getProducts, updateWarehouse } from '../services/api';
+import { getInventory, addStock, getWarehouses, addWarehouse, deleteWarehouse, getProducts, updateWarehouse } from '../services/api';
 import { InventoryItem, Warehouse, Product } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
@@ -130,7 +130,7 @@ const Inventory: React.FC = () => {
 
     const handleAddStock = async (data: { productId: string; warehouseId: string; quantity: number }) => {
         try {
-            await addInventoryStock(data);
+            await addStock(stockData);
             fetchData();
             setStockModalOpen(false);
         } catch (err) {
