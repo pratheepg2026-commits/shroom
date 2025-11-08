@@ -104,6 +104,7 @@ class Subscription(db.Model):
             'phone': self.phone or '',
             'address': self.address or '',
             'flatNo': self.flatNo or '',
+            'flatName': self.flatNo or '',  # ✅ Add this - map to same field
             'plan': self.plan,
             'status': self.status,
             'startDate': self.startDate
@@ -849,6 +850,7 @@ if __name__ == '__main__':
         db.create_all()
         print("✓ Database tables created/verified")
     app.run(debug=True, port=5001)
+
 
 
 
