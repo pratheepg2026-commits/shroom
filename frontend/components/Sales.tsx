@@ -277,6 +277,19 @@ const Sales: React.FC = () => {
         </svg>
     );
 
+  const fetchWarehouses = async () => {
+  try {
+    const data = await getWarehouses();  // Uses getWarehouses, not getInventory
+    setWarehouses(data);
+    if (data.length > 0 && !formData.warehouseId) {
+      setFormData(prev => ({ ...prev, warehouseId: data[0].id }));
+    }
+  } catch (err) {
+    console.error('Failed to fetch warehouses:', err);
+  }
+};
+
+  
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
