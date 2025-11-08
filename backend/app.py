@@ -707,3 +707,54 @@ if __name__ == '__main__':
         db.create_all()
         print("✓ Database tables created/verified")
     app.run(debug=True, port=5001)
+
+@app.route('/api/test-all', methods=['GET'])
+def test_all():
+    """Test all database connections"""
+    from sqlalchemy import inspect
+    inspector = inspect(db.engine)
+    
+    test_results = {
+        'database_tables': {},
+        'api_tests': {}
+    }
+    
+    # Check tables exist
+    for table_name in ['products', 'subscriptions', 'sales', 'wholesale_sales', 
+                       'expenses', 'warehouses', 'inventory', 'sales_returns', 'invoice_counters']:
+        try:
+            if inspector.has_table(table_name):
+                columns = [col['name'] for col in inspector.get_columns(table_name)]
+                test_results['database_tables'][table_name] = {'exists': True, 'columns': columns}
+            else:
+                test_results['database_tables'][table_name] = {'exists': False}
+        except Exception as e:
+            test_results['database_tables'][table_name] = {'error': str(e)}
+    
+    # Test basic operations
+    try:
+        products = Product.query.count()
+        test_results['api_tests']['products'] = f'{products} products found'
+    except Exception as e:
+        test_results['api_tests']['products'] = f'ERROR: {str(e)}'
+    
+    try:
+        subscriptions = Subscription.query.count()
+        test_results['api_tests']['subscriptions'] = f'{subscriptions} subscriptions found'
+    except Exception as e:
+        test_results['api_tests']['subscriptions'] = f'ERROR: {str(e)}'
+    
+    try:
+        sales = Sale.query.count()
+        test_results['api_tests']['sales'] = f'{sales} sales found'
+    except Exception as e:
+        test_results['api_tests']['sales'] = f'ERROR: {str(e)}'
+    
+    try:
+        warehouses = Warehouse.query.count()
+        test_results['api_tests']['warehouses'] = f'{warehouses} warehouses found'
+    except Exception as e:
+        test_results['api_tests']['warehouses'] = f'ERROR: {str(e)}'
+    
+    return jsonify(test_results), 200
+
