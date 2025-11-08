@@ -322,7 +322,14 @@ const SalesReturn: React.FC = () => {
 
     const handleReturn = async (updatedSaleData: Sale | WholesaleSale, salesReturnData: Omit<SalesReturn, 'id'>) => {
         try {
-            await addSalesReturn(salesReturnData);
+             const returnDataWithSaleId = {
+            ...salesReturnData,
+            saleId: updatedSaleData.id,  // ✅ This was missing!
+            warehouseId: salesReturnData.warehouseId || 'default',
+            date: salesReturnData.date || new Date().toISOString().split('T')[0]
+        };
+            
+            await addSalesReturn(returnDataWithSaleId);
 
             const payload = {
                 ...updatedSaleData,
@@ -347,7 +354,7 @@ const SalesReturn: React.FC = () => {
             setIsModalOpen(false);
             setSelectedSale(null);
         } catch (err) {
-            console.error(err);
+            console.error('Return error:', err);
             alert("Failed to process return.");
         }
     }
