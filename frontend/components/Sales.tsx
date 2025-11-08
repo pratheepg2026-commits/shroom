@@ -1,7 +1,18 @@
 // Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSales, addSale, updateSale, deleteSale, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getProducts, getWarehouses } from '../services/api';
-import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale } from '../types';
+import { 
+  getSales, 
+  addSale, 
+  updateSale, 
+  deleteSale, 
+  getWholesaleSales, 
+  addWholesaleSale, 
+  updateWholesaleSale, 
+  deleteWholesaleSale, 
+  getProducts, 
+  getWarehouses,
+  getInventory  // ✅ ADD THIS
+} from '../services/api';import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
 import Modal from './common/Modal';
