@@ -558,16 +558,48 @@ def get_sales_returns():
 
 @app.route('/api/sales-returns', methods=['POST'])
 def add_sales_return():
-    data = request.get_json()
-    warehouse_id = data.get('warehouseId', 'default')
+    try:
+        data = request.get_json()
+        warehouse_id = data.get('warehouseId', 'default')
+        
+        # Validate required fields
+        if not data.get('saleId'):
+            return jsonify({'error': 'Missing saleId'}), 400
+        if not data.get('returnedProducts') or len(data['returnedProducts']) == 0:
+            return jsonify({'error': 'No products to return'}), 400
+        
+        # Add stock back for returned products
+        for p in data.get('returnedProducts', []):
+            # Handle both 'productId' and 'id' field names
+            product_id = p.get('productId') or p.get('id')
+            quantity = p.get('quantity', 0)
+            
+            if not product_id:
+                return jsonify({'error': f'Product ID missing in returned product: {p}'}), 400
+            
+            if quantity <= 0:
+                return jsonify({'error': f'Invalid quantity for product {product_id}'}), 400
+            
+            try:
+                update_inventory(product_id, warehouse_id, quantity)
+            except Exception as e:
+                return jsonify({'error': f'Inventory update failed: {str(e)}'}), 400
+        
+        # Create sales return record
+        sales_return = SalesReturn(
+            id=generate_id('ret'),
+            saleId=data['saleId'],
+            returnedProducts=data.get('returnedProducts'),
+            date=data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        )
+        db.session.add(sales_return)
+        db.session.commit()
+        
+        return jsonify(sales_return.to_dict()), 201
     
-    for p in data.get('returnedProducts', []):
-        update_inventory(p['productId'], warehouse_id, p['quantity'])
-    
-    sales_return = SalesReturn(id=generate_id('ret'), saleId=data['saleId'], returnedProducts=data['returnedProducts'], date=data['date'])
-    db.session.add(sales_return)
-    db.session.commit()
-    return jsonify(sales_return.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 # --- CUSTOMERS ENDPOINT (Aggregated) ---
 @app.route('/api/customers', methods=['GET'])
@@ -757,4 +789,5 @@ def test_all():
         test_results['api_tests']['warehouses'] = f'ERROR: {str(e)}'
     
     return jsonify(test_results), 200
+
 
