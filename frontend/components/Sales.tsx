@@ -297,6 +297,7 @@ const Sales: React.FC = () => {
         try {
             const payload = {
                 ...saleData,
+                warehouseId: 'default', 
                 products: saleData.products.map((p: SaleProduct) => {
                     const product = products.find(prod => prod.name === p.name);
                     return { productId: product ? product.id : null, quantity: p.quantity, price: p.price };
