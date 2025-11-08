@@ -331,62 +331,33 @@ const SalesReturn: React.FC = () => {
     };
 
  const handleReturn = async (
-  updatedSaleData: Sale | WholesaleSale, 
-  salesReturnData: any
+    updatedSaleData: Sale | WholesaleSale, 
+    salesReturnData: any
 ) => {
     try {
-        // Make sure returnedProducts has productId
         const completeReturnData = {
             saleId: updatedSaleData.id,
             warehouseId: salesReturnData.warehouseId || 'default',
-            returnedProducts: salesReturnData.returnedProducts.map((p: any) => {
-                // Get productId from the product
-                const productId = p.productId || p.id;
-                
-                if (!productId) {
-                    console.error('Missing productId for product:', p);
-                    throw new Error(`Product missing ID: ${JSON.stringify(p)}`);
-                }
-                
-                return {
-                    productId: productId,  // ✅ Must include this
-                    quantity: p.quantity || p.returnQuantity || 0
-                };
-            }),
+            returnedProducts: salesReturnData.returnedProducts.map((p: any) => ({
+                productId: p.productId,
+                quantity: p.quantity
+            })),
             date: salesReturnData.date || new Date().toISOString().split('T')[0]
         };
         
         console.log('Submitting return:', completeReturnData);
         await addSalesReturn(completeReturnData);
         
-        // Update the sale with remaining products...
-        const payload = {
-            ...updatedSaleData,
-            products: updatedSaleData.products.map(p => {
-                const product = allProducts.find(prod => prod.name === p.name);
-                return {
-                    productId: product ? product.id : null,
-                    quantity: p.quantity,
-                    price: p.price,
-                };
-            }).filter(p => p.productId !== null),
-        };
-        
-        if ('customerName' in updatedSaleData) {
-            await updateSale(payload as any);
-        } else {
-            await updateWholesaleSale(payload as any);
-        }
-
-        alert("✓ Return processed successfully!");
-        fetchData();
+        alert("✓ Return processed successfully! Inventory has been updated.");
+        await fetchData();
         setIsModalOpen(false);
         setSelectedSale(null);
     } catch (err: any) {
         console.error('Return error:', err);
-        alert(`Failed: ${err.message || err}`);
+        alert(`Failed to process return: ${err.message || err}`);
     }
 }
+
 
     const handleExportCSV = () => {
         setIsExportingCSV(true);
