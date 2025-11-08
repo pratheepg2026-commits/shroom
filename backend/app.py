@@ -337,6 +337,11 @@ def get_subscriptions():
 def add_subscription():
     try:
         data = request.get_json()
+        
+        # Map flatName to flatNo if present
+        if 'flatName' in data and 'flatNo' not in data:
+            data['flatNo'] = data.pop('flatName')
+        
         data['id'] = generate_id('sub')
         data['invoiceNumber'] = get_next_invoice_number('subscription')
         sub = Subscription(**data)
@@ -347,10 +352,15 @@ def add_subscription():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/subscriptions<string:sub_id>', methods=['PUT'])
+@app.route('/api/subscriptions/<string:sub_id>', methods=['PUT'])
 def update_subscription(sub_id):
     try:
         data = request.get_json()
+        
+        # Map flatName to flatNo if present
+        if 'flatName' in data:
+            data['flatNo'] = data.pop('flatName')
+        
         sub = Subscription.query.get(sub_id)
         if not sub:
             return jsonify({'error': 'Subscription not found'}), 404
@@ -363,6 +373,7 @@ def update_subscription(sub_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/subscriptions<string:sub_id>', methods=['DELETE'])
 def delete_subscription(sub_id):
@@ -850,6 +861,7 @@ if __name__ == '__main__':
         db.create_all()
         print("✓ Database tables created/verified")
     app.run(debug=True, port=5001)
+
 
 
 
