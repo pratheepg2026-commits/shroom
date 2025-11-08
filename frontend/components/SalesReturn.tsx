@@ -320,16 +320,22 @@ const SalesReturn: React.FC = () => {
         setFilteredSales(results);
     };
 
-    const handleReturn = async (updatedSaleData: Sale | WholesaleSale, salesReturnData: Omit<SalesReturn, 'id'>) => {
-        try {
-             const returnDataWithSaleId = {
-            ...salesReturnData,
-            saleId: updatedSaleData.id,  // ✅ This was missing!
+   const handleReturn = async (
+  updatedSaleData: Sale | WholesaleSale, 
+  salesReturnData: any
+) => {
+    try {
+        const completeReturnData = {
+            saleId: updatedSaleData.id,  // ✅ Must include this
             warehouseId: salesReturnData.warehouseId || 'default',
+            returnedProducts: salesReturnData.returnedProducts.map((p: any) => ({
+                productId: p.productId,
+                quantity: p.quantity
+            })),
             date: salesReturnData.date || new Date().toISOString().split('T')[0]
         };
-            
-            await addSalesReturn(returnDataWithSaleId);
+        
+        await addSalesReturn(completeReturnData);
 
             const payload = {
                 ...updatedSaleData,
