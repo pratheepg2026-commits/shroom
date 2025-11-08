@@ -110,14 +110,14 @@ export interface InventoryItem {
 }
 
 export interface SalesReturnProduct {
-    name: string;
+    productId: string;
     quantity: number;
-    price: number;
+    
 }
 
 export interface SalesReturn {
     id: string;
-    originalSaleId: string;
+    SaleId: string;
     originalInvoiceNumber: string;
     customerName: string; // Could be customer or shop name
     returnedProducts: SalesReturnProduct[];
