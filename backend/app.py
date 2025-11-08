@@ -36,7 +36,13 @@ load_dotenv()
 
 # --- INITIALIZE FLASK ---
 app = Flask(__name__)
-CORS(app)
+CORS(app, 
+     origins=["https://shroomfrontend.onrender.com", "http://localhost:5173", "http://localhost:3000"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"],
+     supports_credentials=True,
+     max_age=3600)
+
 
 # --- DATABASE CONFIGURATION ---
 db_user = os.getenv('DB_USER', 'postgres')
@@ -861,6 +867,7 @@ if __name__ == '__main__':
         db.create_all()
         print("✓ Database tables created/verified")
     app.run(debug=True, port=5001)
+
 
 
 
