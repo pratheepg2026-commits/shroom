@@ -1,13 +1,13 @@
 """
 Mushroom Business Management System - Backend API
 Flask + SQLAlchemy + PostgreSQL (Supabase)
+Production-Ready Version
 """
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from collections import defaultdict
 import os
 import time
 import random
@@ -18,7 +18,6 @@ from urllib.parse import quote_plus
 try:
     from dotenv import load_dotenv
 except ImportError:
-    # Fallback dotenv implementation
     def load_dotenv(dotenv_path='.env', override=False):
         try:
             if not os.path.exists(dotenv_path):
@@ -47,7 +46,7 @@ app = Flask(__name__)
 # Enable CORS for all routes and methods
 CORS(app, resources={
     r"/*": {
-        "origins": ["*"],  # In production, restrict to your frontend domain
+        "origins": ["*"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True,
@@ -123,11 +122,9 @@ class Subscription(db.Model):
     phone = db.Column(db.String(20), default='')
     address = db.Column(db.String(200), default='')
     flatNo = db.Column('flat_no', db.String(50), default='')
-    flatName = db.Column('flat_name', db.String(100), default='')
     plan = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     startDate = db.Column('start_date', db.String(50), nullable=False)
-    preferredDeliveryDay = db.Column('preferred_delivery_day', db.String(50), default='')
 
     def to_dict(self):
         return {
@@ -138,11 +135,10 @@ class Subscription(db.Model):
             'phone': self.phone or '',
             'address': self.address or '',
             'flatNo': self.flatNo or '',
-            'flatName': self.flatName or '',
+            'flatName': self.flatNo or '',  # Alias for frontend compatibility
             'plan': self.plan,
             'status': self.status,
-            'startDate': self.startDate,
-            'preferredDeliveryDay': self.preferredDeliveryDay or ''
+            'startDate': self.startDate
         }
 
 class Sale(db.Model):
@@ -430,11 +426,14 @@ def add_subscription():
     try:
         data = request.get_json()
         
-        # Handle flatName field
-        if 'flatName' in data and 'flatNo' not in data:
-            data['flatNo'] = data.pop('flatName')
-        elif 'flatName' in data:
+        # Map flatName to flatNo if present
+        if 'flatName' in data:
+            if 'flatNo' not in data:
+                data['flatNo'] = data['flatName']
             data.pop('flatName')
+        
+        # Remove extra fields not in database
+        data.pop('preferredDeliveryDay', None)
         
         subscription = Subscription(
             id=generate_id('sub'),
@@ -444,11 +443,9 @@ def add_subscription():
             phone=data.get('phone', ''),
             address=data.get('address', ''),
             flatNo=data.get('flatNo', ''),
-            flatName=data.get('flatName', ''),
             plan=data['plan'],
             status=data['status'],
-            startDate=data['startDate'],
-            preferredDeliveryDay=data.get('preferredDeliveryDay', '')
+            startDate=data['startDate']
         )
         db.session.add(subscription)
         db.session.commit()
@@ -467,11 +464,14 @@ def update_subscription(sub_id):
         
         data = request.get_json()
         
-        # Handle flatName field
-        if 'flatName' in data and 'flatNo' not in data:
-            data['flatNo'] = data.pop('flatName')
-        elif 'flatName' in data:
+        # Map flatName to flatNo if present
+        if 'flatName' in data:
+            if 'flatNo' not in data:
+                data['flatNo'] = data['flatName']
             data.pop('flatName')
+        
+        # Remove extra fields
+        data.pop('preferredDeliveryDay', None)
         
         for key, value in data.items():
             if hasattr(subscription, key) and key != 'id':
