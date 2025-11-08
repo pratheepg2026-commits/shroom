@@ -274,12 +274,12 @@ def check_stock_availability(products_list, warehouse_id):
     return True, ""
 
 # --- PRODUCTS ENDPOINTS ---
-@app.route('/products', methods=['GET'])
+@app.route('/api/products', methods=['GET'])
 def get_products():
     products = Product.query.all()
     return jsonify([p.to_dict() for p in products])
 
-@app.route('/products', methods=['POST'])
+@app.route('/api/products', methods=['POST'])
 def add_product():
     data = request.get_json()
     data['id'] = generate_id('prod')
@@ -288,7 +288,7 @@ def add_product():
     db.session.commit()
     return jsonify(product.to_dict()), 201
 
-@app.route('/products/<string:prod_id>', methods=['PUT'])
+@app.route('/api/products/<string:prod_id>', methods=['PUT'])
 def update_product(prod_id):
     data = request.get_json()
     prod = Product.query.get(prod_id)
@@ -300,7 +300,7 @@ def update_product(prod_id):
     db.session.commit()
     return jsonify(prod.to_dict())
 
-@app.route('/products/<string:prod_id>', methods=['DELETE'])
+@app.route('/api/products/<string:prod_id>', methods=['DELETE'])
 def delete_product(prod_id):
     prod = Product.query.get(prod_id)
     if not prod:
@@ -310,12 +310,12 @@ def delete_product(prod_id):
     return jsonify({'message': 'Product deleted'}), 200
 
 # --- SUBSCRIPTIONS ENDPOINTS ---
-@app.route('/subscriptions', methods=['GET'])
+@app.route('/api/subscriptions', methods=['GET'])
 def get_subscriptions():
     subs = Subscription.query.all()
     return jsonify([s.to_dict() for s in subs])
 
-@app.route('/subscriptions', methods=['POST'])
+@app.route('/api/subscriptions', methods=['POST'])
 def add_subscription():
     data = request.get_json()
     data['id'] = generate_id('sub')
@@ -325,7 +325,7 @@ def add_subscription():
     db.session.commit()
     return jsonify(sub.to_dict()), 201
 
-@app.route('/subscriptions/<string:sub_id>', methods=['PUT'])
+@app.route('/api/subscriptions/<string:sub_id>', methods=['PUT'])
 def update_subscription(sub_id):
     data = request.get_json()
     sub = Subscription.query.get(sub_id)
@@ -337,7 +337,7 @@ def update_subscription(sub_id):
     db.session.commit()
     return jsonify(sub.to_dict())
 
-@app.route('/subscriptions/<string:sub_id>', methods=['DELETE'])
+@app.route('/api/subscriptions/<string:sub_id>', methods=['DELETE'])
 def delete_subscription(sub_id):
     sub = Subscription.query.get(sub_id)
     if not sub:
@@ -347,12 +347,12 @@ def delete_subscription(sub_id):
     return jsonify({'message': 'Subscription deleted'}), 200
 
 # --- SALES ENDPOINTS ---
-@app.route('/sales', methods=['GET'])
+@app.route('/api/sales', methods=['GET'])
 def get_sales():
     sales = Sale.query.all()
     return jsonify([s.to_dict() for s in sales])
 
-@app.route('/sales', methods=['POST'])
+@app.route('/api/sales', methods=['POST'])
 def add_sale():
     data = request.get_json()
     warehouse_id = data.get('warehouseId', 'default')
@@ -372,7 +372,7 @@ def add_sale():
     db.session.commit()
     return jsonify(sale.to_dict()), 201
 
-@app.route('/sales/<string:sale_id>', methods=['PUT'])
+@app.route('/api/sales/<string:sale_id>', methods=['PUT'])
 def update_sale(sale_id):
     data = request.get_json()
     sale = Sale.query.get(sale_id)
@@ -384,7 +384,7 @@ def update_sale(sale_id):
     db.session.commit()
     return jsonify(sale.to_dict())
 
-@app.route('/sales/<string:sale_id>', methods=['DELETE'])
+@app.route('/api/sales/<string:sale_id>', methods=['DELETE'])
 def delete_sale(sale_id):
     sale = Sale.query.get(sale_id)
     if not sale:
@@ -399,12 +399,12 @@ def delete_sale(sale_id):
     return jsonify({'message': 'Sale deleted'}), 200
 
 # --- WHOLESALE SALES ENDPOINTS ---
-@app.route('/wholesale-sales', methods=['GET'])
+@app.route('/api/wholesale-sales', methods=['GET'])
 def get_wholesale_sales():
     sales = WholesaleSale.query.all()
     return jsonify([s.to_dict() for s in sales])
 
-@app.route('/wholesale-sales', methods=['POST'])
+@app.route('/api/wholesale-sales', methods=['POST'])
 def add_wholesale_sale():
     data = request.get_json()
     warehouse_id = data.get('warehouseId', 'default')
@@ -424,7 +424,7 @@ def add_wholesale_sale():
     db.session.commit()
     return jsonify(sale.to_dict()), 201
 
-@app.route('/wholesale-sales/<string:sale_id>', methods=['PUT'])
+@app.route('/api/wholesale-sales/<string:sale_id>', methods=['PUT'])
 def update_wholesale_sale(sale_id):
     data = request.get_json()
     sale = WholesaleSale.query.get(sale_id)
@@ -436,7 +436,7 @@ def update_wholesale_sale(sale_id):
     db.session.commit()
     return jsonify(sale.to_dict())
 
-@app.route('/wholesale-sales/<string:sale_id>', methods=['DELETE'])
+@app.route('/api/wholesale-sales/<string:sale_id>', methods=['DELETE'])
 def delete_wholesale_sale(sale_id):
     sale = WholesaleSale.query.get(sale_id)
     if not sale:
@@ -451,12 +451,12 @@ def delete_wholesale_sale(sale_id):
     return jsonify({'message': 'Wholesale sale deleted'}), 200
 
 # --- EXPENSES ENDPOINTS ---
-@app.route('/expenses', methods=['GET'])
+@app.route('/api/expenses', methods=['GET'])
 def get_expenses():
     expenses = Expense.query.all()
     return jsonify([e.to_dict() for e in expenses])
 
-@app.route('/expenses', methods=['POST'])
+@app.route('/api/expenses', methods=['POST'])
 def add_expense():
     data = request.get_json()
     data['id'] = generate_id('exp')
@@ -465,7 +465,7 @@ def add_expense():
     db.session.commit()
     return jsonify(expense.to_dict()), 201
 
-@app.route('/expenses/<string:exp_id>', methods=['PUT'])
+@app.route('/api/expenses/<string:exp_id>', methods=['PUT'])
 def update_expense(exp_id):
     data = request.get_json()
     exp = Expense.query.get(exp_id)
@@ -477,7 +477,7 @@ def update_expense(exp_id):
     db.session.commit()
     return jsonify(exp.to_dict())
 
-@app.route('/expenses/<string:exp_id>', methods=['DELETE'])
+@app.route('/api/expenses/<string:exp_id>', methods=['DELETE'])
 def delete_expense(exp_id):
     exp = Expense.query.get(exp_id)
     if not exp:
@@ -487,12 +487,12 @@ def delete_expense(exp_id):
     return jsonify({'message': 'Expense deleted'}), 200
 
 # --- WAREHOUSES ENDPOINTS ---
-@app.route('/warehouses', methods=['GET'])
+@app.route('/api/warehouses', methods=['GET'])
 def get_warehouses():
     warehouses = Warehouse.query.all()
     return jsonify([w.to_dict() for w in warehouses])
 
-@app.route('/warehouses', methods=['POST'])
+@app.route('/api/warehouses', methods=['POST'])
 def add_warehouse():
     data = request.get_json()
     warehouse = Warehouse(id=generate_id('wh'), name=data['name'])
@@ -510,7 +510,7 @@ def update_warehouse(wh_id):
     db.session.commit()
     return jsonify(wh.to_dict())
 
-@app.route('/warehouses/<string:wh_id>', methods=['DELETE'])
+@app.route('/api/warehouses/<string:wh_id>', methods=['DELETE'])
 def delete_warehouse(wh_id):
     inventory_items = Inventory.query.filter_by(warehouseId=wh_id).all()
     if any(item.quantity > 0 for item in inventory_items):
@@ -522,7 +522,7 @@ def delete_warehouse(wh_id):
     return jsonify({'message': 'Warehouse deleted'}), 200
 
 # --- INVENTORY ENDPOINTS ---
-@app.route('/inventory', methods=['GET'])
+@app.route('/api/inventory', methods=['GET'])
 def get_inventory():
     inventory = Inventory.query.all()
     products = {p.id: p for p in Product.query.all()}
@@ -536,7 +536,7 @@ def get_inventory():
         enriched.append(enriched_item)
     return jsonify(enriched)
 
-@app.route('/inventory/stock', methods=['POST'])
+@app.route('/api/inventory/stock', methods=['POST'])
 def add_inventory_stock():
     data = request.get_json()
     inventory = Inventory.query.filter_by(productId=data['productId'], warehouseId=data['warehouseId']).first()
@@ -551,12 +551,12 @@ def add_inventory_stock():
     return jsonify(inventory.to_dict()), 201
 
 # --- SALES RETURNS ENDPOINTS ---
-@app.route('/sales-returns', methods=['GET'])
+@app.route('/api/sales-returns', methods=['GET'])
 def get_sales_returns():
     returns = SalesReturn.query.all()
     return jsonify([r.to_dict() for r in returns])
 
-@app.route('/sales-returns', methods=['POST'])
+@app.route('/api/sales-returns', methods=['POST'])
 def add_sales_return():
     try:
         data = request.get_json()
@@ -602,7 +602,7 @@ def add_sales_return():
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 # --- CUSTOMERS ENDPOINT (Aggregated) ---
-@app.route('/customers', methods=['GET'])
+@app.route('/api/customers', methods=['GET'])
 def get_customers():
     customers_map = {}
     
@@ -671,7 +671,7 @@ def get_customers():
     return jsonify(customer_list)
 
 # --- DASHBOARD STATS ---
-@app.route('/dashboard-stats', methods=['GET'])
+@app.route('/api/dashboard-stats', methods=['GET'])
 def get_dashboard_stats():
     current_month_sales = [s for s in Sale.query.all() if is_current_month(s.date)]
     current_month_wholesale = [ws for ws in WholesaleSale.query.all() if is_current_month(ws.date)]
@@ -719,7 +719,7 @@ def get_dashboard_stats():
     return jsonify(stats)
 
 # --- HEALTH CHECK ---
-@app.route('/health', methods=['GET'])
+@app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({'status': 'OK', 'message': 'Backend is running'}), 200
 
@@ -789,6 +789,4 @@ def test_all():
         test_results['api_tests']['warehouses'] = f'ERROR: {str(e)}'
     
     return jsonify(test_results), 200
-
-
 
