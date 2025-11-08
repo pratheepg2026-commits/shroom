@@ -12,7 +12,7 @@ import {
   Customer,
 } from '../types';
 
-const BASE_URL = 'https://shroommush.onrender.com/api'; // Base URL for the new Flask backend
+const BASE_URL = 'https://shroommush.onrender.com'; // Base URL for the new Flask backend
 
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
