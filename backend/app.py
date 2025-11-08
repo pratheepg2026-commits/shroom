@@ -293,7 +293,7 @@ def add_product():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/products/api/<string:prod_id>', methods=['PUT'])
+@app.route('/api/products<string:prod_id>', methods=['PUT'])
 def update_product(prod_id):
     try:
         data = request.get_json()
@@ -310,7 +310,7 @@ def update_product(prod_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/products/api/<string:prod_id>', methods=['DELETE'])
+@app.route('/api/products<string:prod_id>', methods=['DELETE'])
 def delete_product(prod_id):
     try:
         prod = Product.query.get(prod_id)
@@ -346,7 +346,7 @@ def add_subscription():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/subscriptions/api/<string:sub_id>', methods=['PUT'])
+@app.route('/api/subscriptions<string:sub_id>', methods=['PUT'])
 def update_subscription(sub_id):
     try:
         data = request.get_json()
@@ -363,7 +363,7 @@ def update_subscription(sub_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/subscriptions/api/<string:sub_id>', methods=['DELETE'])
+@app.route('/api/subscriptions<string:sub_id>', methods=['DELETE'])
 def delete_subscription(sub_id):
     try:
         sub = Subscription.query.get(sub_id)
@@ -409,7 +409,7 @@ def add_sale():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/sales/api/<string:sale_id>', methods=['PUT'])
+@app.route('/api/sales<string:sale_id>', methods=['PUT'])
 def update_sale(sale_id):
     try:
         data = request.get_json()
@@ -426,7 +426,7 @@ def update_sale(sale_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/sales/api/<string:sale_id>', methods=['DELETE'])
+@app.route('/api/sales<string:sale_id>', methods=['DELETE'])
 def delete_sale(sale_id):
     try:
         sale = Sale.query.get(sale_id)
@@ -477,7 +477,7 @@ def add_wholesale_sale():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/wholesale-sales/api/<string:sale_id>', methods=['PUT'])
+@app.route('/api/wholesale-sales<string:sale_id>', methods=['PUT'])
 def update_wholesale_sale(sale_id):
     try:
         data = request.get_json()
@@ -494,7 +494,7 @@ def update_wholesale_sale(sale_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/wholesale-sales/api/<string:sale_id>', methods=['DELETE'])
+@app.route('/api/wholesale-sales<string:sale_id>', methods=['DELETE'])
 def delete_wholesale_sale(sale_id):
     try:
         sale = WholesaleSale.query.get(sale_id)
@@ -534,7 +534,7 @@ def add_expense():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/expenses/api/<string:exp_id>', methods=['PUT'])
+@app.route('/api/expenses<string:exp_id>', methods=['PUT'])
 def update_expense(exp_id):
     try:
         data = request.get_json()
@@ -551,7 +551,7 @@ def update_expense(exp_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/expenses/api/<string:exp_id>', methods=['DELETE'])
+@app.route('/api/expenses<string:exp_id>', methods=['DELETE'])
 def delete_expense(exp_id):
     try:
         exp = Expense.query.get(exp_id)
@@ -585,7 +585,7 @@ def add_warehouse():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/warehouses/api/<string:wh_id>', methods=['PUT'])
+@app.route('/api/warehouses<string:wh_id>', methods=['PUT'])
 def update_warehouse(wh_id):
     try:
         data = request.get_json()
@@ -600,7 +600,7 @@ def update_warehouse(wh_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/warehouses/api/<string:wh_id>', methods=['DELETE'])
+@app.route('/api/warehouses<string:wh_id>', methods=['DELETE'])
 def delete_warehouse(wh_id):
     try:
         inventory_items = Inventory.query.filter_by(warehouseId=wh_id).all()
@@ -633,7 +633,7 @@ def get_inventory():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/inventory/api/stock', methods=['POST'])
+@app.route('/api/inventory/stock', methods=['POST'])
 def add_inventory_stock():
     try:
         data = request.get_json()
@@ -660,7 +660,7 @@ def get_sales_returns():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/sales-returns', methods=['POST'])
+@app.route('/api/sales-returns', methods=['POST'])
 def add_sales_return():
     try:
         data = request.get_json()
@@ -735,7 +735,7 @@ def get_customers():
             customers_map[key]['transactionHistory'].append({**sub.to_dict(), 'transactionType': 'Subscription'})
         
         for sale in Sale.query.all():
-            key = get_customer_key(sale.customerName, 'N/api/A_RETAIL')
+            key = get_customer_key(sale.customerName, 'NA_RETAIL')
             if key not in customers_map:
                 customers_map[key] = {
                     'id': sale.id,
@@ -849,5 +849,6 @@ if __name__ == '__main__':
         db.create_all()
         print("✓ Database tables created/verified")
     app.run(debug=True, port=5001)
+
 
 
