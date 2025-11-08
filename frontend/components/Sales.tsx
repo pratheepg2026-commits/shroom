@@ -1,6 +1,6 @@
 // Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSales, addSale, updateSale, deleteSale, getProducts, getInventory, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale } from '../services/api';
+import { getSales, addSale, updateSale, deleteSale, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getProducts, getWarehouses } from '../services/api';
 import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
@@ -45,13 +45,10 @@ const SaleForm: React.FC<{
     totalAmount: 0,
     date: getLocalDateString(new Date()),
     status: 'Cash' as SaleStatus,
+    warehouseId: '', // ✅ ADD THIS
     ...(sale || {})
   });
-  const [currentProduct, setCurrentProduct] = useState('');
-  const [currentQty, setCurrentQty] = useState(1);
-  const [currentPrice, setCurrentPrice] = useState(0);
-  const [saleTiming, setSaleTiming] = useState<'immediate' | 'scheduled'>('immediate');
-  
+
   useEffect(() => {
     if (sale) {
         setSaleType(sale.type);
