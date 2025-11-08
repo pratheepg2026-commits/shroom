@@ -290,20 +290,20 @@ def add_product():
 
 @app.route('/api/products/<string:prod_id>', methods=['PUT'])
 def update_product(prod_id):
-try:
-    data = request.get_json()
-    prod = Product.query.get(prod_id)
-    if not prod:
-        return jsonify({'error': 'Product not found'}), 404
-    for key, value in data.items():
-        if hasattr(prod, key):
-            setattr(prod, key, value)
-    db.session.add(prod)
-    db.session.commit()
-    return jsonify(prod.to_dict())
+    try:
+        data = request.get_json()
+        prod = Product.query.get(prod_id)
+        if not prod:
+            return jsonify({'error': 'Product not found'}), 404
+        for key, value in data.items():
+            if hasattr(prod, key):
+                setattr(prod, key, value)
+        db.session.add(prod)
+        db.session.commit()
+        return jsonify(prod.to_dict())
 except Exception as e:
-    db.session.rollback()
-    return jsonify({'error': f'Update failed: {str(e)}'}), 500
+        db.session.rollback()
+        return jsonify({'error': f'Update failed: {str(e)}'}), 500
 
 @app.route('/api/products/<string:prod_id>', methods=['DELETE'])
 def delete_product(prod_id):
@@ -799,5 +799,6 @@ def test_all():
         test_results['api_tests']['warehouses'] = f'ERROR: {str(e)}'
     
     return jsonify(test_results), 200
+
 
 
