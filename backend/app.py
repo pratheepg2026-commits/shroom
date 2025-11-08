@@ -290,6 +290,7 @@ def add_product():
 
 @app.route('/api/products/<string:prod_id>', methods=['PUT'])
 def update_product(prod_id):
+try:
     data = request.get_json()
     prod = Product.query.get(prod_id)
     if not prod:
@@ -297,8 +298,12 @@ def update_product(prod_id):
     for key, value in data.items():
         if hasattr(prod, key):
             setattr(prod, key, value)
+    db.session.add(prod)
     db.session.commit()
     return jsonify(prod.to_dict())
+except Exception as e:
+    db.session.rollback()
+    return jsonify({'error': f'Update failed: {str(e)}'}), 500
 
 @app.route('/api/products/<string:prod_id>', methods=['DELETE'])
 def delete_product(prod_id):
@@ -334,6 +339,7 @@ def update_subscription(sub_id):
     for key, value in data.items():
         if hasattr(sub, key):
             setattr(sub, key, value)
+    db.session.add(sub)
     db.session.commit()
     return jsonify(sub.to_dict())
 
@@ -381,6 +387,7 @@ def update_sale(sale_id):
     for key, value in data.items():
         if hasattr(sale, key):
             setattr(sale, key, value)
+    db.session.add(sale)
     db.session.commit()
     return jsonify(sale.to_dict())
 
@@ -433,6 +440,7 @@ def update_wholesale_sale(sale_id):
     for key, value in data.items():
         if hasattr(sale, key):
             setattr(sale, key, value)
+    db.session.add(sale)
     db.session.commit()
     return jsonify(sale.to_dict())
 
@@ -474,6 +482,7 @@ def update_expense(exp_id):
     for key, value in data.items():
         if hasattr(exp, key):
             setattr(exp, key, value)
+    db.session.add(exp)
     db.session.commit()
     return jsonify(exp.to_dict())
 
@@ -507,6 +516,7 @@ def update_warehouse(wh_id):
     if not wh:
         return jsonify({'error': 'Warehouse not found'}), 404
     wh.name = data['name']
+    db.session.add(wh)
     db.session.commit()
     return jsonify(wh.to_dict())
 
@@ -789,4 +799,5 @@ def test_all():
         test_results['api_tests']['warehouses'] = f'ERROR: {str(e)}'
     
     return jsonify(test_results), 200
+
 
