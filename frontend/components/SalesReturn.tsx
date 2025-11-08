@@ -136,35 +136,44 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
     }
     
     const handleSubmit = () => {
-        if (returnedProducts.length === 0) {
-            alert("Please add at least one item to the return slip.");
-            return;
-        }
+    if (returnedProducts.length === 0) {
+        alert("Please add at least one item to the return slip.");
+        return;
+    }
 
-        const newProductsForSale = sale.products.map(p => {
-            const returnedItem = returnedProducts.find(ret => ret.name === p.name);
-            const returnedQty = returnedItem ? returnedItem.quantity : 0;
-            return { ...p, quantity: p.quantity - returnedQty };
-        }).filter(p => p.quantity > 0);
+    const newProductsForSale = sale.products.map(p => {
+        const returnedItem = returnedProducts.find(ret => ret.name === p.name);
+        const returnedQty = returnedItem ? returnedItem.quantity : 0;
+        return { ...p, quantity: p.quantity - returnedQty };
+    }).filter(p => p.quantity > 0);
 
-        const newTotalAmount = newProductsForSale.reduce((sum, p) => sum + p.price * p.quantity, 0);
-        
-        const updatedSale = { ...sale, products: newProductsForSale, totalAmount: newTotalAmount };
-        
-        const totalRefundAmount = returnedProducts.reduce((sum, p) => sum + p.price * p.quantity, 0);
-
-        const salesReturnData: Omit<SalesReturn, 'id'> = {
-            originalSaleId: sale.id,
-            originalInvoiceNumber: sale.invoiceNumber,
-            customerName: 'customerName' in sale ? sale.customerName : sale.shopName,
-            returnedProducts,
-            totalRefundAmount,
-            date: new Date().toISOString().split('T')[0],
-        };
-
-        onReturn(updatedSale, salesReturnData);
-    };
+    const newTotalAmount = newProductsForSale.reduce((sum, p) => sum + p.price * p.quantity, 0);
     
+    const updatedSale = { ...sale, products: newProductsForSale, totalAmount: newTotalAmount };
+    
+    // ✅ FIXED: Map returnedProducts to include productId
+    const returnedProductsWithIds = returnedProducts.map(p => {
+        const product = allProducts.find(prod => prod.name === p.name);
+        if (!product) {
+            console.error('Product not found:', p.name);
+            throw new Error(`Product not found: ${p.name}`);
+        }
+        return {
+            productId: product.id,  // ✅ Use product ID
+            quantity: p.quantity
+        };
+    });
+
+    const salesReturnData = {
+        saleId: sale.id,  // ✅ Changed from originalSaleId
+        warehouseId: 'default',  // ✅ Add warehouse
+        returnedProducts: returnedProductsWithIds,  // ✅ Use mapped products
+        date: new Date().toISOString().split('T')[0],
+    };
+
+    onReturn(updatedSale, salesReturnData);
+};
+
     const totalRefundAmount = returnedProducts.reduce((sum, p) => sum + p.quantity * p.price, 0);
     const maxQtyForSelectedProduct = getAvailableToReturnQty(selectedProduct);
 
