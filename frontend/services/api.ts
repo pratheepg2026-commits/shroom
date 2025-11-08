@@ -61,6 +61,7 @@ export const deleteWarehouse = (id: string): Promise<void> => apiRequest(`/wareh
 // Inventory API
 export const getInventory = (): Promise<any[]> => apiRequest('/inventory');
 export const addStock = (data: any): Promise<any> => apiRequest('/inventory/stock', { method: 'POST', body: JSON.stringify(data) });
+export const addInventoryStock = addStock; // ✅ Alias for backward compatibility
 
 // Sales Returns API
 export const getSalesReturns = (): Promise<any[]> => apiRequest('/sales-returns');
