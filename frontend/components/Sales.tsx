@@ -1,7 +1,6 @@
-// Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSales, addSale, updateSale, deleteSale, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getProducts, getWarehouses } from '../services/api';
-import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale } from '../types';
+import { getSales, addSale, updateSale, deleteSale, getProducts, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getWarehouses } from '../services/api';
+import { Sale, Product, SaleProduct, SaleStatus, WholesaleSale, Warehouse } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
 import Modal from './common/Modal';
@@ -17,476 +16,462 @@ const LoadingSpinner = () => (
 );
 
 const getLocalDateString = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
-const SaleForm: React.FC<{
-  sale: CombinedSale | null;
-  products: Product[];
-  inventory: InventoryItem[];
-  onSave: (saleData: any, saleType: 'Retail' | 'Wholesale') => void;
-  onCancel: () => void;
-}> = ({ sale, products, inventory, onSave, onCancel }) => {
-  
-  const isEditing = sale !== null;
-  const initialType = isEditing ? sale.type : 'Retail';
+const Sales: React.FC = () => {
+  const [sales, setSales] = useState<CombinedSale[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<CombinedSale | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [saleToDelete, setSaleToDelete] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'retail' | 'wholesale'>('retail');
 
-  const [saleType, setSaleType] = useState<'Retail' | 'Wholesale'>(initialType);
-
-  const [formData, setFormData] = useState({
-    customerName: '',
-    shopName: '',
-    contact: '',
-    address: '',
-    products: [] as SaleProduct[],
-    totalAmount: 0,
-    date: getLocalDateString(new Date()),
-    status: 'Cash' as SaleStatus,
-    warehouseId: '', // ✅ ADD THIS
-    ...(sale || {})
-  });
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [retailSales, wholesaleSales, productsData, warehousesData] = await Promise.all([
+        getSales(),
+        getWholesaleSales(),
+        getProducts(),
+        getWarehouses()
+      ]);
+      
+      const combinedSales: CombinedSale[] = [
+        ...retailSales.map(s => ({ ...s, type: 'Retail' as const })),
+        ...wholesaleSales.map(s => ({ ...s, type: 'Wholesale' as const }))
+      ];
+      
+      setSales(combinedSales);
+      setProducts(productsData);
+      setWarehouses(warehousesData);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (sale) {
-        setSaleType(sale.type);
-    }
-  }, [sale]);
+    fetchData();
+  }, [fetchData]);
 
-  useEffect(() => {
-    if (saleTiming === 'immediate') {
-        setFormData(prev => ({...prev, date: getLocalDateString(new Date())}));
-    }
-  }, [saleTiming]);
-
-  useEffect(() => {
-    const total = formData.products.reduce((sum, p) => sum + p.price * p.quantity, 0);
-    setFormData(prev => ({ ...prev, totalAmount: total }));
-  }, [formData.products]);
-  
-  const getAvailableStock = useCallback((productId: string): number => {
-    const totalInStock = inventory
-        .filter(item => item.productId === productId)
-        .reduce((sum, item) => sum + item.quantity, 0);
-
-    const productInfo = products.find(p => p.id === productId);
-    if (!productInfo) return totalInStock;
-    
-    const originalQtyInThisSale = isEditing 
-        ? sale.products.find(p => p.name === productInfo.name)?.quantity || 0
-        : 0;
-
-    const qtyInCart = formData.products
-        .filter(p => p.name === productInfo.name)
-        .reduce((sum, p) => sum + p.quantity, 0);
-    
-    return totalInStock + originalQtyInThisSale - qtyInCart;
-  }, [inventory, products, formData.products, sale, isEditing]);
-
-  const handleProductSelect = (productId: string) => {
-    setCurrentProduct(productId);
-    const product = products.find(p => p.id === productId);
-    if(product) {
-        // Apply 20% discount for wholesale by default
-        const price = saleType === 'Wholesale' ? product.defaultPrice * 0.8 : product.defaultPrice;
-        setCurrentPrice(price);
-    }
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleAddSale = () => {
+    setEditingSale(null);
+    setModalOpen(true);
   };
 
-  const handleAddProduct = () => {
-    const product = products.find(p => p.id === currentProduct);
-    if (!product || currentQty <= 0) return;
+  const handleEditSale = (sale: CombinedSale) => {
+    setEditingSale(sale);
+    setModalOpen(true);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setSaleToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!saleToDelete) return;
     
-    const availableStock = getAvailableStock(product.id);
-    if (currentQty > availableStock) {
-        alert(`Not enough stock for ${product.name}. Only ${availableStock} available.`);
-        return;
+    try {
+      const sale = sales.find(s => s.id === saleToDelete);
+      if (!sale) return;
+
+      if (sale.type === 'Retail') {
+        await deleteSale(saleToDelete);
+      } else {
+        await deleteWholesaleSale(saleToDelete);
+      }
+      
+      await fetchData();
+      setDeleteConfirmOpen(false);
+      setSaleToDelete(null);
+    } catch (err) {
+      alert(`Failed to delete sale: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
+  };
+
+  const handleExport = () => {
+    const filteredSales = sales.filter(s => s.type === (activeTab === 'retail' ? 'Retail' : 'Wholesale'));
+    const csvData = filteredSales.map(s => ({
+      'Date': s.date,
+      'Invoice': s.invoiceNumber,
+      'Customer/Shop': s.type === 'Retail' ? (s as Sale).customerName : (s as WholesaleSale).shopName,
+      'Type': s.type,
+      'Total': s.totalAmount,
+      'Status': s.status
+    }));
+    exportToCSV(csvData, `${activeTab}-sales-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const formatCurrency = (amount: number): string => {
+    return `₹${amount.toFixed(2)}`;
+  };
+
+  const filteredSales = sales.filter(s => s.type === (activeTab === 'retail' ? 'Retail' : 'Wholesale'));
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ApiError message={error} onRetry={fetchData} />;
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Sales Management</h1>
+        <div className="flex gap-2">
+          <Button onClick={handleExport} variant="secondary">Export CSV</Button>
+          <Button onClick={handleAddSale}>Add Sale</Button>
+        </div>
+      </div>
+
+      <div className="flex gap-4 mb-6">
+        <button
+          onClick={() => setActiveTab('retail')}
+          className={`px-4 py-2 rounded-lg ${activeTab === 'retail' ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+        >
+          Retail Sales
+        </button>
+        <button
+          onClick={() => setActiveTab('wholesale')}
+          className={`px-4 py-2 rounded-lg ${activeTab === 'wholesale' ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+        >
+          Wholesale Sales
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice #</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer/Shop</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredSales.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  No {activeTab} sales found. Click "Add Sale" to create one.
+                </td>
+              </tr>
+            ) : (
+              filteredSales.map(s => (
+                <tr key={s.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">{s.date}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{s.invoiceNumber}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {s.type === 'Retail' ? (s as Sale).customerName : (s as WholesaleSale).shopName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(s.totalAmount)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      s.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {s.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button onClick={() => handleEditSale(s)} className="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
+                    <button onClick={() => handleDeleteClick(s.id)} className="text-red-600 hover:text-red-800">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {modalOpen && (
+        <SaleFormModal
+          sale={editingSale}
+          products={products}
+          warehouses={warehouses}
+          onSave={async (data) => {
+            try {
+              if (editingSale) {
+                if (editingSale.type === 'Retail') {
+                  await updateSale({ ...data, id: editingSale.id });
+                } else {
+                  await updateWholesaleSale({ ...data, id: editingSale.id });
+                }
+              } else {
+                if (activeTab === 'retail') {
+                  await addSale(data);
+                } else {
+                  await addWholesaleSale(data);
+                }
+              }
+              await fetchData();
+              setModalOpen(false);
+            } catch (err) {
+              alert(`Failed to save sale: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            }
+          }}
+          onClose={() => setModalOpen(false)}
+          isWholesale={activeTab === 'wholesale'}
+        />
+      )}
+
+      {deleteConfirmOpen && (
+        <ConfirmModal
+          message="Are you sure you want to delete this sale?"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteConfirmOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+interface SaleFormModalProps {
+  sale: CombinedSale | null;
+  products: Product[];
+  warehouses: Warehouse[];
+  onSave: (data: any) => Promise<void>;
+  onClose: () => void;
+  isWholesale: boolean;
+}
+
+const SaleFormModal: React.FC<SaleFormModalProps> = ({ sale, products, warehouses, onSave, onClose, isWholesale }) => {
+  const [formData, setFormData] = useState({
+    customerName: sale && sale.type === 'Retail' ? (sale as Sale).customerName : '',
+    shopName: sale && sale.type === 'Wholesale' ? (sale as WholesaleSale).shopName : '',
+    contact: sale && sale.type === 'Wholesale' ? (sale as WholesaleSale).contact : '',
+    address: sale && sale.type === 'Wholesale' ? (sale as WholesaleSale).address : '',
+    products: sale?.products || [] as SaleProduct[],
+    totalAmount: sale?.totalAmount || 0,
+    date: sale?.date || getLocalDateString(new Date()),
+    status: sale?.status || 'Cash' as SaleStatus,
+    warehouseId: warehouses.length > 0 ? warehouses[0].id : ''
+  });
+
+  const [currentProduct, setCurrentProduct] = useState('');
+  const [currentQty, setCurrentQty] = useState(1);
+  const [currentPrice, setCurrentPrice] = useState(0);
+
+  useEffect(() => {
+    if (warehouses.length > 0 && !formData.warehouseId) {
+      setFormData(prev => ({ ...prev, warehouseId: warehouses[0].id }));
+    }
+  }, [warehouses, formData.warehouseId]);
+
+  const handleAddProduct = () => {
+    if (!currentProduct || currentQty <= 0) return;
+
+    const product = products.find(p => p.id === currentProduct);
+    if (!product) return;
+
+    const newProduct: SaleProduct = {
+      productId: product.id,
+      name: product.name,
+      quantity: currentQty,
+      price: currentPrice || product.defaultPrice
+    };
 
     setFormData(prev => ({
       ...prev,
-      products: [...prev.products, { name: product.name, quantity: currentQty, price: currentPrice }]
+      products: [...prev.products, newProduct],
+      totalAmount: prev.totalAmount + (newProduct.price * newProduct.quantity)
     }));
+
     setCurrentProduct('');
     setCurrentQty(1);
     setCurrentPrice(0);
   };
 
   const handleRemoveProduct = (index: number) => {
+    const product = formData.products[index];
     setFormData(prev => ({
       ...prev,
-      products: prev.products.filter((_, i) => i !== index)
+      products: prev.products.filter((_, i) => i !== index),
+      totalAmount: prev.totalAmount - (product.price * product.quantity)
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(formData.products.length === 0) {
-        alert("Please add at least one product to the sale.");
-        return;
+    
+    if (formData.products.length === 0) {
+      alert('Please add at least one product');
+      return;
     }
-    onSave(formData, saleType);
+
+    if (!formData.warehouseId) {
+      alert('Please select a warehouse');
+      return;
+    }
+
+    await onSave(formData);
   };
-  
-  const retailProducts = products.filter(p => !p.name.toLowerCase().includes('monthly'));
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex justify-center p-1 bg-gray-800/50 rounded-lg">
-            <Button 
-                type="button" 
-                onClick={() => setSaleType('Retail')} 
-                className={`w-1/2 !shadow-none transition-colors duration-200 ${
-                    saleType === 'Retail' 
-                    ? 'bg-emerald-600 text-white' 
-                    : 'bg-transparent text-gray-300 hover:bg-gray-700'
-                }`}
-            >
-                Retail
-            </Button>
-            <Button 
-                type="button" 
-                onClick={() => setSaleType('Wholesale')} 
-                className={`w-1/2 !shadow-none transition-colors duration-200 ${
-                    saleType === 'Wholesale' 
-                    ? 'bg-emerald-600 text-white' 
-                    : 'bg-transparent text-gray-300 hover:bg-gray-700'
-                }`}
-            >
-                Wholesale
-            </Button>
-        </div>
-
-        {saleType === 'Retail' ? (
-             <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} placeholder="Customer Name" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
+    <Modal onClose={onClose} title={`${sale ? 'Edit' : 'Add'} ${isWholesale ? 'Wholesale' : 'Retail'} Sale`}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {isWholesale ? (
+          <>
+            <div>
+              <label className="block text-sm font-medium mb-1">Shop Name *</label>
+              <input
+                type="text"
+                value={formData.shopName}
+                onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Contact</label>
+              <input
+                type="text"
+                value={formData.contact}
+                onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Address</label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+          </>
         ) : (
-            <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" name="shopName" value={formData.shopName} onChange={handleChange} placeholder="Shop Name" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
-                    <input type="tel" name="contact" value={formData.contact} onChange={handleChange} placeholder="Contact Number" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
-                </div>
-                <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Address" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Customer Name *</label>
+            <input
+              type="text"
+              value={formData.customerName}
+              onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg"
+              required
+            />
+          </div>
         )}
-        
-        <div className="border-t border-b border-white/10 py-4">
-            <h4 className="font-semibold text-gray-200 mb-2">Products</h4>
-            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                {formData.products.map((p, index) => (
-                    <div key={index} className="flex justify-between items-center bg-gray-800/50 p-2 rounded">
-                        <span>{p.quantity} x {p.name} @ {p.price}</span>
-                        <Button type="button" variant="ghost" className="!p-1 !text-red-400" onClick={() => handleRemoveProduct(index)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </Button>
-                    </div>
-                ))}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-6 items-end gap-2 mt-3">
-                 <div className="md:col-span-3">
-                    <label className="text-xs text-gray-400">Product</label>
-                    <select value={currentProduct} onChange={e => handleProductSelect(e.target.value)} className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200">
-                        <option value="">Select a product</option>
-                        {retailProducts.map(p => <option key={p.id} value={p.id}>{p.name} ({getAvailableStock(p.id)} available)</option>)}
-                    </select>
-                 </div>
-                <div>
-                    <label className="text-xs text-gray-400">Price</label>
-                    <input type="number" value={currentPrice} onChange={e => setCurrentPrice(parseFloat(e.target.value))} min="0" step="0.01" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
-                </div>
-                 <div>
-                    <label className="text-xs text-gray-400">Qty</label>
-                    <input type="number" value={currentQty} onChange={e => setCurrentQty(parseInt(e.target.value))} min="1" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
-                </div>
-                 <Button type="button" variant="secondary" onClick={handleAddProduct} className="w-full h-10">Add</Button>
-            </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Sale Timing</label>
-                <select value={saleTiming} onChange={(e) => setSaleTiming(e.target.value as any)} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200">
-                    <option value="immediate">Immediate Sale</option>
-                    <option value="scheduled">Scheduled Sale</option>
-                </select>
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Date</label>
-                <input type="date" name="date" value={formData.date} onChange={handleChange} disabled={saleTiming === 'immediate'} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200 disabled:opacity-50" required />
-            </div>
-        </div>
-
-        <div className="grid grid-cols-1">
-             <select name="status" value={formData.status} onChange={handleChange} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200">
-                <option value="Cash">Cash</option>
-                <option value="GPay">GPay</option>
-                <option value="Paid">Paid (Bank/Other)</option>
-                <option value="Unpaid">Unpaid</option>
-                <option value="Free">Free Sample</option>
-            </select>
-        </div>
-        <div className="text-right text-xl font-bold text-white">
-            Total: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(formData.totalAmount)}
-        </div>
-        <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-            <Button type="submit" variant="primary">Save Sale</Button>
-        </div>
-    </form>
-  );
-};
-
-const Sales: React.FC = () => {
-    const [sales, setSales] = useState<CombinedSale[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [inventory, setInventory] = useState<InventoryItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-    const [selectedSale, setSelectedSale] = useState<CombinedSale | null>(null);
-    const [saleToDelete, setSaleToDelete] = useState<{id: string, type: 'Retail' | 'Wholesale'} | null>(null);
-    const [isExporting, setIsExporting] = useState(false);
-    const [isExportingCSV, setIsExportingCSV] = useState(false);
-
-    const EditIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
-        </svg>
-    );
-    const DeleteIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-    );
-
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const [salesData, wholesaleData, productsData, inventoryData] = await Promise.all([getSales(), getWholesaleSales(), getProducts(), getInventory()]);
-            const combined = [
-                ...salesData.map(s => ({ ...s, type: 'Retail' as const })),
-                ...wholesaleData.map(w => ({ ...w, type: 'Wholesale' as const }))
-            ];
-            setSales(combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-            setProducts(productsData);
-            setInventory(inventoryData);
-        } catch (err) {
-            console.error(err);
-            setError("Failed to fetch sales data.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
-        try {
-            const payload = {
-                ...saleData,
-                warehouseId: 'default', 
-                products: saleData.products.map((p: SaleProduct) => {
-                    const product = products.find(prod => prod.name === p.name);
-                    return { productId: product ? product.id : null, quantity: p.quantity, price: p.price };
-                }).filter((p: { productId: string | null}) => p.productId)
-            };
-
-            const isEditing = saleData.id;
-
-            if (saleType === 'Retail') {
-                if (isEditing) await updateSale(payload);
-                else await addSale(payload);
-            } else { // Wholesale
-                if (isEditing) await updateWholesaleSale(payload);
-                else await addWholesaleSale(payload);
-            }
-
-            fetchData();
-            setIsModalOpen(false);
-            setSelectedSale(null);
-        } catch (err) {
-            console.error(err);
-            alert("Failed to save sale.");
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!saleToDelete) return;
-        try {
-            if (saleToDelete.type === 'Retail') {
-                await deleteSale(saleToDelete.id);
-            } else {
-                await deleteWholesaleSale(saleToDelete.id);
-            }
-            fetchData();
-        } catch (err) {
-            console.error(err);
-            alert("Failed to delete sale.");
-        } finally {
-            setIsConfirmOpen(false);
-            setSaleToDelete(null);
-        }
-    };
-    
-    const handleExportPDF = () => {
-        setIsExporting(true);
-        const jspdf = (window as any).jspdf;
-        const autoTable = (window as any).autoTable;
-    
-        if (!jspdf || !autoTable) {
-            alert("PDF generation libraries not loaded.");
-            setIsExporting(false);
-            return;
-        }
-    
-        try {
-          const { jsPDF } = jspdf;
-          const doc = new jsPDF();
-    
-          doc.setFontSize(18);
-          doc.text("SHROOMMUSH - Sales Report", 14, 22);
-    
-          autoTable(doc, {
-            startY: 40,
-            head: [['Date', 'Type', 'Invoice #', 'Customer/Shop', 'Total', 'Status']],
-            body: sales.map(s => [
-                s.date,
-                s.type,
-                s.invoiceNumber,
-                s.type === 'Retail' ? s.customerName : s.shopName,
-                formatCurrency(s.totalAmount),
-                s.status,
-            ]),
-            headStyles: { fillColor: [34, 197, 94] },
-          });
-    
-          doc.save('sales-report.pdf');
-        } catch (error) {
-          console.error("Error exporting PDF:", error);
-          alert("An error occurred while generating the PDF.");
-        } finally {
-          setIsExporting(false);
-        }
-      };
-
-    const handleExportCSV = () => {
-        setIsExportingCSV(true);
-        try {
-            const flattenedData = sales.flatMap(sale => 
-                sale.products.map(product => ({
-                    date: sale.date,
-                    type: sale.type,
-                    invoiceNumber: sale.invoiceNumber,
-                    customerOrShop: sale.type === 'Retail' ? sale.customerName : sale.shopName,
-                    status: sale.status,
-                    productName: product.name,
-                    quantity: product.quantity,
-                    pricePerUnit: product.price,
-                    lineTotal: product.quantity * product.price
-                }))
-            );
-            exportToCSV(flattenedData, 'all-sales.csv');
-        } catch (error) {
-            console.error("Error exporting CSV:", error);
-            alert("An error occurred while generating the CSV.");
-        } finally {
-            setIsExportingCSV(false);
-        }
-    };
-
-    const openDeleteConfirm = (id: string, type: 'Retail' | 'Wholesale') => {
-        setSaleToDelete({id, type});
-        setIsConfirmOpen(true);
-    };
-
-    const formatCurrency = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
-    
-    const getStatusBadge = (status: SaleStatus) => {
-        switch (status) {
-          case 'Paid': case 'GPay': case 'Cash': return 'bg-emerald-500/20 text-emerald-300';
-          case 'Unpaid': return 'bg-yellow-500/20 text-yellow-300';
-          case 'Free': return 'bg-blue-500/20 text-blue-300';
-          default: return 'bg-gray-500/20 text-gray-300';
-        }
-    };
-
-    if (loading) return <LoadingSpinner />;
-    if (error) return <ApiError onRetry={fetchData} />;
-
-    return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">All Sales</h1>
-                <div className="flex items-center space-x-2">
-                    <Button onClick={handleExportCSV} variant="secondary" disabled={isExportingCSV}>
-                        {isExportingCSV ? 'Exporting...' : 'Export as CSV'}
-                    </Button>
-                    <Button onClick={handleExportPDF} variant="secondary" disabled={isExporting}>
-                        {isExporting ? 'Exporting...' : 'Export as PDF'}
-                    </Button>
-                    <Button onClick={() => { setSelectedSale(null); setIsModalOpen(true); }}>Add Sale</Button>
-                </div>
-            </div>
-
-            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm text-left text-gray-300">
-                        <thead className="bg-white/5 uppercase text-xs">
-                            <tr>
-                                <th scope="col" className="px-6 py-3">Date</th>
-                                <th scope="col" className="px-6 py-3">Invoice #</th>
-                                <th scope="col" className="px-6 py-3">Customer/Shop</th>
-                                <th scope="col" className="px-6 py-3">Type</th>
-                                <th scope="col" className="px-6 py-3">Total</th>
-                                <th scope="col" className="px-6 py-3">Status</th>
-                                <th scope="col" className="px-6 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sales.map(s => (
-                                <tr key={s.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4">{s.date}</td>
-                                    <td className="px-6 py-4 font-mono text-xs">{s.invoiceNumber}</td>
-                                    <td className="px-6 py-4 font-medium text-white">{s.type === 'Retail' ? s.customerName : s.shopName}</td>
-                                    <td className="px-6 py-4">
-                                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.type === 'Retail' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>{s.type}</span>
-                                    </td>
-                                    <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(s.status)}`}>{s.status}</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right space-x-2">
-                                        <Button variant="ghost" className="!p-2" onClick={() => { setSelectedSale(s); setIsModalOpen(true); }}>
-                                            <EditIcon />
-                                        </Button>
-                                        <Button variant="ghost" className="!p-2 text-red-400 hover:bg-red-500/10" onClick={() => openDeleteConfirm(s.id, s.type)}>
-                                            <DeleteIcon />
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedSale ? `Edit ${selectedSale.type} Sale` : 'Add Sale'}>
-                <SaleForm sale={selectedSale} products={products} inventory={inventory} onSave={handleSave} onCancel={() => { setIsModalOpen(false); setSelectedSale(null); }} />
-            </Modal>
-
-            <ConfirmModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleDelete} title="Delete Sale" message="Are you sure you want to delete this sale record?" />
+          <label className="block text-sm font-medium mb-1">Warehouse *</label>
+          <select
+            value={formData.warehouseId}
+            onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })}
+            className="w-full px-3 py-2 border rounded-lg"
+            required
+          >
+            <option value="">Select Warehouse</option>
+            {warehouses.map(wh => (
+              <option key={wh.id} value={wh.id}>{wh.name}</option>
+            ))}
+          </select>
         </div>
-    );
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Date *</label>
+          <input
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            className="w-full px-3 py-2 border rounded-lg"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Status *</label>
+          <select
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value as SaleStatus })}
+            className="w-full px-3 py-2 border rounded-lg"
+            required
+          >
+            <option value="Cash">Cash</option>
+            <option value="GPay">GPay</option>
+            <option value="Paid">Paid</option>
+            <option value="Unpaid">Unpaid</option>
+          </select>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="font-medium mb-2">Add Products</h3>
+          <div className="grid grid-cols-4 gap-2">
+            <select
+              value={currentProduct}
+              onChange={(e) => {
+                setCurrentProduct(e.target.value);
+                const p = products.find(prod => prod.id === e.target.value);
+                if (p) setCurrentPrice(p.defaultPrice);
+              }}
+              className="px-3 py-2 border rounded-lg"
+            >
+              <option value="">Select Product</option>
+              {products.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={currentQty}
+              onChange={(e) => setCurrentQty(Number(e.target.value))}
+              placeholder="Qty"
+              className="px-3 py-2 border rounded-lg"
+              min="1"
+            />
+            <input
+              type="number"
+              value={currentPrice}
+              onChange={(e) => setCurrentPrice(Number(e.target.value))}
+              placeholder="Price"
+              className="px-3 py-2 border rounded-lg"
+              min="0"
+              step="0.01"
+            />
+            <Button type="button" onClick={handleAddProduct}>Add</Button>
+          </div>
+        </div>
+
+        {formData.products.length > 0 && (
+          <div className="border-t pt-4">
+            <h3 className="font-medium mb-2">Products</h3>
+            <ul className="space-y-2">
+              {formData.products.map((p, i) => (
+                <li key={i} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                  <span>{p.name} - {p.quantity} × ₹{p.price}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveProduct(i)}
+                    className="text-red-600"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2 text-right font-bold">
+              Total: ₹{formData.totalAmount.toFixed(2)}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="submit">Save Sale</Button>
+        </div>
+      </form>
+    </Modal>
+  );
 };
 
 export default Sales;
