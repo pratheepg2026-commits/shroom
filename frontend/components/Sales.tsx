@@ -302,7 +302,7 @@ const SaleFormModal: React.FC<SaleFormModalProps> = ({ sale, products, warehouse
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    console.log('FORM SUBMIT FIRED', formData);
     if (formData.products.length === 0) {
       alert('Please add at least one product');
       return;
