@@ -303,6 +303,7 @@ const SaleForm: React.FC<{
 };
 
 const Sales: React.FC = () => {
+  console.log('Sales component rendered');  // Add this temporarily
   const [sales, setSales] = useState<CombinedSale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -317,6 +318,7 @@ const Sales: React.FC = () => {
   const [isExportingCSV, setIsExportingCSV] = useState(false);
 
   const fetchData = useCallback(async () => {
+    console.log('fetchData called');
     setLoading(true);
     setError(null);
     try {
@@ -344,6 +346,7 @@ const Sales: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    console.log('useEffect triggered fetchData');
     fetchData();
   }, [fetchData]);
 
