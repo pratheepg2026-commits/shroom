@@ -514,18 +514,23 @@ def add_sale():
     """Create new retail sale"""
     try:
         data = request.get_json()
-        warehouse_id = data.get('warehouseId', 'default')
+        warehouse_id = data.get('warehouseId')
+        if not warehouse_id:
+            return jsonify({'error': 'warehouseId is required'}), 400
+
         products_in_sale = data.get('products', [])
-        
+        if not products_in_sale:
+            return jsonify({'error': 'No products provided for sale'}), 400
+
         # Check stock availability
         is_available, message = check_stock_availability(products_in_sale, warehouse_id)
         if not is_available:
             return jsonify({'error': message}), 400
-        
+
         # Deduct inventory
         for p in products_in_sale:
             update_inventory(p['productId'], warehouse_id, -p['quantity'])
-        
+
         # Create sale record
         sale = Sale(
             id=generate_id('sale'),
@@ -539,9 +544,30 @@ def add_sale():
         db.session.add(sale)
         db.session.commit()
         return jsonify(sale.to_dict()), 201
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+def check_stock_availability(products_list, warehouse_id):
+    """Check if enough stock exists for products"""
+    for product in products_list:
+        product_id = product.get('productId')
+        required_qty = product.get('quantity', 0)
+
+        inventory = Inventory.query.filter_by(
+            productId=product_id,
+            warehouseId=warehouse_id
+        ).first()
+
+        available_qty = inventory.quantity if inventory else 0
+
+        if required_qty > available_qty:
+            return False, f"Not enough stock for {product_id}. Required: {required_qty}, Available: {available_qty}"
+
+    return True, ""
+
 
 @app.route('/api/sales/<string:sale_id>', methods=['PUT'])
 def update_sale(sale_id):
@@ -1036,3 +1062,4 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
