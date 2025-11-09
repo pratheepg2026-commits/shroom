@@ -1,18 +1,7 @@
 // Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  getSales, 
-  addSale, 
-  updateSale, 
-  deleteSale, 
-  getWholesaleSales, 
-  addWholesaleSale, 
-  updateWholesaleSale, 
-  deleteWholesaleSale, 
-  getProducts, 
-  getWarehouses,
-  getInventory  // ✅ ADD THIS
-} from '../services/api';import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale } from '../types';
+import { getSales, addSale, updateSale, deleteSale, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getProducts, getWarehouses } from '../services/api';
+import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
 import Modal from './common/Modal';
@@ -277,19 +266,6 @@ const Sales: React.FC = () => {
         </svg>
     );
 
-  const fetchWarehouses = async () => {
-  try {
-    const data = await getWarehouses();  // Uses getWarehouses, not getInventory
-    setWarehouses(data);
-    if (data.length > 0 && !formData.warehouseId) {
-      setFormData(prev => ({ ...prev, warehouseId: data[0].id }));
-    }
-  } catch (err) {
-    console.error('Failed to fetch warehouses:', err);
-  }
-};
-
-  
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
