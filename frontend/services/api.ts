@@ -10,7 +10,7 @@ const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T
     ...options,
   });
 
-  // Handle 204 No Content responses
+  // ✅ Handle 204 No Content responses
   if (response.status === 204) {
     return undefined as T;
   }
@@ -61,7 +61,7 @@ export const deleteWarehouse = (id: string): Promise<void> => apiRequest(`/wareh
 // Inventory API
 export const getInventory = (): Promise<any[]> => apiRequest('/inventory');
 export const addStock = (data: any): Promise<any> => apiRequest('/inventory/stock', { method: 'POST', body: JSON.stringify(data) });
-export const addInventoryStock = addStock; // Alias for backward compatibility
+export const addInventoryStock = addStock; // ✅ Alias for backward compatibility
 
 // Sales Returns API
 export const getSalesReturns = (): Promise<any[]> => apiRequest('/sales-returns');
