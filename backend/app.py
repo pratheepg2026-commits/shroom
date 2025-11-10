@@ -113,13 +113,10 @@ class Product(db.Model):
         }
 
 def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
-    """
-    Calculate delivery schedule - returns deliveries from TODAY onwards
-    """
+    """Calculate delivery schedule - returns deliveries from TODAY onwards"""
     if not preferred_day or preferred_day == 'Any Day':
         return []
     
-    # Get TODAY at midnight (no time component)
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     day_map = {
@@ -131,9 +128,8 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     if target_weekday is None:
         return []
     
-    # Find next occurrences of preferred day in the next 30 days
     delivery_dates = []
-    for days_ahead in range(31):  # Check next 30 days
+    for days_ahead in range(31):
         check_date = today + timedelta(days=days_ahead)
         if check_date.weekday() == target_weekday:
             delivery_dates.append(check_date)
@@ -141,7 +137,6 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     if not delivery_dates or boxes_per_month <= 0:
         return []
     
-    # Distribute boxes across deliveries
     num_deliveries = len(delivery_dates)
     boxes_per_delivery = boxes_per_month // num_deliveries
     remainder = boxes_per_month % num_deliveries
@@ -156,7 +151,6 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
         })
     
     return schedule
-
 
     
 class Subscription(db.Model):
@@ -473,8 +467,8 @@ def subscriptions():
     # GET: Return all subscriptions
     if request.method == 'GET':
         try:
-            subs = Subscription.query.all()
-            return jsonify([s.to_dict() for s in subs])
+           subs = Subscription.query.order_by(Subscription.id.desc()).all()
+        return jsonify([s.to_dict() for s in subs])
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
@@ -1220,6 +1214,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
