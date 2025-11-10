@@ -114,11 +114,12 @@ class Product(db.Model):
 
 def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     """
-    Calculate delivery schedule - returns next 30 days of deliveries
+    Calculate delivery schedule - returns deliveries from TODAY onwards
     """
     if not preferred_day or preferred_day == 'Any Day':
         return []
     
+    # Get TODAY at midnight (no time component)
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     day_map = {
@@ -155,6 +156,7 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
         })
     
     return schedule
+
 
     
 class Subscription(db.Model):
@@ -567,25 +569,25 @@ def subscription_detail(sub_id):
 
 @app.route('/api/stock-prep', methods=['GET'])
 def get_stock_prep():
-    """Get comprehensive stock prep data for today and tomorrow"""
+    """Get stock prep data for today and tomorrow"""
     try:
-        today = datetime.now()
+        # Get today and tomorrow at midnight
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrow = today + timedelta(days=1)
         
-        today_day = today.strftime('%A')
-        tomorrow_day = tomorrow.strftime('%A')
         today_str = today.strftime('%Y-%m-%d')
         tomorrow_str = tomorrow.strftime('%Y-%m-%d')
+        today_day = today.strftime('%A')
+        tomorrow_day = tomorrow.strftime('%A')
         
         today_deliveries = []
         tomorrow_deliveries = []
         
-        # Get subscription deliveries
         subscriptions = Subscription.query.filter_by(status='Active').all()
         
         for sub in subscriptions:
             boxes_per_month = getattr(sub, 'boxesPerMonth', 1) or 1
-            preferred_day = getattr(sub, 'preferredDeliveryDay', None) or 'Any Day'
+            preferred_day = getattr(sub, 'preferredDeliveryDay', 'Any Day') or 'Any Day'
             
             schedule = calculate_delivery_schedule(
                 sub.startDate,
@@ -594,24 +596,33 @@ def get_stock_prep():
             )
             
             for delivery in schedule:
-                delivery_info = {
-                    'type': 'Subscription',
-                    'id': sub.id,
-                    'customerName': sub.name,
-                    'address': sub.address or '',
-                    'flatNo': sub.flatNo or '',
-                    'phone': sub.phone or '',
-                    'boxes': delivery['boxes'],
-                    'plan': sub.plan,
-                    'deliveryDate': delivery['date']
-                }
+                delivery_date = delivery['date']
                 
-                if delivery['date'] == today_str:
-                    today_deliveries.append(delivery_info)
-                elif delivery['date'] == tomorrow_str:
-                    tomorrow_deliveries.append(delivery_info)
+                if delivery_date == today_str:
+                    today_deliveries.append({
+                        'type': 'Subscription',
+                        'id': sub.id,
+                        'customerName': sub.name,
+                        'address': sub.address or '',
+                        'flatNo': sub.flatNo or '',
+                        'phone': sub.phone or '',
+                        'boxes': delivery['boxes'],
+                        'plan': sub.plan,
+                        'deliveryDate': delivery_date
+                    })
+                elif delivery_date == tomorrow_str:
+                    tomorrow_deliveries.append({
+                        'type': 'Subscription',
+                        'id': sub.id,
+                        'customerName': sub.name,
+                        'address': sub.address or '',
+                        'flatNo': sub.flatNo or '',
+                        'phone': sub.phone or '',
+                        'boxes': delivery['boxes'],
+                        'plan': sub.plan,
+                        'deliveryDate': delivery_date
+                    })
         
-        # Calculate totals
         total_today = sum(d['boxes'] for d in today_deliveries)
         total_tomorrow = sum(d['boxes'] for d in tomorrow_deliveries)
         
@@ -622,7 +633,7 @@ def get_stock_prep():
                 'deliveries': today_deliveries,
                 'totalBoxes': total_today,
                 'breakdown': {
-                    'subscriptions': len([d for d in today_deliveries if d['type'] == 'Subscription']),
+                    'subscriptions': len(today_deliveries),
                     'retail': 0,
                     'wholesale': 0
                 }
@@ -633,16 +644,15 @@ def get_stock_prep():
                 'deliveries': tomorrow_deliveries,
                 'totalBoxes': total_tomorrow,
                 'breakdown': {
-                    'subscriptions': len([d for d in tomorrow_deliveries if d['type'] == 'Subscription']),
+                    'subscriptions': len(tomorrow_deliveries),
                     'retail': 0,
                     'wholesale': 0
                 }
             }
         })
     except Exception as e:
-        print(f"Error in get_stock_prep: {e}")
+        print(f"Error in stock prep: {e}")
         return jsonify({'error': str(e)}), 500
-
 
 # --- SALES API ---
 
@@ -1210,6 +1220,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
