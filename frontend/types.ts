@@ -26,19 +26,21 @@ export interface Product {
 }
 
 export interface Subscription {
-  id:string;
-  invoiceNumber: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  flatNo?: string;
-  flatName?: string;
-  plan: string; // Should correspond to a Product name
-  status: Status;
-  startDate: string; // YYYY-MM-DD
-  preferredDeliveryDay?: string;
+    id: string;
+    invoiceNumber: string;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    flatNo: string;
+    flatName?: string;
+    plan: string;
+    status: Status;
+    startDate: string;
+    preferredDeliveryDay?: string;
+    boxesPerMonth?: number;  // NEW
 }
+
 
 export interface SaleProduct {
   name: string;
