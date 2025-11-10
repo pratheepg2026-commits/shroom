@@ -1,4 +1,115 @@
-import React, { useState, useEffect } from 'react';
+// StockPrep.tsx - COMPLETE UPDATED VERSION WITH DATE FIX
+import React, { useState, useEffect, useCallback } from 'react';
+import { getSubscriptions, getSales, getWholesaleSales } from '../services/api';
+import { Subscription, Sale, WholesaleSale, Status } from '../types';
+import { exportToCSV } from '../services/csvExporter';
+import Button from './common/Button';
+import ApiError from './common/ApiError';
+
+
+const LoadingSpinner = () => (
+    <div className="flex justify-center items-center h-64">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
+    </div>
+);
+
+
+type DailyOrder = (Subscription & { type: 'Subscription' }) | (Sale & { type: 'Retail' }) | (WholesaleSale & { type: 'Wholesale' });
+type RequirementsData = { requirements: Map<string, number>, dailyOrders: DailyOrder[] };
+
+
+const getLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+
+// NEW: Smart subscription delivery calculator
+const getSubscriptionDeliveriesForDate = (
+    sub: Subscription, 
+    targetDate: Date
+): number => {
+    if (!sub.preferredDeliveryDay || sub.preferredDeliveryDay === 'Any Day') {
+        return 0;
+    }
+    
+    const targetDay = targetDate.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    if (sub.preferredDeliveryDay !== targetDay) {
+        return 0;
+    }
+    
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let count = 0;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const checkDate = new Date(year, month, day);
+        if (checkDate >= today && 
+            checkDate.toLocaleDateString('en-US', { weekday: 'long' }) === sub.preferredDeliveryDay) {
+            count++;
+        }
+    }
+    
+    if (count === 0) return 0;
+    
+    const boxesPerMonth = sub.boxesPerMonth || 1;
+    const boxesPerDelivery = Math.floor(boxesPerMonth / count);
+    const remainder = boxesPerMonth % count;
+    
+    return boxesPerDelivery + (remainder > 0 ? 1 : 0);
+};
+
+
+// UPDATED: Calculate requirements with smart subscription filtering
+const calculateRequirements = (targetDate: Date, subs: Subscription[], sales: Sale[], wholesaleSales: WholesaleSale[]): RequirementsData => {
+    const targetDateString = getLocalDateString(targetDate);
+    const reqMap = new Map<string, number>();
+    const orders: DailyOrder[] = [];
+
+    // 1. Process subscriptions with proper delivery schedule
+    subs.forEach(sub => {
+        if (sub.status !== Status.ACTIVE) return;
+        
+        const boxes = getSubscriptionDeliveriesForDate(sub, targetDate);
+        if (boxes > 0) {
+            const currentQty = reqMap.get(sub.plan) || 0;
+            reqMap.set(sub.plan, currentQty + boxes);
+            orders.push({ ...sub, type: 'Subscription' });
+        }
+    });
+
+    // 2. Filter and process retail sales
+    const dailySales = sales.filter(s => s.date === targetDateString);
+    dailySales.forEach(sale => {
+        sale.products.forEach(p => {
+            const currentQty = reqMap.get(p.name) || 0;
+            reqMap.set(p.name, currentQty + p.quantity);
+        });
+        orders.push({ ...sale, type: 'Retail' });
+    });
+
+    // 3. Filter and process wholesale sales
+    const dailyWholesale = wholesaleSales.filter(ws => ws.date === targetDateString);
+    dailyWholesale.forEach(sale => {
+        sale.products.forEach(p => {
+            const currentQty = reqMap.get(p.name) || 0;
+            reqMap.set(p.name, currentQty + p.quantity);
+        });
+        orders.push({ ...sale, type: 'Wholesale' });
+    });
+
+    return { requirements: reqMap, dailyOrders: orders };
+};
+
+// ... rest of component stays the same (RequirementsDisplay, StockPrep, exports)
+
 
 interface Delivery {
   type: string;
@@ -162,7 +273,7 @@ const StockPrep: React.FC = () => {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          Refresh
+          Refresh  
         </button>
       </div>
 
