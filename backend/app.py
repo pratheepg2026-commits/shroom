@@ -114,18 +114,12 @@ class Product(db.Model):
 
 def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     """
-    Calculate delivery schedule for a subscription month
+    Calculate delivery schedule - returns next 30 days of deliveries
     """
     if not preferred_day or preferred_day == 'Any Day':
         return []
     
-    try:
-        start_date = datetime.fromisoformat(start_date_str.split('T')[0])
-    except:
-        start_date = datetime.now()
-    
-    year = start_date.year
-    month = start_date.month
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     day_map = {
         'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3,
@@ -136,17 +130,17 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     if target_weekday is None:
         return []
     
+    # Find next occurrences of preferred day in the next 30 days
     delivery_dates = []
-    days_in_month = monthrange(year, month)[1]
-    
-    for day in range(1, days_in_month + 1):
-        current_date = datetime(year, month, day)
-        if current_date.weekday() == target_weekday and current_date >= start_date:
-            delivery_dates.append(current_date)
+    for days_ahead in range(31):  # Check next 30 days
+        check_date = today + timedelta(days=days_ahead)
+        if check_date.weekday() == target_weekday:
+            delivery_dates.append(check_date)
     
     if not delivery_dates or boxes_per_month <= 0:
         return []
     
+    # Distribute boxes across deliveries
     num_deliveries = len(delivery_dates)
     boxes_per_delivery = boxes_per_month // num_deliveries
     remainder = boxes_per_month % num_deliveries
@@ -178,8 +172,10 @@ class Subscription(db.Model):
     status = db.Column(db.String(50), nullable=False)
     startDate = db.Column('start_date', db.String(50), nullable=False)
     preferredDeliveryDay = db.Column('preferred_delivery_day', db.String(20), default='Any Day')
-    boxesPerMonth = db.Column('boxes_per_month', db.Integer, default=1)  # NEW
-
+    boxesPerMonth = db.Column('boxes_per_month', db.Integer, default=1)
+    
+    # DO NOT add __init__ method!
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -194,9 +190,9 @@ class Subscription(db.Model):
             'status': self.status,
             'startDate': self.startDate,
             'preferredDeliveryDay': self.preferredDeliveryDay or 'Any Day',
-            'boxesPerMonth': self.boxesPerMonth or 1  # NEW
+            'boxesPerMonth': self.boxesPerMonth or 1
         }
-     
+
 
 class Sale(db.Model):
     """Retail sales"""
@@ -469,8 +465,10 @@ def delete_product(prod_id):
 # --- SUBSCRIPTIONS API ---
 
 @app.route('/api/subscriptions', methods=['GET', 'POST'])
-def handle_subscriptions():
+def subscriptions():
     """Handle subscriptions - both GET and POST"""
+    
+    # GET: Return all subscriptions
     if request.method == 'GET':
         try:
             subs = Subscription.query.all()
@@ -478,62 +476,93 @@ def handle_subscriptions():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    # POST: Create new subscription
     elif request.method == 'POST':
         try:
             data = request.get_json()
-            # ... your existing POST logic
-            subscription = Subscription(...)  # your code
+            
+            # Map flatName to flatNo if present
+            if 'flatName' in data:
+                if 'flatNo' not in data:
+                    data['flatNo'] = data['flatName']
+                data.pop('flatName')
+            
+            # Extract new fields with defaults
+            preferred_day = data.pop('preferredDeliveryDay', 'Any Day')
+            boxes_per_month = data.pop('boxesPerMonth', 1)
+            
+            subscription = Subscription(
+                id=generate_id('sub'),
+                invoiceNumber=get_next_invoice_number('subscription'),
+                name=data['name'],
+                email=data['email'],
+                phone=data.get('phone', ''),
+                address=data.get('address', ''),
+                flatNo=data.get('flatNo', ''),
+                plan=data['plan'],
+                status=data['status'],
+                startDate=data['startDate'],
+                preferredDeliveryDay=preferred_day,
+                boxesPerMonth=boxes_per_month
+            )
+            
             db.session.add(subscription)
             db.session.commit()
             return jsonify(subscription.to_dict()), 201
+            
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
 
 
 
-@app.route('/api/subscriptions/<string:sub_id>', methods=['PUT'])
-def update_subscription(sub_id):
-    """Update subscription"""
-    try:
-        subscription = Subscription.query.get(sub_id)
-        if not subscription:
-            return jsonify({'error': 'Subscription not found'}), 404
-        
-        data = request.get_json()
-        
-        if 'flatName' in data:
-            if 'flatNo' not in data:
-                data['flatNo'] = data['flatName']
-            data.pop('flatName')
-        
-        # DELETE this line:
-        # data.pop('preferredDeliveryDay', None)
-        
-        for key, value in data.items():
-            if hasattr(subscription, key) and key not in ['id', 'invoiceNumber']:
-                setattr(subscription, key, value)
-        
-        db.session.commit()
+@app.route('/api/subscriptions/<string:sub_id>', methods=['GET', 'PUT', 'DELETE'])
+def subscription_detail(sub_id):
+    """Handle individual subscription operations"""
+    
+    subscription = Subscription.query.get(sub_id)
+    if not subscription:
+        return jsonify({'error': 'Subscription not found'}), 404
+    
+    if request.method == 'GET':
         return jsonify(subscription.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/subscriptions/<string:sub_id>', methods=['DELETE'])
-def delete_subscription(sub_id):
-    """Delete subscription"""
-    try:
-        subscription = Subscription.query.get(sub_id)
-        if not subscription:
-            return jsonify({'error': 'Subscription not found'}), 404
-        
-        db.session.delete(subscription)
-        db.session.commit()
-        return '', 204
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'PUT':
+        try:
+            data = request.get_json()
+            
+            if 'flatName' in data:
+                if 'flatNo' not in data:
+                    data['flatNo'] = data['flatName']
+                data.pop('flatName')
+            
+            # Update all fields
+            subscription.name = data.get('name', subscription.name)
+            subscription.email = data.get('email', subscription.email)
+            subscription.phone = data.get('phone', subscription.phone)
+            subscription.address = data.get('address', subscription.address)
+            subscription.flatNo = data.get('flatNo', subscription.flatNo)
+            subscription.plan = data.get('plan', subscription.plan)
+            subscription.status = data.get('status', subscription.status)
+            subscription.startDate = data.get('startDate', subscription.startDate)
+            subscription.preferredDeliveryDay = data.get('preferredDeliveryDay', subscription.preferredDeliveryDay)
+            subscription.boxesPerMonth = data.get('boxesPerMonth', subscription.boxesPerMonth)
+            
+            db.session.commit()
+            return jsonify(subscription.to_dict())
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'DELETE':
+        try:
+            db.session.delete(subscription)
+            db.session.commit()
+            return jsonify({'message': 'Subscription deleted'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/stock-prep', methods=['GET'])
@@ -1181,6 +1210,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
