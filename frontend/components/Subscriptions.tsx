@@ -35,6 +35,7 @@ const SubscriptionForm: React.FC<{
     status: Status.ACTIVE,
     startDate: new Date().toISOString().split('T')[0],
     preferredDeliveryDay: 'Any Day',
+      boxesPerMonth: 1,  // NEW
     ...subscription
   });
 
