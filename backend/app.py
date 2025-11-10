@@ -468,62 +468,28 @@ def delete_product(prod_id):
 
 # --- SUBSCRIPTIONS API ---
 
-@app.route('/api/subscriptions/<string:sub_id>/schedule', methods=['GET'])
-def get_subscription_schedule(sub_id):
-    """Get delivery schedule for a subscription"""
-    try:
-        subscription = Subscription.query.get(sub_id)
-        if not subscription:
-            return jsonify({'error': 'Subscription not found'}), 404
-        
-        schedule = calculate_delivery_schedule(
-            subscription.startDate,
-            subscription.preferredDeliveryDay,
-            subscription.boxesPerMonth
-        )
-        
-        return jsonify({
-            'subscriptionId': subscription.id,
-            'name': subscription.name,
-            'boxesPerMonth': subscription.boxesPerMonth,
-            'preferredDay': subscription.preferredDeliveryDay,
-            'schedule': schedule
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+@app.route('/api/subscriptions', methods=['GET', 'POST'])
+def handle_subscriptions():
+    """Handle subscriptions - both GET and POST"""
+    if request.method == 'GET':
+        try:
+            subs = Subscription.query.all()
+            return jsonify([s.to_dict() for s in subs])
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            # ... your existing POST logic
+            subscription = Subscription(...)  # your code
+            db.session.add(subscription)
+            db.session.commit()
+            return jsonify(subscription.to_dict()), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
 
-
-@app.route('/api/subscriptions', methods=['POST'])
-def add_subscription():
-    """Create new subscription"""
-    try:
-        data = request.get_json()
-        
-        if 'flatName' in data:
-            if 'flatNo' not in data:
-                data['flatNo'] = data['flatName']
-            data.pop('flatName')
-        
-        subscription = Subscription(
-            id=generate_id('sub'),
-            invoiceNumber=get_next_invoice_number('subscription'),
-            name=data['name'],
-            email=data['email'],
-            phone=data.get('phone', ''),
-            address=data.get('address', ''),
-            flatNo=data.get('flatNo', ''),
-            plan=data['plan'],
-            status=data['status'],
-            startDate=data['startDate'],
-            preferredDeliveryDay=data.get('preferredDeliveryDay', 'Any Day'),
-            boxesPerMonth=data.get('boxesPerMonth', 1)  # NEW
-        )
-        db.session.add(subscription)
-        db.session.commit()
-        return jsonify(subscription.to_dict()), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/subscriptions/<string:sub_id>', methods=['PUT'])
@@ -1215,6 +1181,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
