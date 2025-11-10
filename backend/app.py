@@ -117,6 +117,7 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     if not preferred_day or preferred_day == 'Any Day':
         return []
     
+    # FIXED: Use TODAY as reference
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     
     day_map = {
@@ -128,6 +129,7 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     if target_weekday is None:
         return []
     
+    # FIXED: Look FORWARD from today
     delivery_dates = []
     for days_ahead in range(31):
         check_date = today + timedelta(days=days_ahead)
@@ -1211,6 +1213,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
