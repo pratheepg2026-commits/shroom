@@ -468,17 +468,16 @@ def update_subscription(sub_id):
         
         data = request.get_json()
         
-        # Map flatName to flatNo if present
         if 'flatName' in data:
             if 'flatNo' not in data:
                 data['flatNo'] = data['flatName']
             data.pop('flatName')
         
-        # Remove extra fields
-        data.pop('preferredDeliveryDay', None)
+        # DELETE this line:
+        # data.pop('preferredDeliveryDay', None)
         
         for key, value in data.items():
-            if hasattr(subscription, key) and key != 'id':
+            if hasattr(subscription, key) and key not in ['id', 'invoiceNumber']:
                 setattr(subscription, key, value)
         
         db.session.commit()
@@ -1066,6 +1065,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
