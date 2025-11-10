@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { getStockPrep } from '../services/api';  // ADD THIS
 
 interface Delivery {
   type: string;
@@ -35,54 +34,7 @@ const StockPrep: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchStockPrep();
-  }, []);
-
-  // UPDATED: Use API service
-  const fetchStockPrep = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getStockPrep();  // Use API service, not direct fetch
-      setStockData(data);
-    } catch (err) {
-      console.error('Error fetching stock prep:', err);
-      setError('Failed to load stock preparation data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-// Add this at the top of the StockPrep component
-const API_BASE_URL = 'https://shroommush.onrender.com';
-
-const fetchStockPrep = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    
-    // Use absolute URL pointing to backend
-    const response = await fetch(`${API_BASE_URL}/api/stock-prep`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch stock prep data');
-    }
-    
-    const data = await response.json();
-    setStockData(data);
-  } catch (err) {
-    console.error('Error fetching stock prep:', err);
-    setError('Failed to load stock preparation data');
-  } finally {
-    setLoading(false);
-  }
-};
-
-const StockPrep: React.FC = () => {
-  const [stockData, setStockData] = useState<StockPrepData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const API_BASE_URL = 'https://shroommush.onrender.com';
 
   useEffect(() => {
     fetchStockPrep();
@@ -92,7 +44,7 @@ const StockPrep: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/stock-prep');
+      const response = await fetch(`${API_BASE_URL}/api/stock-prep`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch stock prep data');
@@ -126,10 +78,8 @@ const StockPrep: React.FC = () => {
     );
   }
 
-  // DeliverySection component (defined inside StockPrep)
   const DeliverySection = ({ title, data }: { title: string; data: DayData }) => (
     <div className="bg-gray-800/50 rounded-lg p-6 mb-6">
-      {/* Header with date and total boxes */}
       <div className="flex justify-between items-center mb-4">
         <div>
           <h3 className="text-xl font-semibold text-emerald-400">{title}</h3>
@@ -141,7 +91,6 @@ const StockPrep: React.FC = () => {
         </div>
       </div>
 
-      {/* Breakdown Pills */}
       <div className="flex gap-2 mb-4 flex-wrap">
         <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium">
           {data.breakdown.subscriptions} Subscriptions
@@ -154,7 +103,6 @@ const StockPrep: React.FC = () => {
         </span>
       </div>
 
-      {/* Delivery List */}
       {data.deliveries.length === 0 ? (
         <p className="text-gray-500 text-center py-8">No deliveries scheduled</p>
       ) : (
@@ -166,7 +114,6 @@ const StockPrep: React.FC = () => {
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  {/* Customer name with type badge */}
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h4 className="font-semibold text-gray-200">{delivery.customerName}</h4>
                     <span className={`px-2 py-0.5 rounded text-xs ${
@@ -180,23 +127,19 @@ const StockPrep: React.FC = () => {
                     </span>
                   </div>
                   
-                  {/* Address */}
                   {delivery.address && (
                     <p className="text-sm text-gray-400">
                       {delivery.flatNo && `${delivery.flatNo}, `}{delivery.address}
                     </p>
                   )}
                   
-                  {/* Phone */}
                   {delivery.phone && (
                     <p className="text-sm text-gray-400">{delivery.phone}</p>
                   )}
                   
-                  {/* Plan/Invoice info */}
                   <p className="text-xs text-emerald-400 mt-1">{delivery.plan}</p>
                 </div>
                 
-                {/* Box count badge */}
                 <div className="bg-emerald-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
                   {delivery.boxes}
                 </div>
@@ -210,7 +153,6 @@ const StockPrep: React.FC = () => {
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-200">Stock Preparation</h2>
         <button
@@ -224,7 +166,6 @@ const StockPrep: React.FC = () => {
         </button>
       </div>
 
-      {/* Today and Tomorrow sections */}
       {stockData && (
         <>
           <DeliverySection title="Today's Deliveries" data={stockData.today} />
