@@ -1,7 +1,7 @@
-// Fix: Removed extraneous file markers that were causing syntax errors.
+// Sales.tsx - Complete with Warehouse Integration
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSales, addSale, updateSale, deleteSale, getProducts, getInventory, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale } from '../services/api';
-import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale } from '../types';
+import { getSales, addSale, updateSale, deleteSale, getProducts, getInventory, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getWarehouses } from '../services/api';
+import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale, Warehouse } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
 import Modal from './common/Modal';
@@ -27,9 +27,12 @@ const SaleForm: React.FC<{
   sale: CombinedSale | null;
   products: Product[];
   inventory: InventoryItem[];
+  warehouses: Warehouse[];
+  selectedWarehouse: string;
+  onWarehouseChange: (warehouseId: string) => void;
   onSave: (saleData: any, saleType: 'Retail' | 'Wholesale') => void;
   onCancel: () => void;
-}> = ({ sale, products, inventory, onSave, onCancel }) => {
+}> = ({ sale, products, inventory, warehouses, selectedWarehouse, onWarehouseChange, onSave, onCancel }) => {
   
   const isEditing = sale !== null;
   const initialType = isEditing ? sale.type : 'Retail';
@@ -71,7 +74,7 @@ const SaleForm: React.FC<{
   
   const getAvailableStock = useCallback((productId: string): number => {
     const totalInStock = inventory
-        .filter(item => item.productId === productId)
+        .filter(item => item.productId === productId && item.warehouseId === selectedWarehouse)
         .reduce((sum, item) => sum + item.quantity, 0);
 
     const productInfo = products.find(p => p.id === productId);
@@ -86,13 +89,12 @@ const SaleForm: React.FC<{
         .reduce((sum, p) => sum + p.quantity, 0);
     
     return totalInStock + originalQtyInThisSale - qtyInCart;
-  }, [inventory, products, formData.products, sale, isEditing]);
+  }, [inventory, products, formData.products, sale, isEditing, selectedWarehouse]);
 
   const handleProductSelect = (productId: string) => {
     setCurrentProduct(productId);
     const product = products.find(p => p.id === productId);
     if(product) {
-        // Apply 20% discount for wholesale by default
         const price = saleType === 'Wholesale' ? product.defaultPrice * 0.8 : product.defaultPrice;
         setCurrentPrice(price);
     }
@@ -109,7 +111,7 @@ const SaleForm: React.FC<{
     
     const availableStock = getAvailableStock(product.id);
     if (currentQty > availableStock) {
-        alert(`Not enough stock for ${product.name}. Only ${availableStock} available.`);
+        alert(`Not enough stock for ${product.name}. Only ${availableStock} available in selected warehouse.`);
         return;
     }
 
@@ -135,6 +137,10 @@ const SaleForm: React.FC<{
         alert("Please add at least one product to the sale.");
         return;
     }
+    if(!selectedWarehouse) {
+        alert("Please select a warehouse.");
+        return;
+    }
     onSave(formData, saleType);
   };
   
@@ -142,6 +148,21 @@ const SaleForm: React.FC<{
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">Warehouse *</label>
+            <select 
+                value={selectedWarehouse} 
+                onChange={(e) => onWarehouseChange(e.target.value)} 
+                className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200"
+                required
+            >
+                <option value="">Select Warehouse</option>
+                {warehouses.map(w => (
+                    <option key={w.id} value={w.id}>{w.name} - {w.location}</option>
+                ))}
+            </select>
+        </div>
+
         <div className="flex justify-center p-1 bg-gray-800/50 rounded-lg">
             <Button 
                 type="button" 
@@ -184,7 +205,7 @@ const SaleForm: React.FC<{
             <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                 {formData.products.map((p, index) => (
                     <div key={index} className="flex justify-between items-center bg-gray-800/50 p-2 rounded">
-                        <span>{p.quantity} x {p.name} @ {p.price}</span>
+                        <span>{p.quantity} x {p.name} @ ₹{p.price}</span>
                         <Button type="button" variant="ghost" className="!p-1 !text-red-400" onClick={() => handleRemoveProduct(index)}>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </Button>
@@ -194,7 +215,7 @@ const SaleForm: React.FC<{
             <div className="grid grid-cols-1 md:grid-cols-6 items-end gap-2 mt-3">
                  <div className="md:col-span-3">
                     <label className="text-xs text-gray-400">Product</label>
-                    <select value={currentProduct} onChange={e => handleProductSelect(e.target.value)} className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200">
+                    <select value={currentProduct} onChange={e => handleProductSelect(e.target.value)} className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" disabled={!selectedWarehouse}>
                         <option value="">Select a product</option>
                         {retailProducts.map(p => <option key={p.id} value={p.id}>{p.name} ({getAvailableStock(p.id)} available)</option>)}
                     </select>
@@ -207,7 +228,7 @@ const SaleForm: React.FC<{
                     <label className="text-xs text-gray-400">Qty</label>
                     <input type="number" value={currentQty} onChange={e => setCurrentQty(parseInt(e.target.value))} min="1" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
                 </div>
-                 <Button type="button" variant="secondary" onClick={handleAddProduct} className="w-full h-10">Add</Button>
+                 <Button type="button" variant="secondary" onClick={handleAddProduct} className="w-full h-10" disabled={!selectedWarehouse}>Add</Button>
             </div>
         </div>
 
@@ -249,6 +270,8 @@ const Sales: React.FC = () => {
     const [sales, setSales] = useState<CombinedSale[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+    const [selectedWarehouse, setSelectedWarehouse] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -273,7 +296,13 @@ const Sales: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const [salesData, wholesaleData, productsData, inventoryData] = await Promise.all([getSales(), getWholesaleSales(), getProducts(), getInventory()]);
+            const [salesData, wholesaleData, productsData, inventoryData, warehousesData] = await Promise.all([
+                getSales(), 
+                getWholesaleSales(), 
+                getProducts(), 
+                getInventory(), 
+                getWarehouses()
+            ]);
             const combined = [
                 ...salesData.map(s => ({ ...s, type: 'Retail' as const })),
                 ...wholesaleData.map(w => ({ ...w, type: 'Wholesale' as const }))
@@ -281,13 +310,18 @@ const Sales: React.FC = () => {
             setSales(combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             setProducts(productsData);
             setInventory(inventoryData);
+            setWarehouses(warehousesData);
+            
+            if (!selectedWarehouse && warehousesData.length > 0) {
+                setSelectedWarehouse(warehousesData[0].id);
+            }
         } catch (err) {
             console.error(err);
             setError("Failed to fetch sales data.");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedWarehouse]);
 
     useEffect(() => {
         fetchData();
@@ -297,7 +331,7 @@ const Sales: React.FC = () => {
         try {
             const payload = {
                 ...saleData,
-                warehouseId: 'default', 
+                warehouseId: selectedWarehouse,
                 products: saleData.products.map((p: SaleProduct) => {
                     const product = products.find(prod => prod.name === p.name);
                     return { productId: product ? product.id : null, quantity: p.quantity, price: p.price };
@@ -309,7 +343,7 @@ const Sales: React.FC = () => {
             if (saleType === 'Retail') {
                 if (isEditing) await updateSale(payload);
                 else await addSale(payload);
-            } else { // Wholesale
+            } else {
                 if (isEditing) await updateWholesaleSale(payload);
                 else await addWholesaleSale(payload);
             }
@@ -424,7 +458,7 @@ const Sales: React.FC = () => {
     };
 
     if (loading) return <LoadingSpinner />;
-    if (error) return <ApiError onRetry={fetchData} />;
+    if (error) return <ApiError onRetry={fetchData} message={error} />;
 
     return (
         <div>
@@ -484,7 +518,16 @@ const Sales: React.FC = () => {
             </div>
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedSale ? `Edit ${selectedSale.type} Sale` : 'Add Sale'}>
-                <SaleForm sale={selectedSale} products={products} inventory={inventory} onSave={handleSave} onCancel={() => { setIsModalOpen(false); setSelectedSale(null); }} />
+                <SaleForm 
+                    sale={selectedSale} 
+                    products={products} 
+                    inventory={inventory} 
+                    warehouses={warehouses}
+                    selectedWarehouse={selectedWarehouse}
+                    onWarehouseChange={setSelectedWarehouse}
+                    onSave={handleSave} 
+                    onCancel={() => { setIsModalOpen(false); setSelectedSale(null); }} 
+                />
             </Modal>
 
             <ConfirmModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleDelete} title="Delete Sale" message="Are you sure you want to delete this sale record?" />
