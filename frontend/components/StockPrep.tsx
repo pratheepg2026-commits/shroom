@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getStockPrep } from '../services/api';  // ADD THIS
 
 interface Delivery {
   type: string;
@@ -28,6 +29,30 @@ interface StockPrepData {
   today: DayData;
   tomorrow: DayData;
 }
+
+const StockPrep: React.FC = () => {
+  const [stockData, setStockData] = useState<StockPrepData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchStockPrep();
+  }, []);
+
+  // UPDATED: Use API service
+  const fetchStockPrep = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getStockPrep();  // Use API service, not direct fetch
+      setStockData(data);
+    } catch (err) {
+      console.error('Error fetching stock prep:', err);
+      setError('Failed to load stock preparation data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
 // Add this at the top of the StockPrep component
 const API_BASE_URL = 'https://shroommush.onrender.com';
