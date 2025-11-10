@@ -59,3 +59,11 @@ export const addSalesReturn = (data: any): Promise<any> => apiRequest('/sales-re
 
 export const getDashboardStats = (): Promise<any> => apiRequest('/dashboard-stats');
 export const getCustomers = (): Promise<any[]> => apiRequest('/customers');
+export const getStockPrep = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/stock-prep`);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+};
+
