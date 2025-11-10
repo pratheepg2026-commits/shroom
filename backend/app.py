@@ -464,26 +464,22 @@ def delete_product(prod_id):
 def subscriptions():
     """Handle subscriptions - both GET and POST"""
     
-    # GET: Return all subscriptions
     if request.method == 'GET':
         try:
-           subs = Subscription.query.order_by(Subscription.id.desc()).all()
-        return jsonify([s.to_dict() for s in subs])
-        except Exception as e:
+            subs = Subscription.query.order_by(Subscription.id.desc()).all()
+            return jsonify([s.to_dict() for s in subs])
+        except Exception as e:  # ← YOU FORGOT THIS PART!
             return jsonify({'error': str(e)}), 500
     
-    # POST: Create new subscription
     elif request.method == 'POST':
         try:
             data = request.get_json()
             
-            # Map flatName to flatNo if present
             if 'flatName' in data:
                 if 'flatNo' not in data:
                     data['flatNo'] = data['flatName']
                 data.pop('flatName')
             
-            # Extract new fields with defaults
             preferred_day = data.pop('preferredDeliveryDay', 'Any Day')
             boxes_per_month = data.pop('boxesPerMonth', 1)
             
@@ -509,6 +505,7 @@ def subscriptions():
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
+
 
 
 
@@ -1214,6 +1211,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
