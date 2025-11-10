@@ -115,24 +115,18 @@ class Product(db.Model):
 def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     """
     Calculate delivery schedule for a subscription month
-    
-    Args:
-        start_date_str: ISO format date string (YYYY-MM-DD)
-        preferred_day: Day name (e.g., 'Monday', 'Tuesday')
-        boxes_per_month: Number of boxes to deliver in the month
-        
-    Returns:
-        List of delivery dates with box quantities
     """
     if not preferred_day or preferred_day == 'Any Day':
         return []
     
-    # Parse start date
-    start_date = datetime.fromisoformat(start_date_str.split('T')[0])
+    try:
+        start_date = datetime.fromisoformat(start_date_str.split('T')[0])
+    except:
+        start_date = datetime.now()
+    
     year = start_date.year
     month = start_date.month
     
-    # Day name to number mapping
     day_map = {
         'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3,
         'Friday': 4, 'Saturday': 5, 'Sunday': 6
@@ -142,7 +136,6 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     if target_weekday is None:
         return []
     
-    # Find all occurrences of the preferred day in the month
     delivery_dates = []
     days_in_month = monthrange(year, month)[1]
     
@@ -151,7 +144,6 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
         if current_date.weekday() == target_weekday and current_date >= start_date:
             delivery_dates.append(current_date)
     
-    # Calculate boxes per delivery
     if not delivery_dates or boxes_per_month <= 0:
         return []
     
@@ -159,7 +151,6 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
     boxes_per_delivery = boxes_per_month // num_deliveries
     remainder = boxes_per_month % num_deliveries
     
-    # Build schedule
     schedule = []
     for i, date in enumerate(delivery_dates):
         boxes = boxes_per_delivery + (1 if i < remainder else 0)
@@ -170,6 +161,7 @@ def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
         })
     
     return schedule
+
     
 class Subscription(db.Model):
     """Subscription customers"""
@@ -1143,6 +1135,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
