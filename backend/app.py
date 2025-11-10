@@ -125,6 +125,7 @@ class Subscription(db.Model):
     plan = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     startDate = db.Column('start_date', db.String(50), nullable=False)
+    preferredDeliveryDay = db.Column('preferred_delivery_day', db.String(20), default='')  # UPDATED
 
     def to_dict(self):
         return {
@@ -135,11 +136,13 @@ class Subscription(db.Model):
             'phone': self.phone or '',
             'address': self.address or '',
             'flatNo': self.flatNo or '',
-            'flatName': self.flatNo or '',  # Alias for frontend compatibility
+            'flatName': self.flatNo or '',
             'plan': self.plan,
             'status': self.status,
-            'startDate': self.startDate
+            'startDate': self.startDate,
+            'preferredDeliveryDay': self.preferredDeliveryDay or ''  # UPDATED
         }
+
 
 class Sale(db.Model):
     """Retail sales"""
@@ -432,8 +435,8 @@ def add_subscription():
                 data['flatNo'] = data['flatName']
             data.pop('flatName')
         
-        # Remove extra fields not in database
-        data.pop('preferredDeliveryDay', None)
+        # REMOVE THIS LINE if it exists:
+        # data.pop('preferredDeliveryDay', None)
         
         subscription = Subscription(
             id=generate_id('sub'),
@@ -445,7 +448,8 @@ def add_subscription():
             flatNo=data.get('flatNo', ''),
             plan=data['plan'],
             status=data['status'],
-            startDate=data['startDate']
+            startDate=data['startDate'],
+            preferredDeliveryDay=data.get('preferredDeliveryDay', 'Any Day')  # UPDATED
         )
         db.session.add(subscription)
         db.session.commit()
@@ -1062,5 +1066,6 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
