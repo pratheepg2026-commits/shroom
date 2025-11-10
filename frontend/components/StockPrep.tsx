@@ -29,6 +29,31 @@ interface StockPrepData {
   tomorrow: DayData;
 }
 
+// Add this at the top of the StockPrep component
+const API_BASE_URL = 'https://shroommush.onrender.com';
+
+const fetchStockPrep = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    
+    // Use absolute URL pointing to backend
+    const response = await fetch(`${API_BASE_URL}/api/stock-prep`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch stock prep data');
+    }
+    
+    const data = await response.json();
+    setStockData(data);
+  } catch (err) {
+    console.error('Error fetching stock prep:', err);
+    setError('Failed to load stock preparation data');
+  } finally {
+    setLoading(false);
+  }
+};
+
 const StockPrep: React.FC = () => {
   const [stockData, setStockData] = useState<StockPrepData | null>(null);
   const [loading, setLoading] = useState(true);
