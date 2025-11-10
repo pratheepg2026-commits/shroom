@@ -86,6 +86,25 @@ const SubscriptionForm: React.FC<{
             {deliveryDays.map(day => <option key={day} value={day}>{day}</option>)}
         </select>
       </div>
+        <div>
+    <label htmlFor="boxesPerMonth" className="block text-sm font-medium text-gray-400 mb-1">
+        Boxes Per Month
+    </label>
+    <input
+        type="number"
+        name="boxesPerMonth"
+        id="boxesPerMonth"
+        min="1"
+        max="30"
+        value={formData.boxesPerMonth}
+        onChange={handleChange}
+        className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200"
+    />
+    <p className="text-xs text-gray-500 mt-1">
+        Number of boxes to deliver per month
+    </p>
+</div>
+
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
         <Button type="submit" variant="primary">Save Subscription</Button>
