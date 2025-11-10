@@ -13,7 +13,8 @@ import time
 import random
 import string
 from urllib.parse import quote_plus
-
+from datetime import datetime, timedelta
+from calendar import monthrange
 # --- ENVIRONMENT SETUP ---
 try:
     from dotenv import load_dotenv
@@ -111,6 +112,65 @@ class Product(db.Model):
             'unit': self.unit
         }
 
+def calculate_delivery_schedule(start_date_str, preferred_day, boxes_per_month):
+    """
+    Calculate delivery schedule for a subscription month
+    
+    Args:
+        start_date_str: ISO format date string (YYYY-MM-DD)
+        preferred_day: Day name (e.g., 'Monday', 'Tuesday')
+        boxes_per_month: Number of boxes to deliver in the month
+        
+    Returns:
+        List of delivery dates with box quantities
+    """
+    if not preferred_day or preferred_day == 'Any Day':
+        return []
+    
+    # Parse start date
+    start_date = datetime.fromisoformat(start_date_str.split('T')[0])
+    year = start_date.year
+    month = start_date.month
+    
+    # Day name to number mapping
+    day_map = {
+        'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3,
+        'Friday': 4, 'Saturday': 5, 'Sunday': 6
+    }
+    
+    target_weekday = day_map.get(preferred_day)
+    if target_weekday is None:
+        return []
+    
+    # Find all occurrences of the preferred day in the month
+    delivery_dates = []
+    days_in_month = monthrange(year, month)[1]
+    
+    for day in range(1, days_in_month + 1):
+        current_date = datetime(year, month, day)
+        if current_date.weekday() == target_weekday and current_date >= start_date:
+            delivery_dates.append(current_date)
+    
+    # Calculate boxes per delivery
+    if not delivery_dates or boxes_per_month <= 0:
+        return []
+    
+    num_deliveries = len(delivery_dates)
+    boxes_per_delivery = boxes_per_month // num_deliveries
+    remainder = boxes_per_month % num_deliveries
+    
+    # Build schedule
+    schedule = []
+    for i, date in enumerate(delivery_dates):
+        boxes = boxes_per_delivery + (1 if i < remainder else 0)
+        schedule.append({
+            'date': date.strftime('%Y-%m-%d'),
+            'day': preferred_day,
+            'boxes': boxes
+        })
+    
+    return schedule
+    
 class Subscription(db.Model):
     """Subscription customers"""
     __tablename__ = 'subscriptions'
@@ -125,7 +185,8 @@ class Subscription(db.Model):
     plan = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     startDate = db.Column('start_date', db.String(50), nullable=False)
-    preferredDeliveryDay = db.Column('preferred_delivery_day', db.String(20), default='')  # UPDATED
+    preferredDeliveryDay = db.Column('preferred_delivery_day', db.String(20), default='Any Day')
+    boxesPerMonth = db.Column('boxes_per_month', db.Integer, default=1)  # NEW
 
     def to_dict(self):
         return {
@@ -140,9 +201,10 @@ class Subscription(db.Model):
             'plan': self.plan,
             'status': self.status,
             'startDate': self.startDate,
-            'preferredDeliveryDay': self.preferredDeliveryDay or ''  # UPDATED
+            'preferredDeliveryDay': self.preferredDeliveryDay or 'Any Day',
+            'boxesPerMonth': self.boxesPerMonth or 1  # NEW
         }
-
+     
 
 class Sale(db.Model):
     """Retail sales"""
@@ -414,14 +476,30 @@ def delete_product(prod_id):
 
 # --- SUBSCRIPTIONS API ---
 
-@app.route('/api/subscriptions', methods=['GET'])
-def get_subscriptions():
-    """Get all subscriptions"""
+@app.route('/api/subscriptions/<string:sub_id>/schedule', methods=['GET'])
+def get_subscription_schedule(sub_id):
+    """Get delivery schedule for a subscription"""
     try:
-        subs = Subscription.query.all()
-        return jsonify([s.to_dict() for s in subs])
+        subscription = Subscription.query.get(sub_id)
+        if not subscription:
+            return jsonify({'error': 'Subscription not found'}), 404
+        
+        schedule = calculate_delivery_schedule(
+            subscription.startDate,
+            subscription.preferredDeliveryDay,
+            subscription.boxesPerMonth
+        )
+        
+        return jsonify({
+            'subscriptionId': subscription.id,
+            'name': subscription.name,
+            'boxesPerMonth': subscription.boxesPerMonth,
+            'preferredDay': subscription.preferredDeliveryDay,
+            'schedule': schedule
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/subscriptions', methods=['POST'])
 def add_subscription():
@@ -429,14 +507,10 @@ def add_subscription():
     try:
         data = request.get_json()
         
-        # Map flatName to flatNo if present
         if 'flatName' in data:
             if 'flatNo' not in data:
                 data['flatNo'] = data['flatName']
             data.pop('flatName')
-        
-        # REMOVE THIS LINE if it exists:
-        # data.pop('preferredDeliveryDay', None)
         
         subscription = Subscription(
             id=generate_id('sub'),
@@ -449,7 +523,8 @@ def add_subscription():
             plan=data['plan'],
             status=data['status'],
             startDate=data['startDate'],
-            preferredDeliveryDay=data.get('preferredDeliveryDay', 'Any Day')  # UPDATED
+            preferredDeliveryDay=data.get('preferredDeliveryDay', 'Any Day'),
+            boxesPerMonth=data.get('boxesPerMonth', 1)  # NEW
         )
         db.session.add(subscription)
         db.session.commit()
@@ -457,6 +532,7 @@ def add_subscription():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/subscriptions/<string:sub_id>', methods=['PUT'])
 def update_subscription(sub_id):
@@ -1065,6 +1141,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
