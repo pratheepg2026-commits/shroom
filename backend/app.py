@@ -569,6 +569,86 @@ def delete_subscription(sub_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/stock-prep', methods=['GET'])
+def get_stock_prep():
+    """Get comprehensive stock prep data for today and tomorrow"""
+    try:
+        today = datetime.now()
+        tomorrow = today + timedelta(days=1)
+        
+        today_day = today.strftime('%A')
+        tomorrow_day = tomorrow.strftime('%A')
+        today_str = today.strftime('%Y-%m-%d')
+        tomorrow_str = tomorrow.strftime('%Y-%m-%d')
+        
+        today_deliveries = []
+        tomorrow_deliveries = []
+        
+        # Get subscription deliveries
+        subscriptions = Subscription.query.filter_by(status='Active').all()
+        
+        for sub in subscriptions:
+            boxes_per_month = getattr(sub, 'boxesPerMonth', 1) or 1
+            preferred_day = getattr(sub, 'preferredDeliveryDay', None) or 'Any Day'
+            
+            schedule = calculate_delivery_schedule(
+                sub.startDate,
+                preferred_day,
+                boxes_per_month
+            )
+            
+            for delivery in schedule:
+                delivery_info = {
+                    'type': 'Subscription',
+                    'id': sub.id,
+                    'customerName': sub.name,
+                    'address': sub.address or '',
+                    'flatNo': sub.flatNo or '',
+                    'phone': sub.phone or '',
+                    'boxes': delivery['boxes'],
+                    'plan': sub.plan,
+                    'deliveryDate': delivery['date']
+                }
+                
+                if delivery['date'] == today_str:
+                    today_deliveries.append(delivery_info)
+                elif delivery['date'] == tomorrow_str:
+                    tomorrow_deliveries.append(delivery_info)
+        
+        # Calculate totals
+        total_today = sum(d['boxes'] for d in today_deliveries)
+        total_tomorrow = sum(d['boxes'] for d in tomorrow_deliveries)
+        
+        return jsonify({
+            'today': {
+                'date': today_str,
+                'day': today_day,
+                'deliveries': today_deliveries,
+                'totalBoxes': total_today,
+                'breakdown': {
+                    'subscriptions': len([d for d in today_deliveries if d['type'] == 'Subscription']),
+                    'retail': 0,
+                    'wholesale': 0
+                }
+            },
+            'tomorrow': {
+                'date': tomorrow_str,
+                'day': tomorrow_day,
+                'deliveries': tomorrow_deliveries,
+                'totalBoxes': total_tomorrow,
+                'breakdown': {
+                    'subscriptions': len([d for d in tomorrow_deliveries if d['type'] == 'Subscription']),
+                    'retail': 0,
+                    'wholesale': 0
+                }
+            }
+        })
+    except Exception as e:
+        print(f"Error in get_stock_prep: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # --- SALES API ---
 
 @app.route('/api/sales', methods=['GET'])
@@ -1135,6 +1215,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
