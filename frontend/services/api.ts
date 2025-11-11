@@ -44,6 +44,22 @@ export const deleteWholesaleSale = (id: string): Promise<void> => apiRequest(`/w
 export const getExpenses = (): Promise<any[]> => apiRequest('/expenses');
 export const addExpense = (expense: any): Promise<any> => apiRequest('/expenses', { method: 'POST', body: JSON.stringify(expense) });
 export const deleteExpense = (id: string): Promise<void> => apiRequest(`/expenses/${id}`, { method: 'DELETE' });
+export const updateInventory = async (item: InventoryItem): Promise<InventoryItem> => {
+  const response = await fetch(`${API_BASE_URL}/api/inventory/${item.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(item)
+  });
+  if (!response.ok) throw new Error('Failed to update inventory');
+  return response.json();
+};
+
+export const deleteInventory = async (id: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/inventory/${id}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) throw new Error('Failed to delete inventory');
+};
 
 export const getWarehouses = (): Promise<any[]> => apiRequest('/warehouses');
 export const addWarehouse = (warehouse: any): Promise<any> => apiRequest('/warehouses', { method: 'POST', body: JSON.stringify(warehouse) });
