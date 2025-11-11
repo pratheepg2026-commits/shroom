@@ -20,7 +20,7 @@ const ReportCard: React.FC<{title: string, value: string, description?: string}>
     </div>
 );
 
-type ReportType = 'sales' | 'pnl';
+type ReportType = 'sales' | 'pnl' | 'returns' | 'warehouse' | 'credits';
 
 interface SalesAnalysisData {
     type: 'sales';
@@ -31,7 +31,42 @@ interface SalesAnalysisData {
     dailySales: { date: string; revenue: number }[];
 }
 
-type ReportData = SalesAnalysisData | PnlAnalysisDataType | null;
+interface ReturnsAnalysisData {
+    type: 'returns';
+    totalReturns: number;
+    totalRefundAmount: number;
+    avgReturnValue: number;
+    warehouseReturns: { warehouseName: string; count: number; amount: number }[];
+    topReturnedProducts: { name: string; quantity: number; refundAmount: number }[];
+}
+
+interface WarehouseOverviewData {
+    type: 'warehouse';
+    warehouses: {
+        name: string;
+        totalSales: number;
+        totalExpenses: number;
+        totalInventory: number;
+        netProfit: number;
+        salesCount: number;
+    }[];
+}
+
+interface CreditsAnalysisData {
+    type: 'credits';
+    totalUnpaid: number;
+    retailUnpaid: number;
+    wholesaleUnpaid: number;
+    unpaidSales: {
+        invoiceNumber: string;
+        customerName: string;
+        type: 'Retail' | 'Wholesale';
+        amount: number;
+        date: string;
+    }[];
+}
+
+type ReportData = SalesAnalysisData | PnlAnalysisDataType | ReturnsAnalysisData | WarehouseOverviewData | CreditsAnalysisData | null;
 
 const getLocalDateString = (date: Date): string => {
     const year = date.getFullYear();
