@@ -60,6 +60,12 @@ const SaleForm: React.FC<{
         setSaleType(sale.type);
     }
   }, [sale]);
+  
+  useEffect(() => {
+    if (sale && sale.warehouseId) {
+      onWarehouseChange(sale.warehouseId);
+    }
+  }, [sale]);
 
   useEffect(() => {
     if (saleTiming === 'immediate') {
