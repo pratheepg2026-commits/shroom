@@ -1,6 +1,5 @@
-// Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { getInventory, addStock, getWarehouses, addWarehouse, deleteWarehouse, getProducts, updateWarehouse } from '../services/api';
+import { getInventory, addStock, getWarehouses, addWarehouse, deleteWarehouse, updateWarehouse, updateInventory, deleteInventory, getProducts } from '../services/api';
 import { InventoryItem, Warehouse, Product } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
@@ -52,6 +51,44 @@ const AddStockForm: React.FC<{
     );
 };
 
+const EditInventoryForm: React.FC<{
+    item: InventoryItem;
+    onSave: (id: string, quantity: number) => void;
+    onCancel: () => void;
+}> = ({ item, onSave, onCancel }) => {
+    const [quantity, setQuantity] = useState(item.quantity);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (quantity < 0) {
+            alert("Quantity cannot be negative.");
+            return;
+        }
+        onSave(item.id, quantity);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label className="block text-sm text-gray-400 mb-1">Product</label>
+                <input type="text" value={item.productName} disabled className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-400" />
+            </div>
+            <div>
+                <label className="block text-sm text-gray-400 mb-1">Warehouse</label>
+                <input type="text" value={item.warehouseName} disabled className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-400" />
+            </div>
+            <div>
+                <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+                <input type="number" min="0" value={quantity} onChange={e => setQuantity(parseInt(e.target.value))} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+                <Button type="submit">Update</Button>
+            </div>
+        </form>
+    );
+};
+
 const WarehouseForm: React.FC<{
     warehouse?: Warehouse | null;
     onSave: (warehouse: Warehouse | Omit<Warehouse, 'id'>) => void;
@@ -96,6 +133,10 @@ const Inventory: React.FC = () => {
     const [isConfirmOpen, setConfirmOpen] = useState(false);
     const [warehouseToDelete, setWarehouseToDelete] = useState<string | null>(null);
     const [isExportingCSV, setIsExportingCSV] = useState(false);
+    
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const EditIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -136,6 +177,40 @@ const Inventory: React.FC = () => {
             console.error(err);
             alert('Failed to add stock.');
         }
+    };
+
+    const handleEdit = (item: InventoryItem) => {
+        setSelectedItem(item);
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveEdit = async (id: string, quantity: number) => {
+        try {
+            await updateInventory({ ...selectedItem!, quantity });
+            fetchData();
+            setIsEditModalOpen(false);
+            setSelectedItem(null);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update inventory');
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteInventory(id);
+            fetchData();
+            setIsDeleteModalOpen(false);
+            setSelectedItem(null);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to delete inventory item');
+        }
+    };
+
+    const openDeleteModal = (item: InventoryItem) => {
+        setSelectedItem(item);
+        setIsDeleteModalOpen(true);
     };
 
     const handleSaveWarehouse = async (warehouse: Warehouse | Omit<Warehouse, 'id'>) => {
@@ -225,6 +300,7 @@ const Inventory: React.FC = () => {
                                     <th scope="col" className="px-6 py-3">Product</th>
                                     <th scope="col" className="px-6 py-3">Warehouse</th>
                                     <th scope="col" className="px-6 py-3 text-right">Quantity</th>
+                                    <th scope="col" className="px-6 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -233,6 +309,22 @@ const Inventory: React.FC = () => {
                                         <td className="px-6 py-4 font-medium text-white">{item.productName}</td>
                                         <td className="px-6 py-4">{item.warehouseName}</td>
                                         <td className="px-6 py-4 text-right font-semibold">{item.quantity}</td>
+                                        <td className="px-6 py-4 text-right space-x-2">
+                                            <Button 
+                                                variant="ghost" 
+                                                className="!p-2" 
+                                                onClick={() => handleEdit(item)}
+                                            >
+                                                <EditIcon />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                className="!p-2 text-red-400 hover:bg-red-500/10" 
+                                                onClick={() => openDeleteModal(item)}
+                                            >
+                                                <DeleteIcon />
+                                            </Button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -280,6 +372,16 @@ const Inventory: React.FC = () => {
             <Modal isOpen={isStockModalOpen} onClose={() => setStockModalOpen(false)} title="Add Stock to Inventory">
                 <AddStockForm warehouses={warehouses} products={products} onSave={handleAddStock} onCancel={() => setStockModalOpen(false)} />
             </Modal>
+
+            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Inventory">
+                {selectedItem && (
+                    <EditInventoryForm 
+                        item={selectedItem} 
+                        onSave={handleSaveEdit} 
+                        onCancel={() => { setIsEditModalOpen(false); setSelectedItem(null); }} 
+                    />
+                )}
+            </Modal>
             
             <Modal isOpen={isWarehouseModalOpen} onClose={() => setWarehouseModalOpen(false)} title={editingWarehouse ? 'Edit Warehouse' : 'Add New Warehouse'}>
                 <WarehouseForm warehouse={editingWarehouse} onSave={handleSaveWarehouse} onCancel={() => {setWarehouseModalOpen(false); setEditingWarehouse(null);}} />
@@ -292,9 +394,16 @@ const Inventory: React.FC = () => {
                 title="Delete Warehouse"
                 message="Are you sure? Deleting a warehouse is permanent. This may fail if the warehouse still contains stock."
             />
+
+            <ConfirmModal 
+                isOpen={isDeleteModalOpen} 
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={() => selectedItem && handleDelete(selectedItem.id)}
+                title="Delete Inventory Item"
+                message={`Are you sure you want to delete ${selectedItem?.productName} from ${selectedItem?.warehouseName}?`}
+            />
         </div>
     );
 };
 
 export default Inventory;
-
