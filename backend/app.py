@@ -205,9 +205,7 @@ class Sale(db.Model):
     status = db.Column(db.String(50), nullable=False)
 
    def to_dict(self):
-       products_list = []
-    
-    # Products are stored as JSON in self.products
+        products_list = []
         products_data = self.products or []
         
         for p in products_data:
@@ -227,6 +225,7 @@ class Sale(db.Model):
             'warehouseId': self.warehouseId,
             'products': products_list
         }
+
 
    
 class WholesaleSale(db.Model):
@@ -1250,6 +1249,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
