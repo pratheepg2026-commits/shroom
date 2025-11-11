@@ -153,7 +153,8 @@ const SaleForm: React.FC<{
   const retailProducts = products.filter(p => !p.name.toLowerCase().includes('monthly'));
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+  <div className="max-h-[80vh] overflow-y-auto p-4 flex flex-col">
+    <form onSubmit={handleSubmit} className="flex flex-col space-y-4 flex-grow">
         <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Warehouse *</label>
             <select 
@@ -267,14 +268,15 @@ const SaleForm: React.FC<{
                 <option value="Free">Free Sample</option>
             </select>
         </div>
-        <div className="text-right text-xl font-bold text-white">
+        <div className="text-right text-xl font-bold text-white mt-auto">
             Total: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(formData.totalAmount)}
         </div>
-        <div className="flex justify-end space-x-2 pt-4">
+        <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-gray-900 border-t border-gray-700 z-10">
             <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
             <Button type="submit" variant="primary">Save Sale</Button>
         </div>
     </form>
+  </div>
   );
 };
 
