@@ -752,9 +752,9 @@ def add_sale():
     try:
         data = request.get_json()
         warehouse_id = data.get('warehouseId')
-        if not warehouse_id or warehouse_id == 'default':
+        if not warehouse_id:
             return jsonify({'error': 'Valid warehouseId is required'}), 400
-
+            
         products_in_sale = data.get('products', [])
         if not products_in_sale:
             return jsonify({'error': 'No products provided for sale'}), 400
@@ -817,12 +817,9 @@ def update_sale(sale_id):
 
         # Explicitly handle warehouse_id field
         warehouse_id = data.get('warehouseId')
-        if warehouse_id is not None:
-            sale.warehouse_id = warehouse_id
-        else:
-            # Optional: return error if warehouseId omitted
-            return jsonify({'error': 'warehouseId is required'}), 400
-
+        if not warehouse_id:
+            return jsonify({"error": "warehouseId is required"}), 400
+        sale.warehouse_id = warehouse_id
         # Update other fields except 'id' and 'warehouse_id'
         for key, value in data.items():
             if hasattr(sale, key) and key not in ['id', 'warehouseId', 'warehouse_id']:
@@ -1311,6 +1308,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
