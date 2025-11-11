@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSales, getWholesaleSales, getExpenses, getSalesReturns, getProducts } from '../services/api';
+import { getSales, getWholesaleSales, getExpenses, getSalesReturns, getProducts,getWarehouses  } from '../services/api';
 import { Sale, WholesaleSale, Expense, SalesReturn, Product, ExpenseCategory, PnlAnalysisData as PnlAnalysisDataType } from '../types';
 import Button from './common/Button';
 import ApiError from './common/ApiError';
