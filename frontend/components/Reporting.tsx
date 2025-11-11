@@ -305,7 +305,7 @@ else if (reportType === 'credits') {
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        if (reportData &&reportData.type === 'sales') {
+        if (reportData && reportData.type === 'sales') {
             const filteredSales = allSales.filter(s => new Date(s.date) >= start && new Date(s.date) <= end);
             const filteredWholesale = allWholesale.filter(s => new Date(s.date) >= start && new Date(s.date) <= end);
             exportToCSV([...filteredSales, ...filteredWholesale], `sales_report_${startDate}_to_${endDate}.csv`);
@@ -368,7 +368,7 @@ else if (reportType === 'credits') {
                     </div>
 
                     {/* Sales Report */}
-                    {reportData.type === 'sales' && (
+                    {reportData && reportData.type === 'sales' && (
                         <div className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <ReportCard title="Total Revenue" value={formatCurrency(reportData.totalRevenue)} />
@@ -416,7 +416,7 @@ else if (reportType === 'credits') {
                     )}
 
                     {/* P&L Report */}
-                    {reportData.type === 'pnl' && (
+                    {reportData && reportData.type === 'pnl' && (
                          <div className="space-y-8">
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <ReportCard title="Total Revenue" value={formatCurrency(reportData.totalRevenue)} />
@@ -464,7 +464,7 @@ else if (reportType === 'credits') {
                 </div>
             )}
             {/* Returns Analysis Report */}
-{reportData.type === 'returns' && (
+{reportData && reportData.type === 'returns' && (
     <div className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ReportCard title="Total Returns" value={reportData.totalReturns.toString()} />
@@ -514,7 +514,7 @@ else if (reportType === 'credits') {
 )}
 
 {/* Warehouse Overview Report */}
-{reportData.type === 'warehouse' && (
+{reportData && reportData.type === 'warehouse' && (
     <div className="space-y-8">
         <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
@@ -550,7 +550,7 @@ else if (reportType === 'credits') {
 )}
 
 {/* Credits Analysis Report */}
-{reportData.type === 'credits' && (
+{reportData && reportData.type === 'credits' && (
     <div className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ReportCard title="Total Unpaid" value={formatCurrency(reportData.totalUnpaid)} description="Outstanding Amount" />
