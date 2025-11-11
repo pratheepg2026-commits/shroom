@@ -777,6 +777,7 @@ def add_sale():
             totalAmount=data['totalAmount'],
             date=data['date'],
             status=data['status']
+            warehouseId = data.get('warehouseId')
         )
         db.session.add(sale)
         db.session.commit()
@@ -819,7 +820,7 @@ def update_sale(sale_id):
         warehouse_id = data.get('warehouseId')
         if not warehouse_id:
             return jsonify({"error": "warehouseId is required"}), 400
-        sale.warehouse_id = warehouse_id
+        sale.warehouseId = warehouse_id
         # Update other fields except 'id' and 'warehouse_id'
         for key, value in data.items():
             if hasattr(sale, key) and key not in ['id', 'warehouseId', 'warehouse_id']:
@@ -1308,6 +1309,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
