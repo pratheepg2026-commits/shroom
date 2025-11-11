@@ -335,6 +335,11 @@ const Sales: React.FC = () => {
     }, [fetchData]);
 
    const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
+     if (!selectedWarehouse) {
+        alert("Please select a warehouse before saving.");
+        return; // Prevent proceeding without valid warehouse
+      }
+
     console.log('==========================================');
     console.log('handleSave CALLED');
     console.log('saleData:', JSON.stringify(saleData, null, 2));
@@ -346,11 +351,7 @@ const Sales: React.FC = () => {
         const isEditing = !!saleData.id;
         console.log('isEditing:', isEditing);
       
-      if (!selectedWarehouse) {
-        alert("Please select a warehouse before saving.");
-        return; // Prevent proceeding without valid warehouse
-      }
-
+      
         
         const payload = {
             ...(isEditing ? { id: saleData.id } : {}),
