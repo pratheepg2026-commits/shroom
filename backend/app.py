@@ -892,7 +892,8 @@ def add_wholesale_sale():
             products=products_in_sale,
             totalAmount=data['totalAmount'],
             date=data['date'],
-            status=data['status']
+            status=data['status'],
+            warehouseId = data.get('warehouseId')
         )
         db.session.add(sale)
         db.session.commit()
@@ -1309,6 +1310,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
