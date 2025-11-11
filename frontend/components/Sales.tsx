@@ -584,7 +584,16 @@ const Sales: React.FC = () => {
                     <Button variant="ghost" className="!p-2" onClick={() => { setSelectedSale(s); setIsModalOpen(true); }}>
                         <EditIcon />
                     </Button>
-                    <Button variant="ghost" className="!p-2 text-red-400 hover:bg-red-500/10" onClick={() => openDeleteConfirm(s.id, s.type)}>
+                    <Button
+  variant="ghost"
+  className="!p-2"
+  onClick={() => {
+    setSelectedSale(s);
+    setSelectedWarehouse(s.warehouseId || ''); // Set warehouseId here, fallback to empty string if null
+    setIsModalOpen(true);
+  }}
+>
+
                         <DeleteIcon />
                     </Button>
                 </td>
