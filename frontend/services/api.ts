@@ -86,10 +86,3 @@ export const getStockPrep = (): Promise<any[]> => apiRequest('/stock-prep');
 // Add these functions to api.ts
 
 // Warehouse APIs
-export const getWarehouses = async (): Promise<Warehouse[]> => {
-  const response = await fetch(`${API_BASE_URL}/warehouses`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch warehouses');
-  }
-  return response.json();
-};
