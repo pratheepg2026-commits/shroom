@@ -532,46 +532,41 @@ const Sales: React.FC = () => {
             <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm text-left text-gray-300">
-                       <thead className="bg-white/5 uppercase text-xs">
-    <tr>
-        <th scope="col" className="px-6 py-3">Invoice #</th>
-        <th scope="col" className="px-6 py-3">Customer</th>
-        <th scope="col" className="px-6 py-3">Products</th> {/* NEW */}
-        <th scope="col" className="px-6 py-3">Date</th>
-        <th scope="col" className="px-6 py-3">Status</th>
-        <th scope="col" className="px-6 py-3 text-right">Amount</th>
-        <th scope="col" className="px-6 py-3 text-right">Actions</th>
-    </tr>
-</thead>
-<tbody>
-    {sales.map(sale => (
-        <tr key={sale.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-            <td className="px-6 py-4 font-medium text-white">{sale.invoiceNumber}</td>
-            <td className="px-6 py-4">{sale.customerName}</td>
-            <td className="px-6 py-4">
-                <div className="text-xs text-gray-400">
-                    {sale.products?.map((p, i) => (
-                        <span key={i}>
-                            {p.quantity}x {p.name}
-                            {i < sale.products.length - 1 && ', '}
-                        </span>
-                    )) || 'N/A'}
-                </div>
-            </td>
-            <td className="px-6 py-4">{new Date(sale.date).toLocaleDateString()}</td>
-            <td className="px-6 py-4">
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                    sale.status === 'Completed' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'
-                }`}>{sale.status}</span>
-            </td>
-            <td className="px-6 py-4 text-right font-semibold">₹{sale.totalAmount.toFixed(2)}</td>
-            <td className="px-6 py-4 text-right">
-                {/* Edit/Delete buttons */}
-            </td>
-        </tr>
-    ))}
-</tbody>
-
+                        <thead className="bg-white/5 uppercase text-xs">
+                            <tr>
+                                <th scope="col" className="px-6 py-3">Date</th>
+                                <th scope="col" className="px-6 py-3">Invoice #</th>
+                                <th scope="col" className="px-6 py-3">Customer/Shop</th>
+                                <th scope="col" className="px-6 py-3">Type</th>
+                                <th scope="col" className="px-6 py-3">Total</th>
+                                <th scope="col" className="px-6 py-3">Status</th>
+                                <th scope="col" className="px-6 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sales.map(s => (
+                                <tr key={s.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                    <td className="px-6 py-4">{s.date}</td>
+                                    <td className="px-6 py-4 font-mono text-xs">{s.invoiceNumber}</td>
+                                    <td className="px-6 py-4 font-medium text-white">{s.type === 'Retail' ? s.customerName : s.shopName}</td>
+                                    <td className="px-6 py-4">
+                                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.type === 'Retail' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>{s.type}</span>
+                                    </td>
+                                    <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(s.status)}`}>{s.status}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right space-x-2">
+                                        <Button variant="ghost" className="!p-2" onClick={() => { setSelectedSale(s); setIsModalOpen(true); }}>
+                                            <EditIcon />
+                                        </Button>
+                                        <Button variant="ghost" className="!p-2 text-red-400 hover:bg-red-500/10" onClick={() => openDeleteConfirm(s.id, s.type)}>
+                                            <DeleteIcon />
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
                     </table>
                 </div>
             </div>
