@@ -88,6 +88,7 @@ const Reporting: React.FC = () => {
     const [allWholesale, setAllWholesale] = useState<WholesaleSale[]>([]);
     const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
     const [allReturns, setAllReturns] = useState<SalesReturn[]>([]);
+    const [allWarehouses, setAllWarehouses] = useState<Warehouse[]>([]); 
     
     const [reportData, setReportData] = useState<ReportData>(null);
     const [loading, setLoading] = useState(true);
@@ -98,16 +99,18 @@ const Reporting: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const [salesData, wholesaleData, expensesData, returnsData] = await Promise.all([
+            const [salesData, wholesaleData, expensesData, returnsData, warehousesData] = await Promise.all([
                 getSales(),
                 getWholesaleSales(),
                 getExpenses(),
-                getSalesReturns()
+                getSalesReturns(),
+                getWarehouses()
             ]);
             setAllSales(salesData);
             setAllWholesale(wholesaleData);
             setAllExpenses(expensesData);
             setAllReturns(returnsData);
+            setAllWarehouses(warehousesData);
         } catch (err) {
             console.error(err);
             setError("Failed to fetch initial data for reporting.");
@@ -203,6 +206,96 @@ const Reporting: React.FC = () => {
 
             setReportData({ type: 'pnl', totalRevenue, totalExpenses, totalReturns, netProfit, expenseBreakdown, profitTrend });
         }
+        else if (reportType === 'returns') {
+    const totalReturns = filteredReturns.length;
+    const totalRefundAmount = filteredReturns.reduce((sum, r) => sum + r.totalRefundAmount, 0);
+    const avgReturnValue = totalReturns > 0 ? totalRefundAmount / totalReturns : 0;
+
+    // Warehouse-wise returns
+    const warehouseMap = new Map<string, { count: number; amount: number }>();
+    filteredReturns.forEach(r => {
+        const warehouseName = allWarehouses.find(w => w.id === r.warehouseId)?.name || 'Unknown';
+        const existing = warehouseMap.get(warehouseName) || { count: 0, amount: 0 };
+        existing.count++;
+        existing.amount += r.totalRefundAmount;
+        warehouseMap.set(warehouseName, existing);
+    });
+    const warehouseReturns = Array.from(warehouseMap.entries())
+        .map(([warehouseName, data]) => ({ warehouseName, ...data }))
+        .sort((a, b) => b.amount - a.amount);
+
+    // Top returned products
+    const productMap = new Map<string, { quantity: number; refundAmount: number }>();
+    filteredReturns.forEach(r => {
+        r.products.forEach(p => {
+            const existing = productMap.get(p.name) || { quantity: 0, refundAmount: 0 };
+            existing.quantity += p.quantity;
+            existing.refundAmount += p.quantity * p.price;
+            productMap.set(p.name, existing);
+        });
+    });
+    const topReturnedProducts = Array.from(productMap.entries())
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.refundAmount - a.refundAmount)
+        .slice(0, 10);
+
+    setReportData({ type: 'returns', totalReturns, totalRefundAmount, avgReturnValue, warehouseReturns, topReturnedProducts });
+}
+else if (reportType === 'warehouse') {
+    const warehouseData = allWarehouses.map(warehouse => {
+        const warehouseSales = [...filteredSales, ...filteredWholesale].filter(s => s.warehouseId === warehouse.id);
+        const totalSales = warehouseSales.reduce((sum, s) => sum + s.totalAmount, 0);
+        const salesCount = warehouseSales.length;
+        
+        const warehouseExpenses = filteredExpenses.filter(e => e.warehouseId === warehouse.id);
+        const totalExpenses = warehouseExpenses.reduce((sum, e) => sum + e.amount, 0);
+        
+        // Get inventory value (assuming you have inventory data with warehouseId)
+        const warehouseInventory = allInventory?.filter(i => i.warehouseId === warehouse.id) || [];
+        const totalInventory = warehouseInventory.reduce((sum, i) => sum + (i.quantity * (i.costPerUnit || 0)), 0);
+        
+        const netProfit = totalSales - totalExpenses;
+
+        return {
+            name: warehouse.name,
+            totalSales,
+            totalExpenses,
+            totalInventory,
+            netProfit,
+            salesCount
+        };
+    });
+
+    setReportData({ type: 'warehouse', warehouses: warehouseData });
+}
+else if (reportType === 'credits') {
+    const unpaidRetail = filteredSales.filter(s => s.status === 'Unpaid');
+    const unpaidWholesale = filteredWholesale.filter(s => s.status === 'Unpaid');
+    
+    const retailUnpaid = unpaidRetail.reduce((sum, s) => sum + s.totalAmount, 0);
+    const wholesaleUnpaid = unpaidWholesale.reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalUnpaid = retailUnpaid + wholesaleUnpaid;
+
+    const unpaidSales = [
+        ...unpaidRetail.map(s => ({
+            invoiceNumber: s.invoiceNumber,
+            customerName: s.customerName,
+            type: 'Retail' as const,
+            amount: s.totalAmount,
+            date: s.date
+        })),
+        ...unpaidWholesale.map(s => ({
+            invoiceNumber: s.invoiceNumber,
+            customerName: s.shopName,
+            type: 'Wholesale' as const,
+            amount: s.totalAmount,
+            date: s.date
+        }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    setReportData({ type: 'credits', totalUnpaid, retailUnpaid, wholesaleUnpaid, unpaidSales });
+}
+
         
         setGenerating(false);
     };
@@ -370,6 +463,136 @@ const Reporting: React.FC = () => {
                     )}
                 </div>
             )}
+            {/* Returns Analysis Report */}
+{reportData.type === 'returns' && (
+    <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ReportCard title="Total Returns" value={reportData.totalReturns.toString()} />
+            <ReportCard title="Total Refund Amount" value={formatCurrency(reportData.totalRefundAmount)} />
+            <ReportCard title="Avg. Return Value" value={formatCurrency(reportData.avgReturnValue)} />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold mb-4 text-white">Warehouse-wise Returns</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={reportData.warehouseReturns}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                        <XAxis dataKey="warehouseName" stroke="#9ca3af" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="#9ca3af" tickFormatter={(val) => `₹${val/1000}k`} />
+                        <Tooltip contentStyle={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255,255,255,0.2)' }}/>
+                        <Legend />
+                        <Bar dataKey="count" fill="#ef4444" name="Return Count" />
+                        <Bar dataKey="amount" fill="#f87171" name="Refund Amount" />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold mb-4 text-white">Top Returned Products</h2>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm text-left text-gray-300">
+                        <thead className="bg-white/5 uppercase text-xs">
+                            <tr>
+                                <th className="px-4 py-2">Product</th>
+                                <th className="px-4 py-2 text-right">Qty Returned</th>
+                                <th className="px-4 py-2 text-right">Refund Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {reportData.topReturnedProducts.map(p => (
+                                <tr key={p.name} className="border-b border-white/10">
+                                    <td className="px-4 py-2 font-medium">{p.name}</td>
+                                    <td className="px-4 py-2 text-right">{p.quantity}</td>
+                                    <td className="px-4 py-2 text-right">{formatCurrency(p.refundAmount)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
+
+{/* Warehouse Overview Report */}
+{reportData.type === 'warehouse' && (
+    <div className="space-y-8">
+        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+                <table className="min-w-full text-sm text-left text-gray-300">
+                    <thead className="bg-white/5 uppercase text-xs">
+                        <tr>
+                            <th className="px-6 py-3">Warehouse</th>
+                            <th className="px-6 py-3 text-right">Sales Count</th>
+                            <th className="px-6 py-3 text-right">Total Sales</th>
+                            <th className="px-6 py-3 text-right">Total Expenses</th>
+                            <th className="px-6 py-3 text-right">Inventory Value</th>
+                            <th className="px-6 py-3 text-right">Net Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {reportData.warehouses.map(w => (
+                            <tr key={w.name} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                <td className="px-6 py-4 font-medium text-white">{w.name}</td>
+                                <td className="px-6 py-4 text-right">{w.salesCount}</td>
+                                <td className="px-6 py-4 text-right">{formatCurrency(w.totalSales)}</td>
+                                <td className="px-6 py-4 text-right">{formatCurrency(w.totalExpenses)}</td>
+                                <td className="px-6 py-4 text-right">{formatCurrency(w.totalInventory)}</td>
+                                <td className={`px-6 py-4 text-right font-semibold ${w.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {formatCurrency(w.netProfit)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+)}
+
+{/* Credits Analysis Report */}
+{reportData.type === 'credits' && (
+    <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ReportCard title="Total Unpaid" value={formatCurrency(reportData.totalUnpaid)} description="Outstanding Amount" />
+            <ReportCard title="Retail Unpaid" value={formatCurrency(reportData.retailUnpaid)} />
+            <ReportCard title="Wholesale Unpaid" value={formatCurrency(reportData.wholesaleUnpaid)} />
+        </div>
+        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
+            <h2 className="text-xl font-bold p-6 text-white border-b border-white/10">Unpaid Sales Details</h2>
+            <div className="overflow-x-auto">
+                <table className="min-w-full text-sm text-left text-gray-300">
+                    <thead className="bg-white/5 uppercase text-xs">
+                        <tr>
+                            <th className="px-6 py-3">Invoice #</th>
+                            <th className="px-6 py-3">Customer/Shop</th>
+                            <th className="px-6 py-3">Type</th>
+                            <th className="px-6 py-3">Date</th>
+                            <th className="px-6 py-3 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {reportData.unpaidSales.map(sale => (
+                            <tr key={sale.invoiceNumber} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                <td className="px-6 py-4 font-mono text-xs">{sale.invoiceNumber}</td>
+                                <td className="px-6 py-4 font-medium text-white">{sale.customerName}</td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                        sale.type === 'Retail' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'
+                                    }`}>
+                                        {sale.type}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">{new Date(sale.date).toLocaleDateString()}</td>
+                                <td className="px-6 py-4 text-right font-semibold text-yellow-400">{formatCurrency(sale.amount)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+)}
+
             <style>{`
                 @keyframes fade-in {
                     from { opacity: 0; transform: translateY(10px); }
