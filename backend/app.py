@@ -471,17 +471,19 @@ def update_inventory_item(id):
 @app.route('/api/inventory/<id>', methods=['DELETE'])
 def delete_inventory_item(id):
     try:
-        item = InventoryItem.query.get(id)
+        item = Inventory.query.get(id)  # ✅ Use your actual class name
         
         if not item:
             return jsonify({'error': 'Inventory item not found'}), 404
         
         db.session.delete(item)
         db.session.commit()
-        return jsonify({'message': 'Inventory item deleted'})
+        return jsonify({'message': 'Deleted successfully'})
     except Exception as e:
         db.session.rollback()
+        print(f"Error deleting inventory: {e}")  # Debug log
         return jsonify({'error': str(e)}), 500
+
 
 # --- PRODUCTS API ---
 
@@ -1299,6 +1301,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
