@@ -347,6 +347,20 @@ const Sales: React.FC = () => {
     }, [warehouses, selectedWarehouse]);
 
    const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
+     let finalWarehouse = selectedWarehouse;
+  
+  // ✅ fallback: if nothing is selected, auto-pick first warehouse
+    if (!finalWarehouse && warehouses.length > 0) {
+      finalWarehouse = warehouses[0].id;
+      setSelectedWarehouse(finalWarehouse);
+    }
+  
+    if (!finalWarehouse) {
+      alert("No warehouse selected — cannot save sale.");
+      return;
+    }
+  
+    console.log('✅ Using warehouse:', finalWarehouse);
      if (!selectedWarehouse) {
         alert("Please select a warehouse before saving.");
         return; // Prevent proceeding without valid warehouse
