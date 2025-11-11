@@ -469,133 +469,158 @@ else if (reportType === 'credits') {
             )}
             {/* Returns Analysis Report */}
 {reportData && reportData.type === 'returns' && (
-    <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <ReportCard title="Total Returns" value={reportData.totalReturns.toString()} />
-            <ReportCard title="Total Refund Amount" value={formatCurrency(reportData.totalRefundAmount)} />
-            <ReportCard title="Avg. Return Value" value={formatCurrency(reportData.avgReturnValue)} />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold mb-4 text-white">Warehouse-wise Returns</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={reportData.warehouseReturns}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                        <XAxis dataKey="warehouseName" stroke="#9ca3af" tick={{ fontSize: 12 }} />
-                        <YAxis stroke="#9ca3af" tickFormatter={(val) => `₹${val/1000}k`} />
-                        <Tooltip contentStyle={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255,255,255,0.2)' }}/>
-                        <Legend />
-                        <Bar dataKey="count" fill="#ef4444" name="Return Count" />
-                        <Bar dataKey="amount" fill="#f87171" name="Refund Amount" />
-                    </BarChart>
-                </ResponsiveContainer>
-            </div>
-            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold mb-4 text-white">Top Returned Products</h2>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm text-left text-gray-300">
-                        <thead className="bg-white/5 uppercase text-xs">
-                            <tr>
-                                <th className="px-4 py-2">Product</th>
-                                <th className="px-4 py-2 text-right">Qty Returned</th>
-                                <th className="px-4 py-2 text-right">Refund Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {reportData.topReturnedProducts.map(p => (
-                                <tr key={p.name} className="border-b border-white/10">
-                                    <td className="px-4 py-2 font-medium">{p.name}</td>
-                                    <td className="px-4 py-2 text-right">{p.quantity}</td>
-                                    <td className="px-4 py-2 text-right">{formatCurrency(p.refundAmount)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+  <div className="space-y-8 animate-fade-in">
+    {/* Summary Cards */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <ReportCard title="Total Returns" value={reportData.totalReturns.toString()} />
+      <ReportCard title="Total Refund Amount" value={formatCurrency(reportData.totalRefundAmount)} />
+      <ReportCard title="Avg. Return Value" value={formatCurrency(reportData.avgReturnValue)} />
     </div>
+
+    {/* Warehouse-wise Returns Chart */}
+    <div className="bg-black/20 border border-white/10 rounded-xl shadow-lg p-6">
+      <h2 className="text-xl font-bold mb-4 text-white">Warehouse-wise Returns</h2>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={reportData.warehouseReturns}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+          <XAxis dataKey="warehouseName" stroke="#9ca3af" tick={{ fontSize: 12 }} />
+          <YAxis stroke="#9ca3af" tickFormatter={(val) => `₹${val / 1000}k`} />
+          <Tooltip
+            contentStyle={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255,255,255,0.2)' }}
+          />
+          <Legend />
+          <Bar dataKey="count" fill="#ef4444" name="Return Count" />
+          <Bar dataKey="amount" fill="#f87171" name="Refund Amount" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+
+    {/* Top Returned Products Table */}
+    <div className="bg-black/20 border border-white/10 rounded-xl shadow-lg p-6">
+      <h2 className="text-xl font-bold mb-4 text-white">Top Returned Products</h2>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm text-left text-gray-300">
+          <thead className="bg-white/5 uppercase text-xs">
+            <tr>
+              <th className="px-4 py-2">Product</th>
+              <th className="px-4 py-2 text-right">Qty Returned</th>
+              <th className="px-4 py-2 text-right">Refund Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reportData.topReturnedProducts.map((p) => (
+              <tr key={p.name} className="border-b border-white/10">
+                <td className="px-4 py-2 font-medium">{p.name}</td>
+                <td className="px-4 py-2 text-right">{p.quantity}</td>
+                <td className="px-4 py-2 text-right">{formatCurrency(p.refundAmount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 )}
+
 
 {/* Warehouse Overview Report */}
 {reportData && reportData.type === 'warehouse' && (
-    <div className="space-y-8">
-        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="min-w-full text-sm text-left text-gray-300">
-                    <thead className="bg-white/5 uppercase text-xs">
-                        <tr>
-                            <th className="px-6 py-3">Warehouse</th>
-                            <th className="px-6 py-3 text-right">Sales Count</th>
-                            <th className="px-6 py-3 text-right">Total Sales</th>
-                            <th className="px-6 py-3 text-right">Total Expenses</th>
-                            <th className="px-6 py-3 text-right">Inventory Value</th>
-                            <th className="px-6 py-3 text-right">Net Profit</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {reportData.warehouses.map(w => (
-                            <tr key={w.name} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                <td className="px-6 py-4 font-medium text-white">{w.name}</td>
-                                <td className="px-6 py-4 text-right">{w.salesCount}</td>
-                                <td className="px-6 py-4 text-right">{formatCurrency(w.totalSales)}</td>
-                                <td className="px-6 py-4 text-right">{formatCurrency(w.totalExpenses)}</td>
-                                <td className="px-6 py-4 text-right">{formatCurrency(w.totalInventory)}</td>
-                                <td className={`px-6 py-4 text-right font-semibold ${w.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {formatCurrency(w.netProfit)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  <div className="space-y-8 animate-fade-in">
+    {/* Warehouse Summary Table */}
+    <div className="bg-black/20 border border-white/10 rounded-xl shadow-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm text-left text-gray-300">
+          <thead className="bg-white/5 uppercase text-xs">
+            <tr>
+              <th className="px-6 py-3">Warehouse</th>
+              <th className="px-6 py-3 text-right">Sales Count</th>
+              <th className="px-6 py-3 text-right">Total Sales</th>
+              <th className="px-6 py-3 text-right">Total Expenses</th>
+              <th className="px-6 py-3 text-right">Inventory Value</th>
+              <th className="px-6 py-3 text-right">Net Profit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reportData.warehouses.map((w) => (
+              <tr key={w.name} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                <td className="px-6 py-4 font-medium text-white">{w.name}</td>
+                <td className="px-6 py-4 text-right">{w.salesCount}</td>
+                <td className="px-6 py-4 text-right">{formatCurrency(w.totalSales)}</td>
+                <td className="px-6 py-4 text-right">{formatCurrency(w.totalExpenses)}</td>
+                <td className="px-6 py-4 text-right">{formatCurrency(w.totalInventory)}</td>
+                <td
+                  className={`px-6 py-4 text-right font-semibold ${
+                    w.netProfit >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}
+                >
+                  {formatCurrency(w.netProfit)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
+  </div>
 )}
 
 {/* Credits Analysis Report */}
 {reportData && reportData.type === 'credits' && (
-    <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <ReportCard title="Total Unpaid" value={formatCurrency(reportData.totalUnpaid)} description="Outstanding Amount" />
-            <ReportCard title="Retail Unpaid" value={formatCurrency(reportData.retailUnpaid)} />
-            <ReportCard title="Wholesale Unpaid" value={formatCurrency(reportData.wholesaleUnpaid)} />
-        </div>
-        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
-            <h2 className="text-xl font-bold p-6 text-white border-b border-white/10">Unpaid Sales Details</h2>
-            <div className="overflow-x-auto">
-                <table className="min-w-full text-sm text-left text-gray-300">
-                    <thead className="bg-white/5 uppercase text-xs">
-                        <tr>
-                            <th className="px-6 py-3">Invoice #</th>
-                            <th className="px-6 py-3">Customer/Shop</th>
-                            <th className="px-6 py-3">Type</th>
-                            <th className="px-6 py-3">Date</th>
-                            <th className="px-6 py-3 text-right">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {reportData.unpaidSales.map(sale => (
-                            <tr key={sale.invoiceNumber} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                <td className="px-6 py-4 font-mono text-xs">{sale.invoiceNumber}</td>
-                                <td className="px-6 py-4 font-medium text-white">{sale.customerName}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                        sale.type === 'Retail' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'
-                                    }`}>
-                                        {sale.type}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">{new Date(sale.date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4 text-right font-semibold text-yellow-400">{formatCurrency(sale.amount)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  <div className="space-y-8 animate-fade-in">
+    {/* Summary Cards */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <ReportCard title="Total Unpaid" value={formatCurrency(reportData.totalUnpaid)} description="Outstanding Amount" />
+      <ReportCard title="Retail Unpaid" value={formatCurrency(reportData.retailUnpaid)} />
+      <ReportCard title="Wholesale Unpaid" value={formatCurrency(reportData.wholesaleUnpaid)} />
     </div>
+
+    {/* Unpaid Sales Table */}
+    <div className="bg-black/20 border border-white/10 rounded-xl shadow-lg overflow-hidden">
+      <h2 className="text-xl font-bold p-6 text-white border-b border-white/10">Unpaid Sales Details</h2>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm text-left text-gray-300">
+          <thead className="bg-white/5 uppercase text-xs">
+            <tr>
+              <th className="px-6 py-3">Invoice #</th>
+              <th className="px-6 py-3">Customer/Shop</th>
+              <th className="px-6 py-3">Type</th>
+              <th className="px-6 py-3">Date</th>
+              <th className="px-6 py-3 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reportData.unpaidSales.map((sale) => (
+              <tr key={sale.invoiceNumber} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                <td className="px-6 py-4 font-mono text-xs">{sale.invoiceNumber}</td>
+                <td className="px-6 py-4 font-medium text-white">{sale.customerName}</td>
+                <td className="px-6 py-4">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      sale.type === 'Retail' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'
+                    }`}
+                  >
+                    {sale.type}
+                  </span>
+                </td>
+                <td className="px-6 py-4">{new Date(sale.date).toLocaleDateString()}</td>
+                <td className="px-6 py-4 text-right font-semibold text-yellow-400">{formatCurrency(sale.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 )}
+{reportData && reportData.type === 'returns' && (
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <ReportCard title="Total Returns" value={reportData.totalReturns.toString()} />
+    <ReportCard title="Total Refund Amount" value={formatCurrency(reportData.totalRefundAmount)} />
+    <ReportCard title="Avg. Return Value" value={formatCurrency(reportData.avgReturnValue)} />
+    <ReportCard title="Return Overview" value={`${reportData.warehouseReturns.length} Warehouses Involved`} description="Return distribution overview" />
+  </div>
+)}
+
 
             <style>{`
                 @keyframes fade-in {
