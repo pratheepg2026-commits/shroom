@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSales, getWholesaleSales, getExpenses, getSalesReturns, getProducts,getWarehouses  } from '../services/api';
+import { getSales, getWholesaleSales, getExpenses, getSalesReturns, getProducts,getWarehouses,getInventory  } from '../services/api';
 import { Sale, WholesaleSale, Expense, SalesReturn, Product, ExpenseCategory, PnlAnalysisData as PnlAnalysisDataType } from '../types';
 import Button from './common/Button';
 import ApiError from './common/ApiError';
@@ -89,7 +89,8 @@ const Reporting: React.FC = () => {
     const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
     const [allReturns, setAllReturns] = useState<SalesReturn[]>([]);
     const [allWarehouses, setAllWarehouses] = useState<Warehouse[]>([]); 
-    
+    const [allInventory, setAllInventory] = useState<any[]>([]);  // Or use proper Inventory type
+
     const [reportData, setReportData] = useState<ReportData>(null);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
@@ -99,18 +100,20 @@ const Reporting: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const [salesData, wholesaleData, expensesData, returnsData, warehousesData] = await Promise.all([
+            const [salesData, wholesaleData, expensesData, returnsData, warehousesData, inventoryData] = await Promise.all([
                 getSales(),
                 getWholesaleSales(),
                 getExpenses(),
                 getSalesReturns(),
-                getWarehouses()
+                getWarehouses(),
+                getInventory()  // Add this
             ]);
             setAllSales(salesData);
             setAllWholesale(wholesaleData);
             setAllExpenses(expensesData);
             setAllReturns(returnsData);
             setAllWarehouses(warehousesData);
+            setAllInventory(inventoryData);  // Add this line
         } catch (err) {
             console.error(err);
             setError("Failed to fetch initial data for reporting.");
@@ -118,6 +121,7 @@ const Reporting: React.FC = () => {
             setLoading(false);
         }
     }, []);
+
 
     useEffect(() => {
         fetchData();
