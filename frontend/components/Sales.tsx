@@ -203,15 +203,21 @@ const SaleForm: React.FC<{
         <div className="border-t border-b border-white/10 py-4">
             <h4 className="font-semibold text-gray-200 mb-2">Products</h4>
             <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                {formData.products.map((p, index) => (
-                    <div key={index} className="flex justify-between items-center bg-gray-800/50 p-2 rounded">
-                        <span>{p.quantity} x {p.name} @ ₹{p.price}</span>
-                        <Button type="button" variant="ghost" className="!p-1 !text-red-400" onClick={() => handleRemoveProduct(index)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </Button>
-                    </div>
-                ))}
+    {formData.products.map((p, index) => {
+        console.log('Product in list:', p); // DEBUG
+        const displayName = p.name || 'Unknown Product';
+        return (
+            <div key={index} className="flex justify-between items-center bg-gray-800/50 p-2 rounded">
+                <span>{p.quantity} x {displayName} @ ₹{p.price}</span>
+                <Button type="button" variant="ghost" className="!p-1 !text-red-400" onClick={() => handleRemoveProduct(index)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </Button>
             </div>
+        );
+    })}
+</div>
             <div className="grid grid-cols-1 md:grid-cols-6 items-end gap-2 mt-3">
                  <div className="md:col-span-3">
                     <label className="text-xs text-gray-400">Product</label>
