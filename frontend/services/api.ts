@@ -85,11 +85,3 @@ export const getStockPrep = (): Promise<any[]> => apiRequest('/stock-prep');
 // };
 // Add these functions to api.ts
 
-
-export const deleteInventory = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/${id}`, {
-    method: 'DELETE'
-  });
-  if (!response.ok) throw new Error('Failed to delete inventory');
-};
-
