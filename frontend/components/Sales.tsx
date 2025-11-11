@@ -334,6 +334,12 @@ const Sales: React.FC = () => {
         fetchData();
     }, [fetchData]);
 
+    useEffect(() => {
+      if (!selectedWarehouse && warehouses.length > 0) {
+        setSelectedWarehouse(warehouses[0].id); // Initialize warehouse selection for new sales
+      }
+    }, [warehouses, selectedWarehouse]);
+
    const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
      if (!selectedWarehouse) {
         alert("Please select a warehouse before saving.");
