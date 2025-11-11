@@ -328,11 +328,19 @@ const Sales: React.FC = () => {
     }, [fetchData]);
 
    const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
+    console.log('==========================================');
+    console.log('handleSave CALLED');
+    console.log('saleData:', JSON.stringify(saleData, null, 2));
+    console.log('saleType:', saleType);
+    console.log('selectedWarehouse:', selectedWarehouse);
+    console.log('==========================================');
+    
     try {
-        const isEditing = !!saleData.id;  // Check if editing
+        const isEditing = !!saleData.id;
+        console.log('isEditing:', isEditing);
         
         const payload = {
-            ...(isEditing ? { id: saleData.id } : {}),  // Include ID if editing
+            ...(isEditing ? { id: saleData.id } : {}),
             customerName: saleData.customerName,
             shopName: saleData.shopName,
             contact: saleData.contact,
@@ -343,6 +351,7 @@ const Sales: React.FC = () => {
             warehouseId: selectedWarehouse,
             products: saleData.products.map((p: SaleProduct) => {
                 const product = products.find(prod => prod.name === p.name);
+                console.log(`Mapping product: ${p.name} -> productId: ${product?.id}`);
                 return { 
                     productId: product ? product.id : null, 
                     quantity: p.quantity, 
@@ -351,30 +360,49 @@ const Sales: React.FC = () => {
             }).filter((p: { productId: string | null}) => p.productId)
         };
 
-        console.log('Saving sale:', { isEditing, payload });  // Debug log
+        console.log('Final payload:', JSON.stringify(payload, null, 2));
+        console.log('Calling API...');
 
         if (saleType === 'Retail') {
             if (isEditing) {
-                await updateSale(payload);
+                console.log('Calling updateSale...');
+                const result = await updateSale(payload);
+                console.log('updateSale result:', result);
             } else {
-                await addSale(payload);
+                console.log('Calling addSale...');
+                const result = await addSale(payload);
+                console.log('addSale result:', result);
             }
         } else {
             if (isEditing) {
-                await updateWholesaleSale(payload);
+                console.log('Calling updateWholesaleSale...');
+                const result = await updateWholesaleSale(payload);
+                console.log('updateWholesaleSale result:', result);
             } else {
-                await addWholesaleSale(payload);
+                console.log('Calling addWholesaleSale...');
+                const result = await addWholesaleSale(payload);
+                console.log('addWholesaleSale result:', result);
             }
         }
 
-        await fetchData();  // Wait for data to refresh
+        console.log('API call successful, refreshing data...');
+        await fetchData();
+        console.log('Data refreshed');
+        
         setIsModalOpen(false);
         setSelectedSale(null);
-    } catch (err) {
-        console.error('Error saving sale:', err);
+        console.log('Modal closed, sale cleared');
+        
+    } catch (err: any) {
+        console.error('==========================================');
+        console.error('ERROR in handleSave:');
+        console.error('Error object:', err);
+        console.error('Error message:', err.message);
+        console.error('==========================================');
         alert(`Failed to save sale: ${err.message || 'Unknown error'}`);
     }
 };
+
 
 
     const handleDelete = async () => {
