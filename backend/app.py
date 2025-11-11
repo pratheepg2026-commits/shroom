@@ -441,6 +441,42 @@ def check_stock_availability(products_list, warehouse_id):
     
     return True, ""
 
+@app.route('/api/inventory/<id>', methods=['PUT'])
+def update_inventory_item(id):
+    try:
+        data = request.get_json()
+        item = InventoryItem.query.get(id)
+        
+        if not item:
+            return jsonify({'error': 'Inventory item not found'}), 404
+        
+        # Update fields
+        if 'quantity' in data:
+            item.quantity = data['quantity']
+        if 'restockLevel' in data:
+            item.restockLevel = data['restockLevel']
+        
+        db.session.commit()
+        return jsonify(item.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/inventory/<id>', methods=['DELETE'])
+def delete_inventory_item(id):
+    try:
+        item = InventoryItem.query.get(id)
+        
+        if not item:
+            return jsonify({'error': 'Inventory item not found'}), 404
+        
+        db.session.delete(item)
+        db.session.commit()
+        return jsonify({'message': 'Inventory item deleted'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # --- PRODUCTS API ---
 
 @app.route('/api/products', methods=['GET'])
@@ -1257,6 +1293,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
