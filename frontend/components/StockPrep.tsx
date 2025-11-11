@@ -153,41 +153,64 @@ const StockPrep: React.FC = () => {
 
   const fetchStockPrep = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`${API_BASE_URL}/api/stock-prep`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch stock prep data');
-      }
-      
-      const data = await response.json();
-      setStockData(data);
+        // Fetch all order types
+        const [subscriptions, retailSales, wholesaleSales] = await Promise.all([
+            getSubscriptions(),
+            getSales(),
+            getWholesaleSales()
+        ]);
+
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+
+        // Combine all orders
+        const allOrders = [
+            // Subscriptions
+            ...subscriptions
+                .filter(s => s.isActive)
+                .map(s => ({
+                    id: s.id,
+                    customerName: s.customerName,
+                    products: [{ name: s.productName, quantity: s.quantity }],
+                    deliveryDate: s.nextDeliveryDate,
+                    type: 'Subscription' as const
+                })),
+            
+            // Retail Sales (upcoming deliveries)
+            ...retailSales
+                .filter(s => s.status === 'Pending' && new Date(s.date) <= tomorrow)
+                .map(s => ({
+                    id: s.id,
+                    customerName: s.customerName,
+                    products: s.products || [],
+                    deliveryDate: s.date,
+                    type: 'Retail' as const
+                })),
+            
+            // Wholesale Sales (upcoming deliveries)
+            ...wholesaleSales
+                .filter(s => s.status === 'Pending' && new Date(s.date) <= tomorrow)
+                .map(s => ({
+                    id: s.id,
+                    customerName: s.shopName,
+                    products: s.products || [],
+                    deliveryDate: s.date,
+                    type: 'Wholesale' as const
+                }))
+        ];
+
+        // Sort by delivery date
+        allOrders.sort((a, b) => 
+            new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime()
+        );
+
+        setStockPrep(allOrders);
     } catch (err) {
-      console.error('Error fetching stock prep:', err);
-      setError('Failed to load stock preparation data');
-    } finally {
-      setLoading(false);
+        console.error('Failed to fetch stock prep:', err);
     }
-  };
+};
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 text-red-400">
-          {error}
-        </div>
-      </div>
-    );
-  }
 
   const DeliverySection = ({ title, data }: { title: string; data: DayData }) => (
     <div className="bg-gray-800/50 rounded-lg p-6 mb-6">
