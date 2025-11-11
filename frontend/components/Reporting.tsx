@@ -240,7 +240,11 @@ const Reporting: React.FC = () => {
                         <select value={reportType} onChange={e => setReportType(e.target.value as ReportType)} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200">
                             <option value="sales">Sales Analysis</option>
                             <option value="pnl">Profit & Loss Summary</option>
+                            <option value="returns">Returns Analysis</option>
+                            <option value="warehouse">Warehouse Overview</option>
+                            <option value="credits">Credits & Unpaid Sales</option>
                         </select>
+
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-400 mb-1">Start Date</label>
