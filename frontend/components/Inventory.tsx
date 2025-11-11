@@ -52,6 +52,45 @@ const AddStockForm: React.FC<{
     );
 };
 
+const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+const handleEdit = (item: InventoryItem) => {
+  setSelectedItem(item);
+  setIsEditModalOpen(true);
+};
+
+const handleDelete = async (id: string) => {
+  try {
+    await deleteInventory(id);
+    fetchData(); // Refresh list
+  } catch (err) {
+    alert('Failed to delete inventory item');
+  }
+};
+
+// In your table:
+<td className="px-6 py-4 text-right space-x-2">
+  <Button 
+    variant="ghost" 
+    className="!p-2" 
+    onClick={() => handleEdit(item)}
+  >
+    ✏️ Edit
+  </Button>
+  <Button 
+    variant="ghost" 
+    className="!p-2 text-red-400" 
+    onClick={() => {
+      setSelectedItem(item);
+      setIsDeleteModalOpen(true);
+    }}
+  >
+    🗑️ Delete
+  </Button>
+</td>
+
 const WarehouseForm: React.FC<{
     warehouse?: Warehouse | null;
     onSave: (warehouse: Warehouse | Omit<Warehouse, 'id'>) => void;
