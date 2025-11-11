@@ -204,29 +204,18 @@ class Sale(db.Model):
     date = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)
 
-    def to_dict(self):
-        products_list = []
-        for sp in self.sale_products:
-            try:
-                if sp.product:
-                    products_list.append({
-                        'name': sp.product.name,
-                        'quantity': sp.quantity,
-                        'price': sp.price
-                    })
-                else:
-                    products_list.append({
-                        'name': f'Product ID: {sp.product_id}',
-                        'quantity': sp.quantity,
-                        'price': sp.price
-                    })
-            except Exception as e:
-                print(f"Error: {e}")
-                products_list.append({
-                    'name': 'Unknown Product',
-                    'quantity': sp.quantity,
-                    'price': sp.price
-                })
+   def to_dict(self):
+       products_list = []
+    
+    # Products are stored as JSON in self.products
+        products_data = self.products or []
+        
+        for p in products_data:
+            products_list.append({
+                'name': p.get('name', 'Unknown Product'),
+                'quantity': p.get('quantity', 0),
+                'price': p.get('price', 0)
+            })
         
         return {
             'id': self.id,
@@ -1261,6 +1250,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
