@@ -205,39 +205,39 @@ class Sale(db.Model):
     status = db.Column(db.String(50), nullable=False)
 
     def to_dict(self):
-    products_list = []
-    for sp in self.sale_products:
-        try:
-            if sp.product:
+        products_list = []
+        for sp in self.sale_products:
+            try:
+                if sp.product:
+                    products_list.append({
+                        'name': sp.product.name,
+                        'quantity': sp.quantity,
+                        'price': sp.price
+                    })
+                else:
+                    products_list.append({
+                        'name': f'Product ID: {sp.product_id}',
+                        'quantity': sp.quantity,
+                        'price': sp.price
+                    })
+            except Exception as e:
+                print(f"Error: {e}")
                 products_list.append({
-                    'name': sp.product.name,
+                    'name': 'Unknown Product',
                     'quantity': sp.quantity,
                     'price': sp.price
                 })
-            else:
-                products_list.append({
-                    'name': f'Product ID: {sp.product_id}',
-                    'quantity': sp.quantity,
-                    'price': sp.price
-                })
-        except Exception as e:
-            print(f"Error: {e}")
-            products_list.append({
-                'name': 'Unknown Product',
-                'quantity': sp.quantity,
-                'price': sp.price
-            })
-    
-    return {
-        'id': self.id,
-        'invoiceNumber': self.invoiceNumber,
-        'customerName': self.customerName,
-        'date': self.date,
-        'status': self.status,
-        'totalAmount': self.totalAmount,
-        'warehouseId': self.warehouseId,
-        'products': products_list
-    }
+        
+        return {
+            'id': self.id,
+            'invoiceNumber': self.invoiceNumber,
+            'customerName': self.customerName,
+            'date': self.date,
+            'status': self.status,
+            'totalAmount': self.totalAmount,
+            'warehouseId': self.warehouseId,
+            'products': products_list
+        }
 
    
 class WholesaleSale(db.Model):
@@ -1261,6 +1261,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
