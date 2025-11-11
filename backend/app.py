@@ -805,7 +805,6 @@ def check_stock_availability(products_list, warehouse_id):
 
     return True, ""
 
-
 @app.route('/api/sales/<string:sale_id>', methods=['PUT'])
 def update_sale(sale_id):
     """Update retail sale"""
@@ -815,8 +814,18 @@ def update_sale(sale_id):
             return jsonify({'error': 'Sale not found'}), 404
         
         data = request.get_json()
+
+        # Explicitly handle warehouse_id field
+        warehouse_id = data.get('warehouseId')
+        if warehouse_id is not None:
+            sale.warehouse_id = warehouse_id
+        else:
+            # Optional: return error if warehouseId omitted
+            return jsonify({'error': 'warehouseId is required'}), 400
+
+        # Update other fields except 'id' and 'warehouse_id'
         for key, value in data.items():
-            if hasattr(sale, key) and key != 'id':
+            if hasattr(sale, key) and key not in ['id', 'warehouseId', 'warehouse_id']:
                 setattr(sale, key, value)
         
         db.session.commit()
@@ -824,6 +833,7 @@ def update_sale(sale_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/sales/<string:sale_id>', methods=['DELETE'])
 def delete_sale(sale_id):
@@ -1301,6 +1311,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
