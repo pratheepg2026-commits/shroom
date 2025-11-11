@@ -327,35 +327,55 @@ const Sales: React.FC = () => {
         fetchData();
     }, [fetchData]);
 
-    const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
-        try {
-            const payload = {
-                ...saleData,
-                warehouseId: selectedWarehouse,
-                products: saleData.products.map((p: SaleProduct) => {
-                    const product = products.find(prod => prod.name === p.name);
-                    return { productId: product ? product.id : null, quantity: p.quantity, price: p.price };
-                }).filter((p: { productId: string | null}) => p.productId)
-            };
+   const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
+    try {
+        const isEditing = !!saleData.id;  // Check if editing
+        
+        const payload = {
+            ...(isEditing ? { id: saleData.id } : {}),  // Include ID if editing
+            customerName: saleData.customerName,
+            shopName: saleData.shopName,
+            contact: saleData.contact,
+            address: saleData.address,
+            date: saleData.date,
+            status: saleData.status,
+            totalAmount: saleData.totalAmount,
+            warehouseId: selectedWarehouse,
+            products: saleData.products.map((p: SaleProduct) => {
+                const product = products.find(prod => prod.name === p.name);
+                return { 
+                    productId: product ? product.id : null, 
+                    quantity: p.quantity, 
+                    price: p.price 
+                };
+            }).filter((p: { productId: string | null}) => p.productId)
+        };
 
-            const isEditing = saleData.id;
+        console.log('Saving sale:', { isEditing, payload });  // Debug log
 
-            if (saleType === 'Retail') {
-                if (isEditing) await updateSale(payload);
-                else await addSale(payload);
+        if (saleType === 'Retail') {
+            if (isEditing) {
+                await updateSale(payload);
             } else {
-                if (isEditing) await updateWholesaleSale(payload);
-                else await addWholesaleSale(payload);
+                await addSale(payload);
             }
-
-            fetchData();
-            setIsModalOpen(false);
-            setSelectedSale(null);
-        } catch (err) {
-            console.error(err);
-            alert("Failed to save sale.");
+        } else {
+            if (isEditing) {
+                await updateWholesaleSale(payload);
+            } else {
+                await addWholesaleSale(payload);
+            }
         }
-    };
+
+        await fetchData();  // Wait for data to refresh
+        setIsModalOpen(false);
+        setSelectedSale(null);
+    } catch (err) {
+        console.error('Error saving sale:', err);
+        alert(`Failed to save sale: ${err.message || 'Unknown error'}`);
+    }
+};
+
 
     const handleDelete = async () => {
         if (!saleToDelete) return;
