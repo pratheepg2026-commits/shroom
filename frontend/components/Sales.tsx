@@ -388,7 +388,7 @@ const Sales: React.FC = () => {
             date: saleData.date,
             status: saleData.status,
             totalAmount: saleData.totalAmount,
-            warehouseId: selectedWarehouse,
+            warehouseId: finalWarehouse,
             products: saleData.products.map((p: SaleProduct) => {
                 const product = products.find(prod => prod.name === p.name);
                 console.log(`Mapping product: ${p.name} -> productId: ${product?.id}`);
