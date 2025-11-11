@@ -85,15 +85,6 @@ export const getStockPrep = (): Promise<any[]> => apiRequest('/stock-prep');
 // };
 // Add these functions to api.ts
 
-export const updateInventory = async (item: InventoryItem): Promise<InventoryItem> => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/${item.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(item)
-  });
-  if (!response.ok) throw new Error('Failed to update inventory');
-  return response.json();
-};
 
 export const deleteInventory = async (id: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/api/inventory/${id}`, {
