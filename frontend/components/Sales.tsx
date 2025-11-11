@@ -345,6 +345,12 @@ const Sales: React.FC = () => {
     try {
         const isEditing = !!saleData.id;
         console.log('isEditing:', isEditing);
+      
+      if (!selectedWarehouse) {
+        alert("Please select a warehouse before saving.");
+        return; // Prevent proceeding without valid warehouse
+      }
+
         
         const payload = {
             ...(isEditing ? { id: saleData.id } : {}),
