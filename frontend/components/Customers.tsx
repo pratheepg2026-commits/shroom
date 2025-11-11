@@ -173,34 +173,38 @@ const Customers: React.FC = () => {
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm text-left text-gray-300">
                         <thead className="bg-white/5 uppercase text-xs">
-                            <tr>
-                                <th scope="col" className="px-6 py-3">Name</th>
-                                <th scope="col" className="px-6 py-3">Type(s)</th>
-                                <th scope="col" className="px-6 py-3">Last Sale Date</th>
-                                <th scope="col" className="px-6 py-3 text-right">Lifetime Value</th>
-                                <th scope="col" className="px-6 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredCustomers.map(customer => (
-                                <tr key={customer.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4 font-medium text-white">{customer.name}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-wrap gap-1">
-                                            {/* Fix: Explicitly type 't' as CustomerType to resolve type inference issue. */}
-                                            {Array.from(customer.types).map((t: CustomerType) => (
-                                                <span key={t} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getTypePill(t)}`}>{t}</span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">{customer.lastSaleDate ? new Date(customer.lastSaleDate).toLocaleDateString() : 'N/A'}</td>
-                                    <td className="px-6 py-4 text-right font-semibold">{formatCurrency(customer.totalSpent)}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Button variant="ghost" onClick={() => setSelectedCustomer(customer)}>View Details</Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
+    <tr>
+        <th scope="col" className="px-6 py-3">Name</th>
+        <th scope="col" className="px-6 py-3">Type(s)</th>
+        <th scope="col" className="px-6 py-3">Last Activity</th>
+        <th scope="col" className="px-6 py-3 text-right">Lifetime Value</th>
+        <th scope="col" className="px-6 py-3 text-right">Actions</th>
+    </tr>
+</thead>
+<tbody>
+    {filteredCustomers.map(customer => (
+        <tr key={customer.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+            <td className="px-6 py-4 font-medium text-white">{customer.name}</td>
+            <td className="px-6 py-4">
+                <div className="flex flex-wrap gap-1">
+                    {Array.from(customer.types).map((t: CustomerType) => (
+                        <span key={t} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getTypePill(t)}`}>{t}</span>
+                    ))}
+                </div>
+            </td>
+            <td className="px-6 py-4">
+                {customer.lastActivityDate 
+                    ? new Date(customer.lastActivityDate).toLocaleDateString() 
+                    : 'N/A'}
+            </td>
+            <td className="px-6 py-4 text-right font-semibold">{formatCurrency(customer.totalSpent)}</td>
+            <td className="px-6 py-4 text-right">
+                <Button variant="ghost" onClick={() => setSelectedCustomer(customer)}>View Details</Button>
+            </td>
+        </tr>
+    ))}
+</tbody>
+
                     </table>
                 </div>
             </div>
