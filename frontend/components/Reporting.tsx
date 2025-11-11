@@ -526,6 +526,26 @@ else if (reportType === 'credits') {
 {/* Warehouse Overview Report */}
 {reportData && reportData.type === 'warehouse' && (
   <div className="space-y-8 animate-fade-in">
+    {/* Summary Cards */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <ReportCard 
+        title="Total Sales" 
+        value={formatCurrency(reportData.warehouses.reduce((acc, w) => acc + w.totalSales, 0))} 
+      />
+      <ReportCard 
+        title="Total Expenses" 
+        value={formatCurrency(reportData.warehouses.reduce((acc, w) => acc + w.totalExpenses, 0))} 
+      />
+      <ReportCard 
+        title="Total Inventory" 
+        value={formatCurrency(reportData.warehouses.reduce((acc, w) => acc + w.totalInventory, 0))} 
+      />
+      <ReportCard 
+        title="Net Profit" 
+        value={formatCurrency(reportData.warehouses.reduce((acc, w) => acc + w.netProfit, 0))} 
+      />
+    </div>
+
     {/* Warehouse Summary Table */}
     <div className="bg-black/20 border border-white/10 rounded-xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
@@ -563,6 +583,7 @@ else if (reportType === 'credits') {
     </div>
   </div>
 )}
+
 
 {/* Credits Analysis Report */}
 {reportData && reportData.type === 'credits' && (
