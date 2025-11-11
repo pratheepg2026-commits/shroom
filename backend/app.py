@@ -205,13 +205,21 @@ class Sale(db.Model):
     status = db.Column(db.String(50), nullable=False)
     warehouseId = db.Column('warehouse_id', db.String(50))  # ADD THIS LINE!
 
-    def to_dict(self):  # ← Must be 4 spaces, not 3!
+    def to_dict(self):
         products_list = []
         products_data = self.products or []
         
         for p in products_data:
+            product_name = p.get('name', 'Unknown Product')
+            
+            # If no name but has productId, fetch it
+            if product_name == 'Unknown Product' and p.get('productId'):
+                product = Product.query.get(p.get('productId'))
+                if product:
+                    product_name = product.name
+            
             products_list.append({
-                'name': p.get('name', 'Unknown Product'),
+                'name': product_name,
                 'quantity': p.get('quantity', 0),
                 'price': p.get('price', 0)
             })
@@ -226,7 +234,7 @@ class Sale(db.Model):
             'warehouseId': self.warehouseId,
             'products': products_list
         }
-
+    
 
    
 class WholesaleSale(db.Model):
@@ -249,8 +257,16 @@ class WholesaleSale(db.Model):
         products_data = self.products or []
         
         for p in products_data:
+            product_name = p.get('name', 'Unknown Product')
+            
+            # If no name but has productId, fetch it
+            if product_name == 'Unknown Product' and p.get('productId'):
+                product = Product.query.get(p.get('productId'))
+                if product:
+                    product_name = product.name
+            
             products_list.append({
-                'name': p.get('name', 'Unknown Product'),
+                'name': product_name,
                 'quantity': p.get('quantity', 0),
                 'price': p.get('price', 0)
             })
@@ -267,6 +283,7 @@ class WholesaleSale(db.Model):
             'warehouseId': self.warehouseId,
             'products': products_list
         }
+
 
 
 class Expense(db.Model):
@@ -1240,6 +1257,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
