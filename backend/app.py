@@ -327,7 +327,7 @@ class Inventory(db.Model):
     warehouseId = db.Column('warehouse_id', db.String(50), nullable=False)
     quantity = db.Column(db.Integer, default=0)
 
-     def to_dict(self):
+    def to_dict(self):
         product = Product.query.get(self.productId)
         warehouse = Warehouse.query.get(self.warehouseId)
         
@@ -1299,6 +1299,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
