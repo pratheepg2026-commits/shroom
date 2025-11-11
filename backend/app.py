@@ -318,15 +318,15 @@ class Warehouse(db.Model):
             'name': self.name
         }
 
-class Inventory(db.Model):
-    """Product inventory per warehouse"""
+class Inventory(db.Model):  # Or whatever it's called
     __tablename__ = 'inventory'
     
     id = db.Column(db.String(50), primary_key=True)
     productId = db.Column('product_id', db.String(50), nullable=False)
     warehouseId = db.Column('warehouse_id', db.String(50), nullable=False)
-    quantity = db.Column(db.Integer, default=0)
-
+    quantity = db.Column(db.Integer, nullable=False)
+    # restockLevel column doesn't exist!
+    
     def to_dict(self):
         product = Product.query.get(self.productId)
         warehouse = Warehouse.query.get(self.warehouseId)
@@ -337,9 +337,10 @@ class Inventory(db.Model):
             'productName': product.name if product else 'Unknown',
             'warehouseId': self.warehouseId,
             'warehouseName': warehouse.name if warehouse else 'Unknown',
-            'quantity': self.quantity,
-            'restockLevel': self.restockLevel
+            'quantity': self.quantity
+            # Removed restockLevel!
         }
+
 
 class SalesReturn(db.Model):
     """Sales returns/refunds"""
@@ -451,22 +452,21 @@ def check_stock_availability(products_list, warehouse_id):
 def update_inventory_item(id):
     try:
         data = request.get_json()
-        item = InventoryItem.query.get(id)
+        item = Inventory.query.get(id)  # Or InventoryItem
         
         if not item:
             return jsonify({'error': 'Inventory item not found'}), 404
         
-        # Update fields
         if 'quantity' in data:
             item.quantity = data['quantity']
-        if 'restockLevel' in data:
-            item.restockLevel = data['restockLevel']
+        # Removed restockLevel line!
         
         db.session.commit()
         return jsonify(item.to_dict())
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/inventory/<id>', methods=['DELETE'])
 def delete_inventory_item(id):
@@ -1299,6 +1299,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
