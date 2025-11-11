@@ -305,7 +305,7 @@ else if (reportType === 'credits') {
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        if (reportData.type === 'sales') {
+        if (reportData &&reportData.type === 'sales') {
             const filteredSales = allSales.filter(s => new Date(s.date) >= start && new Date(s.date) <= end);
             const filteredWholesale = allWholesale.filter(s => new Date(s.date) >= start && new Date(s.date) <= end);
             exportToCSV([...filteredSales, ...filteredWholesale], `sales_report_${startDate}_to_${endDate}.csv`);
