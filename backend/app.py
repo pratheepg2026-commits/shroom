@@ -242,41 +242,31 @@ class WholesaleSale(db.Model):
     totalAmount = db.Column('total_amount', db.Float, nullable=False)
     date = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)
-def to_dict(self):
-    products_list = []
-    for sp in self.sale_products:
-        try:
-            if sp.product:  # Check if product exists
-                products_list.append({
-                    'name': sp.product.name,
-                    'quantity': sp.quantity,
-                    'price': sp.price
-                })
-            else:
-                # Fallback if product doesn't exist
-                products_list.append({
-                    'name': f'Product ID: {sp.product_id}',
-                    'quantity': sp.quantity,
-                    'price': sp.price
-                })
-        except Exception as e:
-            print(f"Error loading product for sale_product {sp.id}: {e}")
+    warehouseId = db.Column('warehouse_id', db.String(50))  # ADD THIS if missing!
+
+    def to_dict(self):
+        products_list = []
+        products_data = self.products or []
+        
+        for p in products_data:
             products_list.append({
-                'name': 'Unknown Product',
-                'quantity': sp.quantity,
-                'price': sp.price
+                'name': p.get('name', 'Unknown Product'),
+                'quantity': p.get('quantity', 0),
+                'price': p.get('price', 0)
             })
-    
-    return {
-        'id': self.id,
-        'invoiceNumber': self.invoiceNumber,
-        'customerName': self.customerName,
-        'date': self.date,
-        'status': self.status,
-        'totalAmount': self.totalAmount,
-        'warehouseId': self.warehouseId,
-        'products': products_list
-    }
+        
+        return {
+            'id': self.id,
+            'invoiceNumber': self.invoiceNumber,
+            'shopName': self.shopName,
+            'contact': self.contact or '',
+            'address': self.address or '',
+            'date': self.date,
+            'status': self.status,
+            'totalAmount': self.totalAmount,
+            'warehouseId': self.warehouseId,
+            'products': products_list
+        }
 
 
 class Expense(db.Model):
@@ -1250,6 +1240,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
