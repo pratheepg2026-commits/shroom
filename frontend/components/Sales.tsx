@@ -591,15 +591,7 @@ const Sales: React.FC = () => {
                     <Button variant="ghost" className="!p-2" onClick={() => { setSelectedSale(s); setIsModalOpen(true); }}>
                         <EditIcon />
                     </Button>
-                    <Button
-  variant="ghost"
-  className="!p-2"
-  onClick={() => {
-    setSelectedSale(s);
-    setSelectedWarehouse(s.warehouseId || ''); // Set warehouseId here, fallback to empty string if null
-    setIsModalOpen(true);
-  }}
->
+                    <Button variant="ghost" className="!p-2" onClick={() => { setSelectedSale(s); setSelectedWarehouse(s.warehouseId || ''); setIsModalOpen(true); }}>
 
                         <DeleteIcon />
                     </Button>
