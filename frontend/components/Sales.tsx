@@ -287,6 +287,7 @@ const Sales: React.FC = () => {
     const [isExporting, setIsExporting] = useState(false);
     const [isExportingCSV, setIsExportingCSV] = useState(false);
 
+     
     const EditIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
@@ -532,42 +533,66 @@ const Sales: React.FC = () => {
             <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm text-left text-gray-300">
-                        <thead className="bg-white/5 uppercase text-xs">
-                            <tr>
-                                <th scope="col" className="px-6 py-3">Date</th>
-                                <th scope="col" className="px-6 py-3">Invoice #</th>
-                                <th scope="col" className="px-6 py-3">Customer/Shop</th>
-                                <th scope="col" className="px-6 py-3">Type</th>
-                                <th scope="col" className="px-6 py-3">Total</th>
-                                <th scope="col" className="px-6 py-3">Status</th>
-                                <th scope="col" className="px-6 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sales.map(s => (
-                                <tr key={s.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4">{s.date}</td>
-                                    <td className="px-6 py-4 font-mono text-xs">{s.invoiceNumber}</td>
-                                    <td className="px-6 py-4 font-medium text-white">{s.type === 'Retail' ? s.customerName : s.shopName}</td>
-                                    <td className="px-6 py-4">
-                                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.type === 'Retail' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>{s.type}</span>
-                                    </td>
-                                    <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(s.status)}`}>{s.status}</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right space-x-2">
-                                        <Button variant="ghost" className="!p-2" onClick={() => { setSelectedSale(s); setIsModalOpen(true); }}>
-                                            <EditIcon />
-                                        </Button>
-                                        <Button variant="ghost" className="!p-2 text-red-400 hover:bg-red-500/10" onClick={() => openDeleteConfirm(s.id, s.type)}>
-                                            <DeleteIcon />
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+    <thead className="bg-white/5 uppercase text-xs">
+        <tr>
+            <th scope="col" className="px-6 py-3">Date</th>
+            <th scope="col" className="px-6 py-3">Invoice #</th>
+            <th scope="col" className="px-6 py-3">Customer/Shop</th>
+            <th scope="col" className="px-6 py-3">Products</th> {/* NEW */}
+            <th scope="col" className="px-6 py-3">Type</th>
+            <th scope="col" className="px-6 py-3">Total</th>
+            <th scope="col" className="px-6 py-3">Status</th>
+            <th scope="col" className="px-6 py-3 text-right">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {sales.map(s => (
+            <tr key={s.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                <td className="px-6 py-4">{s.date}</td>
+                <td className="px-6 py-4 font-mono text-xs">{s.invoiceNumber}</td>
+                <td className="px-6 py-4 font-medium text-white">
+                    {s.type === 'Retail' ? s.customerName : s.shopName}
+                </td>
+                <td className="px-6 py-4"> {/* NEW */}
+                    <div className="text-xs text-gray-400 max-w-xs">
+                        {s.products && s.products.length > 0 
+                            ? s.products.map((p, i) => (
+                                <span key={i}>
+                                    {p.quantity}x {p.name}
+                                    {i < s.products.length - 1 && ', '}
+                                </span>
+                            ))
+                            : 'N/A'}
+                    </div>
+                </td>
+                <td className="px-6 py-4">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        s.type === 'Retail' 
+                            ? 'bg-blue-500/20 text-blue-300' 
+                            : 'bg-purple-500/20 text-purple-300'
+                    }`}>
+                        {s.type}
+                    </span>
+                </td>
+                <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
+                <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(s.status)}`}>
+                        {s.status}
+                    </span>
+                </td>
+                <td className="px-6 py-4 text-right space-x-2">
+                    <Button variant="ghost" className="!p-2" onClick={() => { setSelectedSale(s); setIsModalOpen(true); }}>
+                        <EditIcon />
+                    </Button>
+                    <Button variant="ghost" className="!p-2 text-red-400 hover:bg-red-500/10" onClick={() => openDeleteConfirm(s.id, s.type)}>
+                        <DeleteIcon />
+                    </Button>
+                </td>
+            </tr>
+        ))}
+    </tbody>
+</table>
+
                 </div>
             </div>
 
