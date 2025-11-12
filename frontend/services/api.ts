@@ -96,3 +96,15 @@ export async function addExpenseToWarehouse(expense: Omit<Expense, 'id'>) {
   if(error) throw error;
   return data;
 }
+// Calling backend API
+export const getWarehousesFromAPI = (): Promise<Warehouse[]> => apiRequest('/warehouses');
+
+// Direct Supabase client call
+export async function getWarehousesFromSupabase(): Promise<Warehouse[]> {
+  const { data, error } = await supabase
+    .from('warehouses')
+    .select('id, name');
+
+  if (error) throw error;
+  return data || [];
+}
