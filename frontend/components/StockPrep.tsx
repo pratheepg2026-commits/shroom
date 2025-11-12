@@ -81,7 +81,8 @@ const StockPrep: React.FC = () => {
         const processOrders = (targetDate: string): StockPrepOrder[] => {
           console.log(`[DEBUG] Processing orders for date: ${targetDate}`);
           const orders: StockPrepOrder[] = [];
-    
+            console.debug("Wholesale Sales Raw:", wholesaleSales.map(s => s.dateField));
+
           // Subscriptions
           const filteredSubs = subscriptions.filter(s => s.isActive && formatDate(s.nextDeliveryDate) === targetDate);
           console.log(`[DEBUG] Filtered subscriptions for ${targetDate}:`, filteredSubs.length);
@@ -112,7 +113,8 @@ const StockPrep: React.FC = () => {
               type: 'Retail',
             });
           });
-    
+        console.debug("Wholesale Sales Raw:", wholesaleSales.map(s => s.dateField));
+
           // Wholesale Sales
           const filteredWholesale = wholesaleSales.filter(s => s.status === 'Pending' && formatDate(s.date) === targetDate);
           console.log(`[DEBUG] Filtered wholesale sales for ${targetDate}:`, filteredWholesale.length);
