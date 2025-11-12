@@ -46,17 +46,28 @@ const fetchStockPrep = React.useCallback(async () => {
     setLoading(true);
     setError(null);
 
+    console.log('[DEBUG] Fetching stock prep...');
     const response = await fetch('https://shroommush.onrender.com/api/stock-prep');
-    if (!response.ok) throw new Error('Failed to fetch stock prep data');
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
     const data = await response.json();
-    console.log('[DEBUG] StockPrep API data:', JSON.stringify(data, null, 2));
+    console.log('[DEBUG] Raw API data:', JSON.stringify(data, null, 2));
 
-    // ✅ Transform backend data to frontend format
+    if (!data.dateRange) {
+      throw new Error('API did not return dateRange');
+    }
+
     const makeDayData = (dateString: string): DayData => {
       const dayName = new Date(dateString).toLocaleDateString('en-US', { weekday: 'long' });
+
+      const safeArray = (arr: any) => (Array.isArray(arr) ? arr : []);
+      const subs = safeArray(data.subscriptions);
+      const retail = safeArray(data.retailSales);
+      const wholesale = safeArray(data.wholesaleSales);
+
       const allDeliveries: StockPrepOrder[] = [
-        ...data.subscriptions.map((s: any) => ({
+        ...subs.map((s: any) => ({
           id: s.id || crypto.randomUUID(),
           customerName: s.customerName || 'Unnamed Subscription',
           products: s.products || [],
@@ -65,7 +76,7 @@ const fetchStockPrep = React.useCallback(async () => {
           address: s.address,
           phone: s.phone,
         })),
-        ...data.retailSales.map((r: any) => ({
+        ...retail.map((r: any) => ({
           id: r.id || crypto.randomUUID(),
           customerName: r.customerName || 'Retail Sale',
           products: r.products || [],
@@ -74,7 +85,7 @@ const fetchStockPrep = React.useCallback(async () => {
           address: r.address,
           phone: r.phone,
         })),
-        ...data.wholesaleSales.map((w: any) => ({
+        ...wholesale.map((w: any) => ({
           id: w.id || crypto.randomUUID(),
           customerName: w.customerName || 'Wholesale Order',
           products: w.products || [],
@@ -94,9 +105,9 @@ const fetchStockPrep = React.useCallback(async () => {
           0
         ),
         breakdown: {
-          subscriptions: data.subscriptions.length,
-          retail: data.retailSales.length,
-          wholesale: data.wholesaleSales.length,
+          subscriptions: subs.length,
+          retail: retail.length,
+          wholesale: wholesale.length,
         },
       };
     };
@@ -106,16 +117,18 @@ const fetchStockPrep = React.useCallback(async () => {
       tomorrow: makeDayData(data.dateRange.tomorrow),
     };
 
-    setStockData(finalStockData);
     console.log('[DEBUG] finalStockData (transformed):', JSON.stringify(finalStockData, null, 2));
 
-  } catch (err) {
-    console.error('Error fetching stock prep:', err);
-    setError('Failed to load stock preparation data');
+    setStockData(finalStockData);
+  } catch (err: any) {
+    console.error('[ERROR in fetchStockPrep]:', err);
+    setError(err.message || 'Failed to load stock preparation data');
   } finally {
     setLoading(false);
+    console.log('[DEBUG] Fetch complete, loading set to false');
   }
 }, []);
+
 
 
     const getTypeBadgeClass = (type: string) => {
