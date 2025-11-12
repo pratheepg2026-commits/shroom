@@ -54,6 +54,9 @@ const StockPrep: React.FC = () => {
                 getSales(),
                 getWholesaleSales()
             ]);
+            console.log('Subscriptions:', subscriptions);
+            console.log('Retail Sales:', retailSales);
+            console.log('Wholesale Sales:', wholesaleSales);
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -64,54 +67,54 @@ const StockPrep: React.FC = () => {
             const todayStr = today.toISOString().split('T')[0];
             const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-            const processOrders = (targetDate: string): StockPrepOrder[] => {
-                const orders: StockPrepOrder[] = [];
-
-                // Subscriptions
-                subscriptions
-                    .filter(s => s.isActive && s.nextDeliveryDate === targetDate)
-                    .forEach(s => {
-                        orders.push({
-                            id: s.id,
-                            customerName: s.customerName,
-                            products: [{ name: s.productName || s.plan, quantity: s.quantity || 1 }],
-                            deliveryDate: s.nextDeliveryDate,
-                            type: 'Subscription',
-                            address: s.address,
-                            phone: s.phone
-                        });
-                    });
-
-                // Retail Sales
-                retailSales
-                    .filter(s => s.status === 'Pending' && s.date === targetDate)
-                    .forEach(s => {
-                        orders.push({
-                            id: s.id,
-                            customerName: s.customerName,
-                            products: s.products || [],
-                            deliveryDate: s.date,
-                            type: 'Retail'
-                        });
-                    });
-
-                // Wholesale Sales
-                wholesaleSales
-                    .filter(s => s.status === 'Pending' && s.date === targetDate)
-                    .forEach(s => {
-                        orders.push({
-                            id: s.id,
-                            customerName: s.shopName,
-                            products: s.products || [],
-                            deliveryDate: s.date,
-                            type: 'Wholesale',
-                            address: s.address,
-                            phone: s.contact
-                        });
-                    });
-
-                return orders;
-            };
+          const processOrders = (targetDate: string): StockPrepOrder[] => {
+          const orders: StockPrepOrder[] = [];
+        
+          // Subscriptions
+          subscriptions
+            .filter(s => s.isActive && s.nextDeliveryDate === targetDate)
+            .forEach(s => {
+              orders.push({
+                id: s.id,
+                customerName: s.customerName || 'Unknown',
+                products: s.products || [{ name: s.productName || s.plan || 'Unknown', quantity: s.quantity || 1 }],
+                deliveryDate: s.nextDeliveryDate,
+                type: 'Subscription',
+                address: s.address || '',
+                phone: s.phone || ''
+              });
+            });
+        
+          // Retail Sales
+          retailSales
+            .filter(s => s.status === 'Pending' && s.date === targetDate)
+            .forEach(s => {
+              orders.push({
+                id: s.id,
+                customerName: s.customerName || 'Unknown',
+                products: s.products || [],
+                deliveryDate: s.date,
+                type: 'Retail'
+              });
+            });
+        
+          // Wholesale Sales
+          wholesaleSales
+            .filter(s => s.status === 'Pending' && s.date === targetDate)
+            .forEach(s => {
+              orders.push({
+                id: s.id,
+                customerName: s.shopName || 'Unknown',
+                products: s.products || [],
+                deliveryDate: s.date,
+                type: 'Wholesale',
+                address: s.address || '',
+                phone: s.contact || ''
+              });
+            });
+        
+          return orders;
+        };
 
             const calculateDayData = (dateStr: string, date: Date): DayData => {
                 const deliveries = processOrders(dateStr);
