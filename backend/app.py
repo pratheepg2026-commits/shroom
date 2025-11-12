@@ -1015,7 +1015,7 @@ def add_expense():
             category=data['category'],
             description=data['description'],
             amount=data['amount'],
-            date=data['date']
+            date=data['date'],
             warehouse_id=data['warehouse_id']  # Save warehouse_id
         )
         db.session.add(expense)
@@ -1363,6 +1363,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
