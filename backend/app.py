@@ -662,34 +662,118 @@ def get_stock_prep():
         tomorrow = today + timedelta(days=1)
         today_str = today.strftime('%Y-%m-%d')
         tomorrow_str = tomorrow.strftime('%Y-%m-%d')
+        today_day = today.strftime('%A')
+        tomorrow_day = tomorrow.strftime('%A')
 
         print(f"[DEBUG] UTC time: {utc_now.strftime('%Y-%m-%d %H:%M')}")
         print(f"[DEBUG] IST time: {ist_now.strftime('%Y-%m-%d %H:%M')}")
         print(f"[DEBUG] Using IST for 'today': {today_str}, 'tomorrow': {tomorrow_str}")
+
         # --- Subscriptions (active) ---
         subs = Subscription.query.filter_by(status='Active').all()
         print(f"[DEBUG] Active subscriptions fetched: {len(subs)}")
 
-        # --- Retail Sales (pending today/tomorrow) ---
+        # --- Retail Sales (today/tomorrow) ---
         retail_sales = Sale.query.filter(
-            
             Sale.date.in_([today_str, tomorrow_str])
         ).all()
         print(f"[DEBUG] Retail sales fetched: {len(retail_sales)}")
 
-        # --- Wholesale Sales (pending today/tomorrow) ---
+        # --- Wholesale Sales (today/tomorrow) ---
         wholesale_sales = WholesaleSale.query.filter(
-           
             WholesaleSale.date.in_([today_str, tomorrow_str])
         ).all()
         print(f"[DEBUG] Wholesale sales fetched: {len(wholesale_sales)}")
 
-        # Example: summarize data for front-end
+        # Prepare delivery lists
+        today_deliveries = []
+        tomorrow_deliveries = []
+
+        # Process subscriptions (assuming you have calculate_delivery_schedule)
+        for sub in subs:
+            boxes_per_month = getattr(sub, 'boxesPerMonth', 1) or 1
+            preferred_day = getattr(sub, 'preferredDeliveryDay', 'Any Day') or 'Any Day'
+            schedule = calculate_delivery_schedule(
+                sub.startDate,
+                preferred_day,
+                boxes_per_month
+            )
+            for delivery in schedule:
+                delivery_date = delivery['date']
+                delivery_obj = {
+                    'type': 'Subscription',
+                    'id': sub.id,
+                    'customerName': sub.name,
+                    'address': getattr(sub, 'address', ''),
+                    'flatNo': getattr(sub, 'flatNo', ''),
+                    'phone': getattr(sub, 'phone', ''),
+                    'boxes': delivery['boxes'],
+                    'plan': getattr(sub, 'plan', ''),
+                    'deliveryDate': delivery_date
+                }
+                if delivery_date == today_str:
+                    today_deliveries.append(delivery_obj)
+                elif delivery_date == tomorrow_str:
+                    tomorrow_deliveries.append(delivery_obj)
+
+        # Process retail sales
+        for sale in retail_sales:
+            delivery_obj = {
+                'type': 'Retail',
+                'id': sale.id,
+                'customerName': getattr(sale, 'customerName', ''),
+                'address': getattr(sale, 'address', ''),
+                'phone': getattr(sale, 'phone', ''),
+                'products': getattr(sale, 'products', []),
+                'deliveryDate': sale.date
+            }
+            if sale.date == today_str:
+                today_deliveries.append(delivery_obj)
+            elif sale.date == tomorrow_str:
+                tomorrow_deliveries.append(delivery_obj)
+
+        # Process wholesale sales
+        for wsale in wholesale_sales:
+            delivery_obj = {
+                'type': 'Wholesale',
+                'id': wsale.id,
+                'customerName': getattr(wsale, 'shopName', ''),
+                'address': getattr(wsale, 'address', ''),
+                'phone': getattr(wsale, 'contact', ''),
+                'products': getattr(wsale, 'products', []),
+                'deliveryDate': wsale.date
+            }
+            if wsale.date == today_str:
+                today_deliveries.append(delivery_obj)
+            elif wsale.date == tomorrow_str:
+                tomorrow_deliveries.append(delivery_obj)
+
+        total_today = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in today_deliveries)
+        total_tomorrow = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in tomorrow_deliveries)
+
         response_data = {
-            'subscriptions': [s.to_dict() for s in subs],
-            'retailSales': [s.to_dict() for s in retail_sales],
-            'wholesaleSales': [s.to_dict() for s in wholesale_sales],
-            'dateRange': {'today': today_str, 'tomorrow': tomorrow_str}
+            'today': {
+                'date': today_str,
+                'day': today_day,
+                'deliveries': today_deliveries,
+                'totalBoxes': total_today,
+                'breakdown': {
+                    'subscriptions': sum(1 for d in today_deliveries if d['type'] == 'Subscription'),
+                    'retail': sum(1 for d in today_deliveries if d['type'] == 'Retail'),
+                    'wholesale': sum(1 for d in today_deliveries if d['type'] == 'Wholesale'),
+                }
+            },
+            'tomorrow': {
+                'date': tomorrow_str,
+                'day': tomorrow_day,
+                'deliveries': tomorrow_deliveries,
+                'totalBoxes': total_tomorrow,
+                'breakdown': {
+                    'subscriptions': sum(1 for d in tomorrow_deliveries if d['type'] == 'Subscription'),
+                    'retail': sum(1 for d in tomorrow_deliveries if d['type'] == 'Retail'),
+                    'wholesale': sum(1 for d in tomorrow_deliveries if d['type'] == 'Wholesale'),
+                }
+            }
         }
 
         print(f"[DEBUG] Stock prep completed successfully.")
@@ -698,7 +782,6 @@ def get_stock_prep():
     except Exception as e:
         print(f"[ERROR] Stock prep failed: {e}")
         return jsonify({'error': str(e)}), 500
-
 # --- SALES API ---
 
 @app.route('/api/sales', methods=['GET'])
@@ -1274,6 +1357,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
