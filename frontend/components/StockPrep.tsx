@@ -45,12 +45,69 @@ const fetchStockPrep = React.useCallback(async () => {
   try {
     setLoading(true);
     setError(null);
-    const response = await fetch('https://shroommush.onrender.com/api/stock-prep');
 
+    const response = await fetch('https://shroommush.onrender.com/api/stock-prep');
     if (!response.ok) throw new Error('Failed to fetch stock prep data');
+
     const data = await response.json();
-    setStockData(data);
-    console.log('[DEBUG] finalStockData:', JSON.stringify(data, null, 2));
+    console.log('[DEBUG] StockPrep API data:', JSON.stringify(data, null, 2));
+
+    // ✅ Transform backend data to frontend format
+    const makeDayData = (dateString: string): DayData => {
+      const dayName = new Date(dateString).toLocaleDateString('en-US', { weekday: 'long' });
+      const allDeliveries: StockPrepOrder[] = [
+        ...data.subscriptions.map((s: any) => ({
+          id: s.id || crypto.randomUUID(),
+          customerName: s.customerName || 'Unnamed Subscription',
+          products: s.products || [],
+          deliveryDate: dateString,
+          type: 'Subscription',
+          address: s.address,
+          phone: s.phone,
+        })),
+        ...data.retailSales.map((r: any) => ({
+          id: r.id || crypto.randomUUID(),
+          customerName: r.customerName || 'Retail Sale',
+          products: r.products || [],
+          deliveryDate: dateString,
+          type: 'Retail',
+          address: r.address,
+          phone: r.phone,
+        })),
+        ...data.wholesaleSales.map((w: any) => ({
+          id: w.id || crypto.randomUUID(),
+          customerName: w.customerName || 'Wholesale Order',
+          products: w.products || [],
+          deliveryDate: dateString,
+          type: 'Wholesale',
+          address: w.address,
+          phone: w.phone,
+        })),
+      ];
+
+      return {
+        date: dateString,
+        day: dayName,
+        deliveries: allDeliveries,
+        totalBoxes: allDeliveries.reduce(
+          (sum, d) => sum + d.products.reduce((s, p) => s + (p.quantity || 0), 0),
+          0
+        ),
+        breakdown: {
+          subscriptions: data.subscriptions.length,
+          retail: data.retailSales.length,
+          wholesale: data.wholesaleSales.length,
+        },
+      };
+    };
+
+    const finalStockData: StockPrepData = {
+      today: makeDayData(data.dateRange.today),
+      tomorrow: makeDayData(data.dateRange.tomorrow),
+    };
+
+    setStockData(finalStockData);
+    console.log('[DEBUG] finalStockData (transformed):', JSON.stringify(finalStockData, null, 2));
 
   } catch (err) {
     console.error('Error fetching stock prep:', err);
@@ -59,9 +116,6 @@ const fetchStockPrep = React.useCallback(async () => {
     setLoading(false);
   }
 }, []);
-  useEffect(() => {
-        fetchStockPrep();
-    }, [fetchStockPrep]);
 
 
     const getTypeBadgeClass = (type: string) => {
