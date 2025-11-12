@@ -102,7 +102,7 @@ const StockPrep: React.FC = () => {
           
             
           const filteredRetail = retailSales.filter(s => s.status === 'Pending' && formatDate(s.date) === targetDate);
-          console.log(`[DEBUG] Filtered retail sales for ${targetDate}:`, filteredRetail.length,s.date);
+          console.log(`[DEBUG] Filtered retail sales for ${targetDate}:`, filteredRetail.length);
           filteredRetail.forEach(s => {
             orders.push({
               id: s.id,
