@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import Button from './common/Button';
-
+const API_BASE_URL = 'https://shroommush.onrender.com
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
@@ -40,15 +40,12 @@ const StockPrep: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchStockPrep();
-    }, []);
-
+  
     const fetchStockPrep = async () => {
   try {
     setLoading(true);
     setError(null);
-    const response = await fetch('/api/stock-prep');
+    const response = await fetch('${API_BASE_URL}/api/stock-prep');
     if (!response.ok) throw new Error('Failed to fetch stock prep data');
     const data = await response.json();
     setStockData(data);
@@ -59,6 +56,9 @@ const StockPrep: React.FC = () => {
     setLoading(false);
   }
 };
+  useEffect(() => {
+        fetchStockPrep();
+    }, []);
 
 
     const getTypeBadgeClass = (type: string) => {
