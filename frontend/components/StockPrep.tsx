@@ -42,90 +42,61 @@ const StockPrep: React.FC = () => {
 
   
 const fetchStockPrep = React.useCallback(async () => {
+  console.log('[DEBUG] fetchStockPrep() called');
+  setLoading(true);
+  setError(null);
+
   try {
-    setLoading(true);
-    setError(null);
+    const response = await fetch('https://shroommush.onrender.com/api/stock-prep', {
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-    console.log('[DEBUG] Fetching stock prep...');
-    const response = await fetch('https://shroommush.onrender.com/api/stock-prep');
+    console.log('[DEBUG] Response status:', response.status);
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-    const data = await response.json();
-    console.log('[DEBUG] Raw API data:', JSON.stringify(data, null, 2));
-
-    if (!data.dateRange) {
-      throw new Error('API did not return dateRange');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const makeDayData = (dateString: string): DayData => {
-      const dayName = new Date(dateString).toLocaleDateString('en-US', { weekday: 'long' });
+    const text = await response.text();
+    console.log('[DEBUG] Raw text from API:', text);
 
-      const safeArray = (arr: any) => (Array.isArray(arr) ? arr : []);
-      const subs = safeArray(data.subscriptions);
-      const retail = safeArray(data.retailSales);
-      const wholesale = safeArray(data.wholesaleSales);
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (jsonErr) {
+      console.error('[DEBUG] JSON parse failed:', jsonErr);
+      throw new Error('Invalid JSON returned by API');
+    }
 
-      const allDeliveries: StockPrepOrder[] = [
-        ...subs.map((s: any) => ({
-          id: s.id || crypto.randomUUID(),
-          customerName: s.customerName || 'Unnamed Subscription',
-          products: s.products || [],
-          deliveryDate: dateString,
-          type: 'Subscription',
-          address: s.address,
-          phone: s.phone,
-        })),
-        ...retail.map((r: any) => ({
-          id: r.id || crypto.randomUUID(),
-          customerName: r.customerName || 'Retail Sale',
-          products: r.products || [],
-          deliveryDate: dateString,
-          type: 'Retail',
-          address: r.address,
-          phone: r.phone,
-        })),
-        ...wholesale.map((w: any) => ({
-          id: w.id || crypto.randomUUID(),
-          customerName: w.customerName || 'Wholesale Order',
-          products: w.products || [],
-          deliveryDate: dateString,
-          type: 'Wholesale',
-          address: w.address,
-          phone: w.phone,
-        })),
-      ];
+    console.log('[DEBUG] Parsed data:', data);
 
-      return {
-        date: dateString,
-        day: dayName,
-        deliveries: allDeliveries,
-        totalBoxes: allDeliveries.reduce(
-          (sum, d) => sum + d.products.reduce((s, p) => s + (p.quantity || 0), 0),
-          0
-        ),
-        breakdown: {
-          subscriptions: subs.length,
-          retail: retail.length,
-          wholesale: wholesale.length,
-        },
-      };
-    };
+    if (!data.dateRange) {
+      console.warn('[DEBUG] Missing dateRange in API response');
+      setStockData(null);
+      return;
+    }
+
+    const makeDayData = (dateString: string): DayData => ({
+      date: dateString,
+      day: new Date(dateString).toLocaleDateString('en-US', { weekday: 'long' }),
+      deliveries: [],
+      totalBoxes: 0,
+      breakdown: { subscriptions: 0, retail: 0, wholesale: 0 },
+    });
 
     const finalStockData: StockPrepData = {
       today: makeDayData(data.dateRange.today),
       tomorrow: makeDayData(data.dateRange.tomorrow),
     };
 
-    console.log('[DEBUG] finalStockData (transformed):', JSON.stringify(finalStockData, null, 2));
-
+    console.log('[DEBUG] finalStockData:', finalStockData);
     setStockData(finalStockData);
-  } catch (err: any) {
-    console.error('[ERROR in fetchStockPrep]:', err);
-    setError(err.message || 'Failed to load stock preparation data');
+  } catch (err) {
+    console.error('[DEBUG] fetchStockPrep error:', err);
+    setError((err as Error).message || 'Unknown error');
   } finally {
+    console.log('[DEBUG] Setting loading = false');
     setLoading(false);
-    console.log('[DEBUG] Fetch complete, loading set to false');
   }
 }, []);
 
