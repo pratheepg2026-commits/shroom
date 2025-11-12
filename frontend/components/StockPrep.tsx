@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import Button from './common/Button';
-const API_BASE_URL = 'https://shroommush.onrender.com
+const API_BASE_URL = 'https://shroommush.onrender.com';
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
