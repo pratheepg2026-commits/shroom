@@ -15,6 +15,7 @@ import string
 from urllib.parse import quote_plus
 from datetime import datetime, timedelta
 from calendar import monthrange
+from models import Subscription, Sale, WholesaleSale
 # --- ENVIRONMENT SETUP ---
 try:
     from dotenv import load_dotenv
@@ -652,7 +653,6 @@ def subscription_detail(sub_id):
 def get_stock_prep():
     """Get stock prep data for today and tomorrow"""
     try:
-        # Get today and tomorrow at midnight
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrow = today + timedelta(days=1)
         
@@ -664,68 +664,80 @@ def get_stock_prep():
         today_deliveries = []
         tomorrow_deliveries = []
         
+        # Subscriptions
         subscriptions = Subscription.query.filter_by(status='Active').all()
-        
         for sub in subscriptions:
             boxes_per_month = getattr(sub, 'boxesPerMonth', 1) or 1
             preferred_day = getattr(sub, 'preferredDeliveryDay', 'Any Day') or 'Any Day'
-            
-            schedule = calculate_delivery_schedule(
-                sub.startDate,
-                preferred_day,
-                boxes_per_month
-            )
-            
+            schedule = calculate_delivery_schedule(sub.startDate, preferred_day, boxes_per_month)
             for delivery in schedule:
                 delivery_date = delivery['date']
-                
+                entry = {
+                    'type': 'Subscription',
+                    'id': sub.id,
+                    'customerName': sub.name,
+                    'address': sub.address or '',
+                    'flatNo': sub.flatNo or '',
+                    'phone': sub.phone or '',
+                    'boxes': delivery['boxes'],
+                    'plan': sub.plan,
+                    'deliveryDate': delivery_date
+                }
                 if delivery_date == today_str:
-                    today_deliveries.append({
-                        'type': 'Subscription',
-                        'id': sub.id,
-                        'customerName': sub.name,
-                        'address': sub.address or '',
-                        'flatNo': sub.flatNo or '',
-                        'phone': sub.phone or '',
-                        'boxes': delivery['boxes'],
-                        'plan': sub.plan,
-                        'deliveryDate': delivery_date
-                    })
+                    today_deliveries.append(entry)
                 elif delivery_date == tomorrow_str:
-                    tomorrow_deliveries.append({
-                        'type': 'Subscription',
-                        'id': sub.id,
-                        'customerName': sub.name,
-                        'address': sub.address or '',
-                        'flatNo': sub.flatNo or '',
-                        'phone': sub.phone or '',
-                        'boxes': delivery['boxes'],
-                        'plan': sub.plan,
-                        'deliveryDate': delivery_date
-                    })
-
-        from models import Sale, WholesaleSale  # your sale models
-
-today_retail_sales = Sale.query.filter(Sale.status == 'Pending', Sale.date == today_str).all()
-tomorrow_retail_sales = Sale.query.filter(Sale.status == 'Pending', Sale.date == tomorrow_str).all()
-
-today_wholesale_sales = WholesaleSale.query.filter(WholesaleSale.status == 'Pending', WholesaleSale.date == today_str).all()
-tomorrow_wholesale_sales = WholesaleSale.query.filter(WholesaleSale.status == 'Pending', WholesaleSale.date == tomorrow_str).all()
-
-# Prepare retail deliveries dicts similar to subscriptions
-for sale in today_retail_sales:
-    today_deliveries.append({
-        'type': 'Retail',
-        'id': sale.id,
-        'customerName': sale.customerName,
-        'address': sale.address or '',
-        'phone': sale.phone or '',
-        'products': sale.products,  # adapt based on your model structure
-        'deliveryDate': sale.date
-    })
+                    tomorrow_deliveries.append(entry)
         
-        total_today = sum(d['boxes'] for d in today_deliveries)
-        total_tomorrow = sum(d['boxes'] for d in tomorrow_deliveries)
+        # Retail Sales
+        today_retail_sales = Sale.query.filter(Sale.status == 'Pending', Sale.date == today_str).all()
+        tomorrow_retail_sales = Sale.query.filter(Sale.status == 'Pending', Sale.date == tomorrow_str).all()
+        for sale in today_retail_sales:
+            today_deliveries.append({
+                'type': 'Retail',
+                'id': sale.id,
+                'customerName': sale.customerName,
+                'address': getattr(sale, 'address', '') or '',
+                'phone': getattr(sale, 'phone', '') or '',
+                'products': getattr(sale, 'products', []),
+                'deliveryDate': sale.date
+            })
+        for sale in tomorrow_retail_sales:
+            tomorrow_deliveries.append({
+                'type': 'Retail',
+                'id': sale.id,
+                'customerName': sale.customerName,
+                'address': getattr(sale, 'address', '') or '',
+                'phone': getattr(sale, 'phone', '') or '',
+                'products': getattr(sale, 'products', []),
+                'deliveryDate': sale.date
+            })
+        
+        # Wholesale Sales
+        today_wholesale_sales = WholesaleSale.query.filter(WholesaleSale.status == 'Pending', WholesaleSale.date == today_str).all()
+        tomorrow_wholesale_sales = WholesaleSale.query.filter(WholesaleSale.status == 'Pending', WholesaleSale.date == tomorrow_str).all()
+        for wsale in today_wholesale_sales:
+            today_deliveries.append({
+                'type': 'Wholesale',
+                'id': wsale.id,
+                'customerName': wsale.shopName,
+                'address': getattr(wsale, 'address', '') or '',
+                'phone': getattr(wsale, 'contact', '') or '',
+                'products': getattr(wsale, 'products', []),
+                'deliveryDate': wsale.date
+            })
+        for wsale in tomorrow_wholesale_sales:
+            tomorrow_deliveries.append({
+                'type': 'Wholesale',
+                'id': wsale.id,
+                'customerName': wsale.shopName,
+                'address': getattr(wsale, 'address', '') or '',
+                'phone': getattr(wsale, 'contact', '') or '',
+                'products': getattr(wsale, 'products', []),
+                'deliveryDate': wsale.date
+            })
+        
+        total_today = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in today_deliveries)
+        total_tomorrow = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in tomorrow_deliveries)
         
         return jsonify({
             'today': {
@@ -734,10 +746,9 @@ for sale in today_retail_sales:
                 'deliveries': today_deliveries,
                 'totalBoxes': total_today,
                 'breakdown': {
-                    'subscriptions': len(today_deliveries),
+                    'subscriptions': sum(1 for d in today_deliveries if d['type'] == 'Subscription'),
                     'retail': sum(1 for d in today_deliveries if d['type'] == 'Retail'),
                     'wholesale': sum(1 for d in today_deliveries if d['type'] == 'Wholesale'),
-                
                 }
             },
             'tomorrow': {
@@ -746,7 +757,7 @@ for sale in today_retail_sales:
                 'deliveries': tomorrow_deliveries,
                 'totalBoxes': total_tomorrow,
                 'breakdown': {
-                    'subscriptions': len(tomorrow_deliveries),
+                    'subscriptions': sum(1 for d in tomorrow_deliveries if d['type'] == 'Subscription'),
                     'retail': sum(1 for d in tomorrow_deliveries if d['type'] == 'Retail'),
                     'wholesale': sum(1 for d in tomorrow_deliveries if d['type'] == 'Wholesale'),
                 }
@@ -1331,6 +1342,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
