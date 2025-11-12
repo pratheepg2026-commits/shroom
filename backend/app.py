@@ -297,14 +297,15 @@ class Expense(db.Model):
     description = db.Column(db.String(200), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.String(50), nullable=False)
-
+    warehouse_id = db.Column(db.String(50), db.ForeignKey('warehouses.id'), nullable=False)
     def to_dict(self):
         return {
             'id': self.id,
             'category': self.category,
             'description': self.description,
             'amount': self.amount,
-            'date': self.date
+            'date': self.date,
+            'warehouse_id': self.warehouse_id
         }
 
 class Warehouse(db.Model):
@@ -1015,6 +1016,7 @@ def add_expense():
             description=data['description'],
             amount=data['amount'],
             date=data['date']
+            warehouse_id=data['warehouse_id']  # Save warehouse_id
         )
         db.session.add(expense)
         db.session.commit()
@@ -1361,6 +1363,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
