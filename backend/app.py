@@ -649,9 +649,12 @@ def subscription_detail(sub_id):
             return jsonify({'error': str(e)}), 500
 
 
+from flask import jsonify
+from datetime import datetime, timedelta
+from models import Subscription, Sale, WholesaleSale  # your models
+
 @app.route('/api/stock-prep', methods=['GET'])
 def get_stock_prep():
-    """Get stock prep data for today and tomorrow"""
     try:
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrow = today + timedelta(days=1)
@@ -663,13 +666,15 @@ def get_stock_prep():
         
         today_deliveries = []
         tomorrow_deliveries = []
-        
-        # Subscriptions
+
+        # Fetch active subscriptions
         subscriptions = Subscription.query.filter_by(status='Active').all()
+
         for sub in subscriptions:
             boxes_per_month = getattr(sub, 'boxesPerMonth', 1) or 1
             preferred_day = getattr(sub, 'preferredDeliveryDay', 'Any Day') or 'Any Day'
             schedule = calculate_delivery_schedule(sub.startDate, preferred_day, boxes_per_month)
+
             for delivery in schedule:
                 delivery_date = delivery['date']
                 entry = {
@@ -687,10 +692,11 @@ def get_stock_prep():
                     today_deliveries.append(entry)
                 elif delivery_date == tomorrow_str:
                     tomorrow_deliveries.append(entry)
-        
-        # Retail Sales
+
+        # Fetch retail sales for today and tomorrow
         today_retail_sales = Sale.query.filter(Sale.status == 'Pending', Sale.date == today_str).all()
         tomorrow_retail_sales = Sale.query.filter(Sale.status == 'Pending', Sale.date == tomorrow_str).all()
+
         for sale in today_retail_sales:
             today_deliveries.append({
                 'type': 'Retail',
@@ -711,10 +717,11 @@ def get_stock_prep():
                 'products': getattr(sale, 'products', []),
                 'deliveryDate': sale.date
             })
-        
-        # Wholesale Sales
+
+        # Fetch wholesale sales for today and tomorrow
         today_wholesale_sales = WholesaleSale.query.filter(WholesaleSale.status == 'Pending', WholesaleSale.date == today_str).all()
         tomorrow_wholesale_sales = WholesaleSale.query.filter(WholesaleSale.status == 'Pending', WholesaleSale.date == tomorrow_str).all()
+
         for wsale in today_wholesale_sales:
             today_deliveries.append({
                 'type': 'Wholesale',
@@ -735,10 +742,20 @@ def get_stock_prep():
                 'products': getattr(wsale, 'products', []),
                 'deliveryDate': wsale.date
             })
-        
-        total_today = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in today_deliveries)
-        total_tomorrow = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in tomorrow_deliveries)
-        
+
+        # Calculate totals including boxes or fall back to sum of product quantities
+        def total_boxes(deliveries):
+            total = 0
+            for d in deliveries:
+                if 'boxes' in d:
+                    total += d['boxes']
+                else:
+                    total += sum(p.get('quantity', 0) for p in d.get('products', []))
+            return total
+
+        total_today = total_boxes(today_deliveries)
+        total_tomorrow = total_boxes(tomorrow_deliveries)
+
         return jsonify({
             'today': {
                 'date': today_str,
@@ -766,6 +783,7 @@ def get_stock_prep():
     except Exception as e:
         print(f"Error in stock prep: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 # --- SALES API ---
 
@@ -1342,6 +1360,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
