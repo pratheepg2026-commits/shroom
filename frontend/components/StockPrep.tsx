@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSubscriptions, getSales, getWholesaleSales } from '../services/api';
-import { Subscription, Sale, WholesaleSale } from '../types';
+
 import Button from './common/Button';
 
 const LoadingSpinner = () => (
@@ -46,130 +45,21 @@ const StockPrep: React.FC = () => {
     }, []);
 
     const fetchStockPrep = async () => {
-      const formatDate = (date: string | Date) => {
-      const d = typeof date === 'string' ? new Date(date) : date;
-      return d.toISOString().slice(0, 10);  // returns 'YYYY-MM-DD'
-    };
+  try {
+    setLoading(true);
+    setError(null);
+    const response = await fetch('/api/stock-prep');
+    if (!response.ok) throw new Error('Failed to fetch stock prep data');
+    const data = await response.json();
+    setStockData(data);
+  } catch (err) {
+    console.error('Error fetching stock prep:', err);
+    setError('Failed to load stock preparation data');
+  } finally {
+    setLoading(false);
+  }
+};
 
-      setLoading(true);
-      setError(null);
-      console.log('[DEBUG] fetchStockPrep called');
-      
-      try {
-        console.log('[DEBUG] Fetching subscriptions, sales, wholesale sales...');
-        
-        const [subscriptions, retailSales, wholesaleSales] = await Promise.all([
-          getSubscriptions(),
-          getSales(),
-          getWholesaleSales()
-        ]);
-        
-        console.log('[DEBUG] Subscriptions:', subscriptions);
-        console.log('[DEBUG] Retail Sales:', retailSales);
-        console.log('[DEBUG] Wholesale Sales:', wholesaleSales);
-    
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-    
-        const todayStr = today.toISOString().split('T')[0];
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-        
-        console.log('[DEBUG] Date filters:', { todayStr, tomorrowStr });
-    
-        const processOrders = (targetDate: string): StockPrepOrder[] => {
-          console.log(`[DEBUG] Processing orders for date: ${targetDate}`);
-          const orders: StockPrepOrder[] = [];
-            console.debug("Wholesale Sales Raw:", wholesaleSales.map(s => s.dateField));
-
-          // Subscriptions
-          const filteredSubs = subscriptions.filter(s => s.isActive && formatDate(s.nextDeliveryDate) === targetDate);
-          console.log(`[DEBUG] Filtered subscriptions for ${targetDate}:`, filteredSubs.length);
-          filteredSubs.forEach(s => {
-            orders.push({
-              id: s.id,
-              customerName: s.customerName || 'Unknown',
-              products: [{ name: s.productName || s.plan || 'Unknown', quantity: s.quantity || 1 }],
-              deliveryDate: s.nextDeliveryDate,
-              type: 'Subscription',
-              address: s.address || '',
-              phone: s.phone || ''
-            });
-          });
-    
-          // Retail Sales
-    
-          
-            
-          const filteredRetail = retailSales.filter(s => s.status === 'Pending' && formatDate(s.date) === targetDate);
-          console.log(`[DEBUG] Filtered retail sales for ${targetDate}:`, filteredRetail.length);
-          filteredRetail.forEach(s => {
-            orders.push({
-              id: s.id,
-              customerName: s.customerName || 'Unknown',
-              products: s.products || [],
-              deliveryDate: s.date,
-              type: 'Retail',
-            });
-          });
-        console.debug("Wholesale Sales Raw:", wholesaleSales.map(s => s.dateField));
-
-          // Wholesale Sales
-          const filteredWholesale = wholesaleSales.filter(s => s.status === 'Pending' && formatDate(s.date) === targetDate);
-          console.log(`[DEBUG] Filtered wholesale sales for ${targetDate}:`, filteredWholesale.length);
-          filteredWholesale.forEach(s => {
-            orders.push({
-              id: s.id,
-              customerName: s.shopName || 'Unknown',
-              products: s.products || [],
-              deliveryDate: s.date,
-              type: 'Wholesale',
-              address: s.address || '',
-              phone: s.contact || ''
-            });
-          });
-    
-          console.log(`[DEBUG] Total orders for ${targetDate}:`, orders.length);
-          return orders;
-        };
-    
-        const todayDeliveries = processOrders(todayStr);
-        const tomorrowDeliveries = processOrders(tomorrowStr);
-    
-        const calculateDayData = (dateStr: string, date: Date, deliveries: StockPrepOrder[]): DayData => {
-          const totalBoxes = deliveries.reduce((sum, d) => 
-            sum + d.products.reduce((pSum, p) => pSum + p.quantity, 0), 0
-          );
-    
-          return {
-            date: date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-            day: date.toLocaleDateString('en-US', { weekday: 'long' }),
-            deliveries,
-            totalBoxes,
-            breakdown: {
-              subscriptions: deliveries.filter(d => d.type === 'Subscription').length,
-              retail: deliveries.filter(d => d.type === 'Retail').length,
-              wholesale: deliveries.filter(d => d.type === 'Wholesale').length
-            }
-          };
-        };
-    
-        const finalStockData = {
-          today: calculateDayData(todayStr, today, todayDeliveries),
-          tomorrow: calculateDayData(tomorrowStr, tomorrow, tomorrowDeliveries)
-        };
-    
-        console.log('[DEBUG] Final stock data:', finalStockData);
-        setStockData(finalStockData);
-    
-      } catch (err) {
-        console.error('[ERROR] Failed to fetch stock prep:', err);
-        setError('Failed to load stock preparation data');
-      } finally {
-        setLoading(false);
-      }
-    };
 
     const getTypeBadgeClass = (type: string) => {
         switch (type) {
