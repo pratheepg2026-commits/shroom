@@ -664,23 +664,21 @@ def get_stock_prep():
         today_deliveries = []
         tomorrow_deliveries = []
 
-        # Query Subscriptions (adjust table and field names to your schema)
+        # Raw SQL query for active subscriptions
         subs_query = """
-            SELECT id, name AS customer_name, address, phone, plan,
-                   boxes_per_month, preferred_delivery_day, start_date, status
+            SELECT id, name, address, phone, plan, boxes_per_month, preferred_delivery_day, start_date, status
             FROM subscriptions
             WHERE status = 'Active'
         """
         subs_rows = db_conn.execute(subs_query).fetchall()
 
-        # Assuming you have a python function calculate_delivery_schedule(start_date, preferred_day, boxes_per_month)
         for sub in subs_rows:
             schedule = calculate_delivery_schedule(sub['start_date'], sub['preferred_delivery_day'], sub['boxes_per_month'])
             for delivery in schedule:
                 entry = {
                     'type': 'Subscription',
                     'id': sub['id'],
-                    'customerName': sub['customer_name'],
+                    'customerName': sub['name'],
                     'address': sub['address'] or '',
                     'phone': sub['phone'] or '',
                     'boxes': delivery['boxes'],
@@ -692,11 +690,11 @@ def get_stock_prep():
                 elif delivery['date'] == tomorrow_str:
                     tomorrow_deliveries.append(entry)
 
-        # Query Retail Sales
+        # Raw SQL for retail sales on today or tomorrow
         retail_query = f"""
-            SELECT id, customer_name, address, phone, products, date, status
+            SELECT id, customer_name, address, phone, products, date, status 
             FROM sales
-            WHERE status='Pending' AND date IN ('{today_str}', '{tomorrow_str}')
+            WHERE status = 'Pending' AND date IN ('{today_str}', '{tomorrow_str}')
         """
         retail_rows = db_conn.execute(retail_query).fetchall()
 
@@ -716,11 +714,11 @@ def get_stock_prep():
             else:
                 tomorrow_deliveries.append(entry)
 
-        # Query Wholesale Sales
+        # Raw SQL for wholesale sales on today or tomorrow
         wholesale_query = f"""
             SELECT id, shop_name, address, contact, products, date, status
             FROM wholesale_sales
-            WHERE status='Pending' AND date IN ('{today_str}', '{tomorrow_str}')
+            WHERE status = 'Pending' AND date IN ('{today_str}', '{tomorrow_str}')
         """
         wholesale_rows = db_conn.execute(wholesale_query).fetchall()
 
@@ -742,11 +740,11 @@ def get_stock_prep():
 
         def count_boxes(deliveries):
             total = 0
-            for deliv in deliveries:
-                if 'boxes' in deliv:
-                    total += deliv['boxes']
+            for d in deliveries:
+                if 'boxes' in d:
+                    total += d['boxes']
                 else:
-                    total += sum(p.get('quantity', 0) for p in deliv.get('products', []))
+                    total += sum(p.get('quantity', 0) for p in d.get('products', []))
             return total
 
         return jsonify({
@@ -773,7 +771,6 @@ def get_stock_prep():
                 }
             }
         })
-
     except Exception as e:
         print(f"Error in stock prep: {e}")
         return jsonify({'error': str(e)}), 500
@@ -1352,6 +1349,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
