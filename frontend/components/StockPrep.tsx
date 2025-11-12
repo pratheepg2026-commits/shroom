@@ -57,17 +57,7 @@ const fetchStockPrep = React.useCallback(async () => {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const text = await response.text();
-    console.log('[DEBUG] Raw text from API:', text);
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (jsonErr) {
-      console.error('[DEBUG] JSON parse failed:', jsonErr);
-      throw new Error('Invalid JSON returned by API');
-    }
-
+    const data = await response.json();
     console.log('[DEBUG] Parsed data:', data);
 
     if (!data.dateRange) {
@@ -76,21 +66,98 @@ const fetchStockPrep = React.useCallback(async () => {
       return;
     }
 
-    const makeDayData = (dateString: string): DayData => ({
-      date: dateString,
-      day: new Date(dateString).toLocaleDateString('en-US', { weekday: 'long' }),
-      deliveries: [],
-      totalBoxes: 0,
-      breakdown: { subscriptions: 0, retail: 0, wholesale: 0 },
-    });
+    // Process deliveries for a specific date
+    const processDeliveries = (targetDate: string): StockPrepOrder[] => {
+      const orders: StockPrepOrder[] = [];
+      
+      console.log(`[DEBUG] Processing deliveries for ${targetDate}`);
+
+      // Process subscriptions - check if delivery matches target date
+      (data.subscriptions || []).forEach((sub: any) => {
+        // For now, add active subscriptions to today's deliveries
+        // You can add logic to calculate actual delivery dates based on preferredDeliveryDay
+        const subDate = sub.startDate || '';
+        const dayOfWeek = new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' });
+        
+        if (sub.status === 'Active' && sub.preferredDeliveryDay === dayOfWeek) {
+          orders.push({
+            id: sub.id,
+            customerName: sub.name || 'Unknown',
+            products: [{ name: sub.plan || 'Subscription', quantity: 1 }],
+            deliveryDate: targetDate,
+            type: 'Subscription',
+            address: sub.address || '',
+            phone: sub.phone || ''
+          });
+          console.log(`[DEBUG] Added subscription: ${sub.name} for ${dayOfWeek}`);
+        }
+      });
+
+      // Process retail sales matching target date
+      (data.retailSales || []).forEach((sale: any) => {
+        if (sale.date === targetDate && sale.status === 'Pending') {
+          orders.push({
+            id: sale.id,
+            customerName: sale.customerName || 'Unknown',
+            products: sale.products || [],
+            deliveryDate: sale.date,
+            type: 'Retail',
+            address: sale.address || '',
+            phone: sale.phone || ''
+          });
+          console.log(`[DEBUG] Added retail sale: ${sale.customerName}`);
+        }
+      });
+
+      // Process wholesale sales matching target date
+      (data.wholesaleSales || []).forEach((sale: any) => {
+        if (sale.date === targetDate && sale.status === 'Pending') {
+          orders.push({
+            id: sale.id,
+            customerName: sale.shopName || 'Unknown',
+            products: sale.products || [],
+            deliveryDate: sale.date,
+            type: 'Wholesale',
+            address: sale.address || '',
+            phone: sale.contact || ''
+          });
+          console.log(`[DEBUG] Added wholesale sale: ${sale.shopName}`);
+        }
+      });
+
+      console.log(`[DEBUG] Total orders for ${targetDate}: ${orders.length}`);
+      return orders;
+    };
+
+    const todayDeliveries = processDeliveries(data.dateRange.today);
+    const tomorrowDeliveries = processDeliveries(data.dateRange.tomorrow);
+
+    const makeDayData = (dateStr: string, deliveries: StockPrepOrder[]): DayData => {
+      const totalBoxes = deliveries.reduce((sum, d) => 
+        sum + d.products.reduce((pSum, p) => pSum + (p.quantity || 0), 0), 0
+      );
+
+      return {
+        date: dateStr,
+        day: new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' }),
+        deliveries,
+        totalBoxes,
+        breakdown: {
+          subscriptions: deliveries.filter(d => d.type === 'Subscription').length,
+          retail: deliveries.filter(d => d.type === 'Retail').length,
+          wholesale: deliveries.filter(d => d.type === 'Wholesale').length,
+        }
+      };
+    };
 
     const finalStockData: StockPrepData = {
-      today: makeDayData(data.dateRange.today),
-      tomorrow: makeDayData(data.dateRange.tomorrow),
+      today: makeDayData(data.dateRange.today, todayDeliveries),
+      tomorrow: makeDayData(data.dateRange.tomorrow, tomorrowDeliveries),
     };
 
     console.log('[DEBUG] finalStockData:', finalStockData);
     setStockData(finalStockData);
+
   } catch (err) {
     console.error('[DEBUG] fetchStockPrep error:', err);
     setError((err as Error).message || 'Unknown error');
@@ -99,6 +166,7 @@ const fetchStockPrep = React.useCallback(async () => {
     setLoading(false);
   }
 }, []);
+
 useEffect(() => {
     fetchStockPrep();
 }, [fetchStockPrep]);
