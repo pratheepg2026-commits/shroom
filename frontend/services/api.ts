@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://shroommush.onrender.com/api';
+const BASE_URL =import.meta.env.VITE_API_URL?.trim() || 'https://shroommush.onrender.com/api';
+
+console.log('[DEBUG] Using BASE_URL:', BASE_URL);
 
 const apiRequest = async <T>(endpoint: string, options?: RequestInit): Promise<T> => {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
