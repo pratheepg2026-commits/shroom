@@ -672,14 +672,14 @@ def get_stock_prep():
 
         # --- Retail Sales (pending today/tomorrow) ---
         retail_sales = Sale.query.filter(
-            Sale.status == 'Pending',
+            
             Sale.date.in_([today_str, tomorrow_str])
         ).all()
         print(f"[DEBUG] Retail sales fetched: {len(retail_sales)}")
 
         # --- Wholesale Sales (pending today/tomorrow) ---
         wholesale_sales = WholesaleSale.query.filter(
-            WholesaleSale.status == 'Pending',
+           
             WholesaleSale.date.in_([today_str, tomorrow_str])
         ).all()
         print(f"[DEBUG] Wholesale sales fetched: {len(wholesale_sales)}")
@@ -1274,6 +1274,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
