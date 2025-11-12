@@ -659,119 +659,41 @@ def get_stock_prep():
         today_str = today.strftime('%Y-%m-%d')
         tomorrow_str = tomorrow.strftime('%Y-%m-%d')
 
-        today_deliveries = []
-        tomorrow_deliveries = []
+        print(f"[DEBUG] Stock prep requested for dates: {today_str}, {tomorrow_str}")
 
-        # Raw SQL query for active subscriptions
-        subs_query = """
-            SELECT id, name, address, phone, plan, boxes_per_month, preferred_delivery_day, start_date, status
-            FROM subscriptions
-            WHERE status = 'Active'
-        """
-        subs_rows = db_conn.execute(subs_query).fetchall()
+        # Query subscriptions (sample)
+        print("[DEBUG] Querying subscriptions...")
+        subs_rows = db_conn.execute("SELECT ... FROM subscriptions WHERE status='Active'").fetchall()
+        print(f"[DEBUG] Subscriptions fetched: {len(subs_rows)}")
+        for sub in subs_rows[:3]:  # log first 3 samples
+            print(f"[DEBUG] Subscription sample: {sub}")
 
-        for sub in subs_rows:
-            schedule = calculate_delivery_schedule(sub['start_date'], sub['preferred_delivery_day'], sub['boxes_per_month'])
-            for delivery in schedule:
-                entry = {
-                    'type': 'Subscription',
-                    'id': sub['id'],
-                    'customerName': sub['name'],
-                    'address': sub['address'] or '',
-                    'phone': sub['phone'] or '',
-                    'boxes': delivery['boxes'],
-                    'plan': sub['plan'],
-                    'deliveryDate': delivery['date']
-                }
-                if delivery['date'] == today_str:
-                    today_deliveries.append(entry)
-                elif delivery['date'] == tomorrow_str:
-                    tomorrow_deliveries.append(entry)
+        # Query retail sales
+        print("[DEBUG] Querying retail sales...")
+        retail_rows = db_conn.execute(f"SELECT ... FROM sales WHERE status='Pending' AND date IN ('{today_str}', '{tomorrow_str}')").fetchall()
+        print(f"[DEBUG] Retail sales fetched: {len(retail_rows)}")
+        for sale in retail_rows[:3]:
+            print(f"[DEBUG] Retail sale sample: {sale}")
 
-        # Raw SQL for retail sales on today or tomorrow
-        retail_query = f"""
-            SELECT id, customer_name, address, phone, products, date, status 
-            FROM sales
-            WHERE status = 'Pending' AND date IN ('{today_str}', '{tomorrow_str}')
-        """
-        retail_rows = db_conn.execute(retail_query).fetchall()
+        # Query wholesale sales
+        print("[DEBUG] Querying wholesale sales...")
+        wholesale_rows = db_conn.execute(f"SELECT ... FROM wholesale_sales WHERE status='Pending' AND date IN ('{today_str}', '{tomorrow_str}')").fetchall()
+        print(f"[DEBUG] Wholesale sales fetched: {len(wholesale_rows)}")
+        for wsale in wholesale_rows[:3]:
+            print(f"[DEBUG] Wholesale sale sample: {wsale}")
 
-        for row in retail_rows:
-            products = json.loads(row['products']) if row['products'] else []
-            entry = {
-                'type': 'Retail',
-                'id': row['id'],
-                'customerName': row['customer_name'],
-                'address': row['address'] or '',
-                'phone': row['phone'] or '',
-                'products': products,
-                'deliveryDate': row['date']
-            }
-            if row['date'] == today_str:
-                today_deliveries.append(entry)
-            else:
-                tomorrow_deliveries.append(entry)
+        # Your existing delivery processing and response logic
 
-        # Raw SQL for wholesale sales on today or tomorrow
-        wholesale_query = f"""
-            SELECT id, shop_name, address, contact, products, date, status
-            FROM wholesale_sales
-            WHERE status = 'Pending' AND date IN ('{today_str}', '{tomorrow_str}')
-        """
-        wholesale_rows = db_conn.execute(wholesale_query).fetchall()
-
-        for row in wholesale_rows:
-            products = json.loads(row['products']) if row['products'] else []
-            entry = {
-                'type': 'Wholesale',
-                'id': row['id'],
-                'customerName': row['shop_name'],
-                'address': row['address'] or '',
-                'phone': row['contact'] or '',
-                'products': products,
-                'deliveryDate': row['date']
-            }
-            if row['date'] == today_str:
-                today_deliveries.append(entry)
-            else:
-                tomorrow_deliveries.append(entry)
-
-        def count_boxes(deliveries):
-            total = 0
-            for d in deliveries:
-                if 'boxes' in d:
-                    total += d['boxes']
-                else:
-                    total += sum(p.get('quantity', 0) for p in d.get('products', []))
-            return total
+        print(f"[DEBUG] Completed stock prep data assembly")
 
         return jsonify({
-            'today': {
-                'date': today_str,
-                'day': today.strftime('%A'),
-                'deliveries': today_deliveries,
-                'totalBoxes': count_boxes(today_deliveries),
-                'breakdown': {
-                    'subscriptions': sum(1 for d in today_deliveries if d['type'] == 'Subscription'),
-                    'retail': sum(1 for d in today_deliveries if d['type'] == 'Retail'),
-                    'wholesale': sum(1 for d in today_deliveries if d['type'] == 'Wholesale'),
-                }
-            },
-            'tomorrow': {
-                'date': tomorrow_str,
-                'day': tomorrow.strftime('%A'),
-                'deliveries': tomorrow_deliveries,
-                'totalBoxes': count_boxes(tomorrow_deliveries),
-                'breakdown': {
-                    'subscriptions': sum(1 for d in tomorrow_deliveries if d['type'] == 'Subscription'),
-                    'retail': sum(1 for d in tomorrow_deliveries if d['type'] == 'Retail'),
-                    'wholesale': sum(1 for d in tomorrow_deliveries if d['type'] == 'Wholesale'),
-                }
-            }
+            # Your JSON response here
         })
+
     except Exception as e:
-        print(f"Error in stock prep: {e}")
+        print(f"[ERROR] Stock prep failed: {e}")
         return jsonify({'error': str(e)}), 500
+
 # --- SALES API ---
 
 @app.route('/api/sales', methods=['GET'])
@@ -1347,6 +1269,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
