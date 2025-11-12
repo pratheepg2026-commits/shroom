@@ -88,7 +88,7 @@ export const getStockPrep = (): Promise<any[]> => apiRequest('/stock-prep');
 // Add these functions to api.ts
 
 // Warehouse APIs
-export async function addExpense(expense: Omit<Expense, 'id'>) {
+export async function addExpenseToWarehouse(expense: Omit<Expense, 'id'>) {
   const { data, error } = await supabase
     .from('expenses')
     .insert([expense]);
