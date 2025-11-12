@@ -70,7 +70,22 @@ const StockPrep: React.FC = () => {
           const processOrders = (targetDate: string): StockPrepOrder[] => {
           const orders: StockPrepOrder[] = [];
         
-          // Your existing code mapping Subscriptions, Retail, Wholesale
+          // Subscriptions
+          subscriptions
+            .filter(s => s.isActive && s.nextDeliveryDate === targetDate)
+            .forEach(s => {
+              orders.push({
+                id: s.id,
+                customerName: s.customerName || 'Unknown',
+                products: [{ name: s.productName || s.plan || 'Subscription', quantity: s.quantity || 1 }],
+                deliveryDate: s.nextDeliveryDate,
+                type: 'Subscription',
+                address: s.address || '',
+                phone: s.phone || ''
+              });
+            });
+        
+          // Retail Sales
           retailSales
             .filter(s => s.status === 'Pending' && s.date === targetDate)
             .forEach(s => {
@@ -83,6 +98,7 @@ const StockPrep: React.FC = () => {
               });
             });
         
+          // Wholesale Sales
           wholesaleSales
             .filter(s => s.status === 'Pending' && s.date === targetDate)
             .forEach(s => {
@@ -99,8 +115,6 @@ const StockPrep: React.FC = () => {
         
           return orders;
         };
-
-
             const calculateDayData = (dateStr: string, date: Date): DayData => {
                 const deliveries = processOrders(dateStr);
                 const totalBoxes = deliveries.reduce((sum, d) => 
