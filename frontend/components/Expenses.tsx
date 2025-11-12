@@ -198,7 +198,7 @@ const Expenses: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {expenses.map(expense => (
+              {expenses.slice().sort((a, b) => b.date.localeCompare(a.date)).map(expense => (
                 <tr key={expense.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4">{expense.date}</td>
                   <td className="px-6 py-4 font-medium text-white">{expense.description}</td>
