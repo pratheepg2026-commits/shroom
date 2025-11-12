@@ -703,6 +703,26 @@ def get_stock_prep():
                         'plan': sub.plan,
                         'deliveryDate': delivery_date
                     })
+
+        from models import Sale, WholesaleSale  # your sale models
+
+today_retail_sales = Sale.query.filter(Sale.status == 'Pending', Sale.date == today_str).all()
+tomorrow_retail_sales = Sale.query.filter(Sale.status == 'Pending', Sale.date == tomorrow_str).all()
+
+today_wholesale_sales = WholesaleSale.query.filter(WholesaleSale.status == 'Pending', WholesaleSale.date == today_str).all()
+tomorrow_wholesale_sales = WholesaleSale.query.filter(WholesaleSale.status == 'Pending', WholesaleSale.date == tomorrow_str).all()
+
+# Prepare retail deliveries dicts similar to subscriptions
+for sale in today_retail_sales:
+    today_deliveries.append({
+        'type': 'Retail',
+        'id': sale.id,
+        'customerName': sale.customerName,
+        'address': sale.address or '',
+        'phone': sale.phone or '',
+        'products': sale.products,  # adapt based on your model structure
+        'deliveryDate': sale.date
+    })
         
         total_today = sum(d['boxes'] for d in today_deliveries)
         total_tomorrow = sum(d['boxes'] for d in tomorrow_deliveries)
@@ -715,8 +735,9 @@ def get_stock_prep():
                 'totalBoxes': total_today,
                 'breakdown': {
                     'subscriptions': len(today_deliveries),
-                    'retail': 0,
-                    'wholesale': 0
+                    'retail': sum(1 for d in today_deliveries if d['type'] == 'Retail'),
+                    'wholesale': sum(1 for d in today_deliveries if d['type'] == 'Wholesale'),
+                
                 }
             },
             'tomorrow': {
@@ -726,8 +747,8 @@ def get_stock_prep():
                 'totalBoxes': total_tomorrow,
                 'breakdown': {
                     'subscriptions': len(tomorrow_deliveries),
-                    'retail': 0,
-                    'wholesale': 0
+                    'retail': sum(1 for d in tomorrow_deliveries if d['type'] == 'Retail'),
+                    'wholesale': sum(1 for d in tomorrow_deliveries if d['type'] == 'Wholesale'),
                 }
             }
         })
@@ -1310,6 +1331,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
