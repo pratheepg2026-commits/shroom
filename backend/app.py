@@ -752,6 +752,10 @@ def get_stock_prep():
         total_tomorrow = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in tomorrow_deliveries)
 
         response_data = {
+            'dateRange': {
+                'today': today_str,
+                'tomorrow': tomorrow_str
+            },
             'today': {
                 'date': today_str,
                 'day': today_day,
@@ -1357,6 +1361,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
