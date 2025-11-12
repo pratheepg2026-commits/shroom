@@ -50,6 +50,8 @@ const fetchStockPrep = React.useCallback(async () => {
     if (!response.ok) throw new Error('Failed to fetch stock prep data');
     const data = await response.json();
     setStockData(data);
+    console.log('[DEBUG] finalStockData:', JSON.stringify(finalStockData, null, 2));
+
   } catch (err) {
     console.error('Error fetching stock prep:', err);
     setError('Failed to load stock preparation data');
