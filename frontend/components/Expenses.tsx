@@ -23,7 +23,23 @@ const ExpenseForm: React.FC<{
     description: '',
     amount: 0,
     date: new Date().toISOString().split('T')[0],
+    warehouse_id: '',
   });
+  useEffect(() => {
+    // Fetch warehouses from Supabase or your API
+    async function fetchWarehouses() {
+      try {
+        const response = await getWarehouses(); // Create this API call
+        setWarehouses(response);
+        if(response.length > 0) {
+          setFormData(prev => ({ ...prev, warehouse_id: response[0].id }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch warehouses", error);
+      }
+    }
+    fetchWarehouses();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -37,6 +53,17 @@ const ExpenseForm: React.FC<{
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <select
+        name="warehouse_id"
+        value={formData.warehouse_id}
+        onChange={handleChange}
+        className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200"
+        required
+      >
+        {warehouses.map(w => (
+          <option key={w.id} value={w.id}>{w.name}</option>
+        ))}
+      </select>
       <select name="category" value={formData.category} onChange={handleChange} className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required>
         {Object.values(ExpenseCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
       </select>
