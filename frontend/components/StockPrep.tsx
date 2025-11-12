@@ -159,11 +159,13 @@ const fetchStockPrep = React.useCallback(async () => {
                 </Button>
             </div>
 
-            {stockData && (
-                <>
-                    <DeliverySection title="Today's Deliveries" data={stockData.today} />
-                    <DeliverySection title="Tomorrow's Deliveries" data={stockData.tomorrow} />
-                </>
+            {stockData?.today && stockData?.tomorrow ? (
+              <>
+                <DeliverySection title="Today's Deliveries" data={stockData.today} />
+                <DeliverySection title="Tomorrow's Deliveries" data={stockData.tomorrow} />
+              </>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No stock data available</p>
             )}
         </div>
     );
