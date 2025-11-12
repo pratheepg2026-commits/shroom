@@ -31,7 +31,7 @@ const ExpenseForm: React.FC<{
     // Fetch warehouses from Supabase or your API
     async function fetchWarehouses() {
       try {
-        const response = await getWarehouses(); // Create this API call
+        const response = await getWarehousesFromSupabase(); // Create this API call
         setWarehouses(response);
         if(response.length > 0) {
           setFormData(prev => ({ ...prev, warehouse_id: response[0].id }));
