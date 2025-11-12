@@ -659,36 +659,36 @@ def get_stock_prep():
         today_str = today.strftime('%Y-%m-%d')
         tomorrow_str = tomorrow.strftime('%Y-%m-%d')
 
-        print(f"[DEBUG] Stock prep requested for dates: {today_str}, {tomorrow_str}")
+        print(f"[DEBUG] Stock prep requested for {today_str} and {tomorrow_str}")
 
-        # Query subscriptions (sample)
-        print("[DEBUG] Querying subscriptions...")
-        subs_rows = db_conn.execute("SELECT ... FROM subscriptions WHERE status='Active'").fetchall()
-        print(f"[DEBUG] Subscriptions fetched: {len(subs_rows)}")
-        for sub in subs_rows[:3]:  # log first 3 samples
-            print(f"[DEBUG] Subscription sample: {sub}")
+        # --- Subscriptions (active) ---
+        subs = Subscription.query.filter_by(status='Active').all()
+        print(f"[DEBUG] Active subscriptions fetched: {len(subs)}")
 
-        # Query retail sales
-        print("[DEBUG] Querying retail sales...")
-        retail_rows = db_conn.execute(f"SELECT ... FROM sales WHERE status='Pending' AND date IN ('{today_str}', '{tomorrow_str}')").fetchall()
-        print(f"[DEBUG] Retail sales fetched: {len(retail_rows)}")
-        for sale in retail_rows[:3]:
-            print(f"[DEBUG] Retail sale sample: {sale}")
+        # --- Retail Sales (pending today/tomorrow) ---
+        retail_sales = Sale.query.filter(
+            Sale.status == 'Pending',
+            Sale.date.in_([today_str, tomorrow_str])
+        ).all()
+        print(f"[DEBUG] Retail sales fetched: {len(retail_sales)}")
 
-        # Query wholesale sales
-        print("[DEBUG] Querying wholesale sales...")
-        wholesale_rows = db_conn.execute(f"SELECT ... FROM wholesale_sales WHERE status='Pending' AND date IN ('{today_str}', '{tomorrow_str}')").fetchall()
-        print(f"[DEBUG] Wholesale sales fetched: {len(wholesale_rows)}")
-        for wsale in wholesale_rows[:3]:
-            print(f"[DEBUG] Wholesale sale sample: {wsale}")
+        # --- Wholesale Sales (pending today/tomorrow) ---
+        wholesale_sales = WholesaleSale.query.filter(
+            WholesaleSale.status == 'Pending',
+            WholesaleSale.date.in_([today_str, tomorrow_str])
+        ).all()
+        print(f"[DEBUG] Wholesale sales fetched: {len(wholesale_sales)}")
 
-        # Your existing delivery processing and response logic
+        # Example: summarize data for front-end
+        response_data = {
+            'subscriptions': [s.to_dict() for s in subs],
+            'retailSales': [s.to_dict() for s in retail_sales],
+            'wholesaleSales': [s.to_dict() for s in wholesale_sales],
+            'dateRange': {'today': today_str, 'tomorrow': tomorrow_str}
+        }
 
-        print(f"[DEBUG] Completed stock prep data assembly")
-
-        return jsonify({
-            # Your JSON response here
-        })
+        print(f"[DEBUG] Stock prep completed successfully.")
+        return jsonify(response_data), 200
 
     except Exception as e:
         print(f"[ERROR] Stock prep failed: {e}")
@@ -1269,6 +1269,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
