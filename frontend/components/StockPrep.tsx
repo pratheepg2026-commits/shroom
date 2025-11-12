@@ -46,6 +46,11 @@ const StockPrep: React.FC = () => {
     }, []);
 
     const fetchStockPrep = async () => {
+      const formatDate = (date: string | Date) => {
+      const d = typeof date === 'string' ? new Date(date) : date;
+      return d.toISOString().slice(0, 10);  // returns 'YYYY-MM-DD'
+    };
+
       setLoading(true);
       setError(null);
       console.log('[DEBUG] fetchStockPrep called');
@@ -78,7 +83,7 @@ const StockPrep: React.FC = () => {
           const orders: StockPrepOrder[] = [];
     
           // Subscriptions
-          const filteredSubs = subscriptions.filter(s => s.isActive && s.nextDeliveryDate === targetDate);
+          const filteredSubs = subscriptions.filter(s => s.isActive && formatDate(s.nextDeliveryDate) === targetDate);
           console.log(`[DEBUG] Filtered subscriptions for ${targetDate}:`, filteredSubs.length);
           filteredSubs.forEach(s => {
             orders.push({
@@ -93,7 +98,7 @@ const StockPrep: React.FC = () => {
           });
     
           // Retail Sales
-          const filteredRetail = retailSales.filter(s => s.status === 'Pending' && s.date === targetDate);
+          const filteredRetail = retailSales.filter(s => s.status === 'Pending' && formatDate(s.date) === targetDate);
           console.log(`[DEBUG] Filtered retail sales for ${targetDate}:`, filteredRetail.length);
           filteredRetail.forEach(s => {
             orders.push({
@@ -106,7 +111,7 @@ const StockPrep: React.FC = () => {
           });
     
           // Wholesale Sales
-          const filteredWholesale = wholesaleSales.filter(s => s.status === 'Pending' && s.date === targetDate);
+          const filteredWholesale = wholesaleSales.filter(s => s.status === 'Pending' && formatDate(s.date) === targetDate);
           console.log(`[DEBUG] Filtered wholesale sales for ${targetDate}:`, filteredWholesale.length);
           filteredWholesale.forEach(s => {
             orders.push({
