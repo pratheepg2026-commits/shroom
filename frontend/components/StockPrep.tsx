@@ -99,6 +99,9 @@ const fetchStockPrep = React.useCallback(async () => {
     setLoading(false);
   }
 }, []);
+useEffect(() => {
+    fetchStockPrep();
+}, [fetchStockPrep]);
 
 
 
