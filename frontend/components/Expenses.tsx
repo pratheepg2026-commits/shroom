@@ -1,6 +1,6 @@
 // Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { getExpenses, addExpense, deleteExpense, getWarehousesFromSupabase   } from '../services/api';
+import { getExpenses, addExpense, deleteExpense, getWarehouses    } from '../services/api';
 import { Expense, ExpenseCategory } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
@@ -31,7 +31,7 @@ const ExpenseForm: React.FC<{
     // Fetch warehouses from Supabase or your API
     async function fetchWarehouses() {
       try {
-        const response = await getWarehousesFromSupabase(); // Create this API call
+        const response = await getWarehouses(); // Create this API call
         setWarehouses(response);
         if(response.length > 0) {
           setFormData(prev => ({ ...prev, warehouse_id: response[0].id }));
