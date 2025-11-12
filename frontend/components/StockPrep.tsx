@@ -41,7 +41,7 @@ const StockPrep: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
   
-    const fetchStockPrep = async () => {
+const fetchStockPrep = React.useCallback(async () => {
   try {
     setLoading(true);
     setError(null);
@@ -55,10 +55,10 @@ const StockPrep: React.FC = () => {
   } finally {
     setLoading(false);
   }
-};
+}, []);
   useEffect(() => {
         fetchStockPrep();
-    }, []);
+    }, [fetchStockPrep]);
 
 
     const getTypeBadgeClass = (type: string) => {
