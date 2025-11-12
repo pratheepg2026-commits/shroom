@@ -654,6 +654,7 @@ def subscription_detail(sub_id):
 @app.route('/api/stock-prep', methods=['GET'])
 def get_stock_prep():
     try:
+        ist = pytz.timezone('Asia/Kolkata')
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         tomorrow = today + timedelta(days=1)
         today_str = today.strftime('%Y-%m-%d')
@@ -1269,6 +1270,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
