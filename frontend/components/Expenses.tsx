@@ -1,6 +1,6 @@
 // Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { getExpenses, addExpense, deleteExpense } from '../services/api';
+import { getExpenses, addExpense, deleteExpense, getWarehousesFromSupabase   } from '../services/api';
 import { Expense, ExpenseCategory } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
