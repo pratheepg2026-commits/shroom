@@ -649,9 +649,7 @@ def subscription_detail(sub_id):
             return jsonify({'error': str(e)}), 500
 
 
-from flask import jsonify
-from datetime import datetime, timedelta
-from models import Subscription, Sale, WholesaleSale  # your models
+
 
 @app.route('/api/stock-prep', methods=['GET'])
 def get_stock_prep():
@@ -1349,6 +1347,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
