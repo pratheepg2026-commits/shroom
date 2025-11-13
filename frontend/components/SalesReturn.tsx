@@ -168,11 +168,14 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
 
     // ✅ Calculate total refund amount
     const refundAmount = r.returnedProducts.reduce((sum, p) => {
-        const price = Number(p.price);
-        const quantity = Number(p.quantity);
-        if (isNaN(price) || isNaN(quantity)) return sum; 
-        return sum + price * quantity;
+      const quantity = Number(p.quantity);
+      const price = Number(p.price);
+      if (isNaN(quantity) || isNaN(price)) {
+        return sum;  // skip invalid values
+      }
+      return sum + quantity * price;
     }, 0);
+
 
     const salesReturnData = {
         returnedProducts: returnedProductsWithIds,
