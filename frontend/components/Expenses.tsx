@@ -13,6 +13,10 @@ const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
   </div>
 );
+const getWarehouseName = (warehouseId: string) => {
+  const warehouse = allWarehouses.find(w => w.id === warehouseId);
+  return warehouse ? warehouse.name : 'N/A';
+};
 
 const ExpenseForm: React.FC<{
   onSave: (expense: Omit<Expense, 'id'>) => void;
@@ -231,7 +235,7 @@ const Expenses: React.FC = () => {
               {expenses.slice().sort((a, b) => b.date.localeCompare(a.date)).map(expense => (
                 <tr key={expense.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4">{expense.date}</td>
-                  <td className="px-6 py-4">{expense.warehouseName || 'N/A'}</td>
+                  <td className="px-6 py-4">{getWarehouseName(expense.warehouse_id)}</td>
                   <td className="px-6 py-4 font-medium text-white">{expense.description}</td>
                   <td className="px-6 py-4">{expense.category}</td>
                   <td className="px-6 py-4">{formatCurrency(expense.amount)}</td>
