@@ -108,6 +108,8 @@ const Reporting: React.FC = () => {
                 getWarehouses(),
                 getInventory()  // Add this
             ]);
+            console.log("🏠 Warehouses:", allWarehouses);
+
             setAllSales(salesData);
             setAllWholesale(wholesaleData);
             setAllExpenses(expensesData);
@@ -216,6 +218,13 @@ const Reporting: React.FC = () => {
     const avgReturnValue = totalReturns > 0 ? totalRefundAmount / totalReturns : 0;
 
     // Warehouse-wise returns
+    const debugWarehouse = allWarehouses[0];
+    const matches = allExpenses.filter(
+      e => String(e.warehouse_id || e.warehouseId) === String(debugWarehouse.id)
+    );
+    console.log("🔍 Testing warehouse:", debugWarehouse.name, debugWarehouse.id);
+    console.log("Matching expenses:", matches);
+            
     const warehouseMap = new Map<string, { count: number; amount: number }>();
     filteredReturns.forEach(r => {
         const warehouseName = allWarehouses.find(w => w.id === r.warehouseId)?.name || 'Unknown';
