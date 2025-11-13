@@ -358,25 +358,29 @@ class SalesReturn(db.Model):
     date = db.Column(db.String, nullable=False)
     
     def to_dict(self):
-        try:
-            original_sale = Sale.query.get(self.sale_id) or WholesaleSale.query.get(self.sale_id)
-            if not original_sale:
-                print(f"Warning: Original sale with id {self.sale_id} not found.")
-                invoice_number = 'Unknown'
-                customer_name = 'Unknown'
-                warehouse_id = None
+        original_sale = Sale.query.get(self.sale_id) or WholesaleSale.query.get(self.sale_id)
+        
+        if original_sale:
+            invoice_number = getattr(original_sale, 'invoiceNumber', 'Unknown')
+            if hasattr(original_sale, 'customerName'):
+                customer_name = original_sale.customerName
             else:
-                invoice_number = getattr(original_sale, 'invoiceNumber', None) or 'Unknown'
-                if hasattr(original_sale, 'customerName'):
-                    customer_name = original_sale.customerName or 'Unknown'
-                else:
-                    customer_name = getattr(original_sale, 'shopName', 'Unknown')
-                warehouse_id = getattr(original_sale, 'warehouseId', None)
-        except Exception as e:
-            print(f"Error in SalesReturn.to_dict(): {str(e)}")
+                customer_name = getattr(original_sale, 'shopName', 'Unknown')
+            warehouse_id = getattr(original_sale, 'warehouseId', None)
+        else:
             invoice_number = 'Unknown'
             customer_name = 'Unknown'
             warehouse_id = None
+    
+        # Calculate total refund amount
+        total_refund = 0
+        for p in self.returned_products:
+            try:
+                price = float(p.get('price', 0))
+                quantity = int(p.get('quantity', 0))
+                total_refund += price * quantity
+            except (ValueError, TypeError):
+                continue
         
         return {
             'id': self.id,
@@ -385,10 +389,10 @@ class SalesReturn(db.Model):
             'customerName': customer_name,
             'warehouseId': warehouse_id,
             'returnedProducts': self.returned_products,
-            'date': self.date
+            'date': self.date,
+            'totalRefundAmount': total_refund  # Pass calculated refund amount
         }
-
-
+    
 
 
 
@@ -1357,6 +1361,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
