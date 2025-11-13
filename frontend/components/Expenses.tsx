@@ -13,10 +13,7 @@ const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500"></div>
   </div>
 );
-const getWarehouseName = (warehouseId: string) => {
-  const warehouse = allWarehouses.find(w => w.id === warehouseId);
-  return warehouse ? warehouse.name : 'N/A';
-};
+
 
 const ExpenseForm: React.FC<{
   onSave: (expense: Omit<Expense, 'id'>) => void;
@@ -56,6 +53,10 @@ const ExpenseForm: React.FC<{
     fetchWarehouses();
   }, []);
 
+  const getWarehouseName = (warehouseId: string) => {
+  const warehouse = allWarehouses.find(w => w.id === warehouseId);
+  return warehouse ? warehouse.name : 'N/A';
+};
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: name === 'amount' ? parseFloat(value) : value }));
