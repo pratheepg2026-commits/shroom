@@ -288,7 +288,7 @@ const Expenses: React.FC = () => {
           className="text-emerald-400 hover:text-emerald-300 transition-colors"
           title="Edit Expense"
         >
-          <Edit size={18} />
+          <EditIcon size={18} />
         </button>
       </td>
                   <td className="px-6 py-4 text-right">
