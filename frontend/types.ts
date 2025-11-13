@@ -77,7 +77,7 @@ export interface Expense {
     description: string;
     amount: number;
     date: string; // YYYY-MM-DD
-  warehouse_id: string; 
+    warehouse_id: string; 
 }
 
 export interface DashboardStats {
