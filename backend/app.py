@@ -344,7 +344,10 @@ class Inventory(db.Model):  # Or whatever it's called
             # Removed restockLevel!
         }
 
-
+def generate_random_string(length=6):
+    """Generate a random lowercase alphanumeric string of given length."""
+    chars = string.ascii_lowercase + string.digits
+    return ''.join(random.choices(chars, k=length))
 class SalesReturn(db.Model):
     __tablename__ = 'sales_returns'
     
@@ -1357,6 +1360,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
