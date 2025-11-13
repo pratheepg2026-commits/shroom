@@ -43,7 +43,14 @@ export const addWholesaleSale = (sale: any): Promise<any> => apiRequest('/wholes
 export const updateWholesaleSale = (sale: any): Promise<any> => apiRequest(`/wholesale-sales/${sale.id}`, { method: 'PUT', body: JSON.stringify(sale) });
 export const deleteWholesaleSale = (id: string): Promise<void> => apiRequest(`/wholesale-sales/${id}?warehouseId=default`, { method: 'DELETE' });
 
-export const getExpenses = (): Promise<any[]> => apiRequest('/expenses');
+export const getExpenses = async (): Promise<any[]> => {
+  const data = await apiRequest('/expenses');
+  // ✅ Normalize backend snake_case to frontend camelCase
+  return data.map((e: any) => ({
+    ...e,
+    warehouseId: e.warehouse_id ?? e.warehouseId ?? null,
+  }));
+};
 export const addExpense = (expense: any): Promise<any> => apiRequest('/expenses', { method: 'POST', body: JSON.stringify(expense) });
 export const deleteExpense = (id: string): Promise<void> => apiRequest(`/expenses/${id}`, { method: 'DELETE' });
 export const updateInventory = async (item: InventoryItem): Promise<InventoryItem> => {
