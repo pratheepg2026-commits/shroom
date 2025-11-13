@@ -7,6 +7,7 @@ import Button from './common/Button';
 import Modal from './common/Modal';
 import ConfirmModal from './common/ConfirmModal';
 import ApiError from './common/ApiError';
+import { Edit } from 'lucide-react';
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -123,6 +124,14 @@ const Expenses: React.FC = () => {
     }
     fetchWarehouses();
   }, []);
+  const handleEditClick = (expense: any) => {
+    setEditingExpense(expense);
+    setShowEditModal(true);
+  };
+
+  const [editingExpense, setEditingExpense] = useState<any | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
 
   const getWarehouseName = (id: string | null) => {
     if (!id) return "Unassigned";
@@ -254,6 +263,15 @@ const Expenses: React.FC = () => {
                   <td className="px-6 py-4 font-medium text-white">{expense.description}</td>
                   <td className="px-6 py-4">{expense.category}</td>
                   <td className="px-6 py-4">{formatCurrency(expense.amount)}</td>
+                  <td className="text-right">
+        <button
+          onClick={() => handleEditClick(expense)}
+          className="text-emerald-400 hover:text-emerald-300 transition-colors"
+          title="Edit Expense"
+        >
+          <Edit size={18} />
+        </button>
+      </td>
                   <td className="px-6 py-4 text-right">
                     <Button variant="ghost" className="text-red-400 hover:bg-red-500/10" onClick={() => openDeleteConfirm(expense.id)}>Delete</Button>
                   </td>
@@ -263,6 +281,79 @@ const Expenses: React.FC = () => {
           </table>
         </div>
       </div>
+      {showEditModal && editingExpense && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+    <div className="bg-gray-900 border border-white/10 rounded-xl p-6 w-full max-w-md">
+      <h2 className="text-xl font-bold text-white mb-4">Edit Expense</h2>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-gray-400 text-sm">Description</label>
+          <input
+            type="text"
+            value={editingExpense.description}
+            onChange={(e) =>
+              setEditingExpense({ ...editingExpense, description: e.target.value })
+            }
+            className="w-full bg-gray-800 border border-white/10 rounded-md p-2 text-gray-200"
+          />
+        </div>
+        <div>
+          <label className="text-gray-400 text-sm">Amount</label>
+          <input
+            type="number"
+            value={editingExpense.amount}
+            onChange={(e) =>
+              setEditingExpense({ ...editingExpense, amount: parseFloat(e.target.value) })
+            }
+            className="w-full bg-gray-800 border border-white/10 rounded-md p-2 text-gray-200"
+          />
+        </div>
+        <div>
+          <label className="text-gray-400 text-sm">Warehouse</label>
+          <select
+            value={editingExpense.warehouse_id || ''}
+            onChange={(e) =>
+              setEditingExpense({ ...editingExpense, warehouse_id: e.target.value })
+            }
+            className="w-full bg-gray-800 border border-white/10 rounded-md p-2 text-gray-200"
+          >
+            <option value="">Unassigned</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 mt-6">
+        <Button
+          variant="secondary"
+          onClick={() => setShowEditModal(false)}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={async () => {
+            try {
+              await apiRequest(`/expenses/${editingExpense.id}`, 'PUT', editingExpense);
+              setShowEditModal(false);
+              fetchExpenses(); // refresh list
+            } catch (err) {
+              console.error('Failed to update expense:', err);
+              alert('Failed to save changes');
+            }
+          }}
+        >
+          Save Changes
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={'Add Expense'}>
         <ExpenseForm 
