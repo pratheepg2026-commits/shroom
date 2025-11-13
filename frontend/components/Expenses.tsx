@@ -111,6 +111,25 @@ const Expenses: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  useEffect(() => {
+    async function fetchWarehouses() {
+      try {
+        const data = await getWarehouses();
+        setWarehouses(data);
+      } catch (err) {
+        console.error("Failed to fetch warehouses:", err);
+      }
+    }
+    fetchWarehouses();
+  }, []);
+
+  const getWarehouseName = (id: string | null) => {
+    if (!id) return "Unassigned";
+    const w = warehouses.find(w => String(w.id) === String(id));
+    return w ? w.name : "Unknown";
+  };
+
   const handleSave = async (expenseData: Omit<Expense, 'id'>) => {
     try {
       await addExpense(expenseData);
@@ -231,7 +250,7 @@ const Expenses: React.FC = () => {
               {expenses.slice().sort((a, b) => b.date.localeCompare(a.date)).map(expense => (
                 <tr key={expense.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4">{expense.date}</td>
-                  <td className="px-6 py-4">{expense.warehouseName || 'N/A'}</td>
+                  <td>{getWarehouseName(expense.warehouse_id)}</td>
                   <td className="px-6 py-4 font-medium text-white">{expense.description}</td>
                   <td className="px-6 py-4">{expense.category}</td>
                   <td className="px-6 py-4">{formatCurrency(expense.amount)}</td>
