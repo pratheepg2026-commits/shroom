@@ -16,9 +16,10 @@ const LoadingSpinner = () => (
 
 
 const ExpenseForm: React.FC<{
+   warehouses: Warehouse[];
   onSave: (expense: Omit<Expense, 'id'>) => void;
   onCancel: () => void;
-}> = ({ onSave, onCancel }) => {
+}> = ({ warehouses,onSave, onCancel }) => {
   const [formData, setFormData] = useState<Omit<Expense, 'id'>>({
     category: ExpenseCategory.MISC,
     description: '',
@@ -104,9 +105,21 @@ const Expenses: React.FC = () => {
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [allWarehouses, setAllWarehouses] = useState<Warehouse[]>([]);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
+   const getWarehouseName = (warehouseId: string) => {
+    const warehouse = allWarehouses.find(w => w.id === warehouseId);
+    return warehouse ? warehouse.name : 'N/A';
+  };
 
+  useEffect(() => {
+    async function fetchWarehouses() {
+      const data = await getWarehouses();
+      setAllWarehouses(data);
+    }
+    fetchWarehouses();
+  }, []);
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -261,6 +274,7 @@ const Expenses: React.FC = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={'Add Expense'}>
         <ExpenseForm 
+          warehouses={allWarehouses}
           onSave={handleSave} 
           onCancel={() => setIsModalOpen(false)}
         />
