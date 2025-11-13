@@ -7,7 +7,26 @@ import Button from './common/Button';
 import Modal from './common/Modal';
 import ConfirmModal from './common/ConfirmModal';
 import ApiError from './common/ApiError';
-import { Edit } from 'lucide-react';
+// Simple inline edit icon — no external library needed
+const EditIcon: React.FC<{ size?: number; className?: string }> = ({ size = 18, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+    stroke="currentColor"
+    width={size}
+    height={size}
+    className={className}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M11 4h2m-1 0v16m0 0h2m-2-8h8m-8 0H4"
+    />
+  </svg>
+);
+
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
