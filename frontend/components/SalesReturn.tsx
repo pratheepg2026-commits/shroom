@@ -348,8 +348,16 @@ const SalesReturn: React.FC = () => {
         console.log('Submitting return:', completeReturnData);
         await addSalesReturn(completeReturnData);
         
+        if (updatedSaleData.type === 'Retail') {
+            await updateSale(updatedSaleData);
+        } else {
+            await updateWholesaleSale(updatedSaleData);
+        }
+        
         alert("✓ Return processed successfully! Inventory has been updated.");
         await fetchData();
+
+        
         setIsModalOpen(false);
         setSelectedSale(null);
     } catch (err: any) {
