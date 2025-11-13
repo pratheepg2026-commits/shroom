@@ -30,6 +30,15 @@ const ExpenseForm: React.FC<{
     warehouse_id: '',
   });
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [allWarehouses, setAllWarehouses] = useState<Warehouse[]>([]);
+  useEffect(() => {
+  async function fetchWarehouses() {
+    const data = await getWarehouses();
+    setAllWarehouses(data);
+  }
+  fetchWarehouses();
+}, []);
+
 
   useEffect(() => {
     // Fetch warehouses from Supabase or your API
