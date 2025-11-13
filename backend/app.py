@@ -858,31 +858,15 @@ def check_stock_availability(products_list, warehouse_id):
 
     return True, ""
 
-@app.route('/api/sales/<string:sale_id>', methods=['PUT'])
-def update_sale(sale_id):
-    """Update retail sale"""
-    try:
-        sale = Sale.query.get(sale_id)
-        if not sale:
-            return jsonify({'error': 'Sale not found'}), 404
-        
-        data = request.get_json()
-
-        # Explicitly handle warehouse_id field
-        warehouse_id = data.get('warehouseId')
-        if not warehouse_id:
-            return jsonify({"error": "warehouseId is required"}), 400
-        sale.warehouseId = warehouse_id
-        # Update other fields except 'id' and 'warehouse_id'
-        for key, value in data.items():
-            if hasattr(sale, key) and key not in ['id', 'warehouseId', 'warehouse_id']:
-                setattr(sale, key, value)
-        
-        db.session.commit()
-        return jsonify(sale.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+@app.route('/api/sales/<sale_id>', methods=['PUT'])
+def update_sale_endpoint(sale_id):
+    data = request.json
+    # Update sale with new products array and totalAmount
+    sale = Sale.query.get(sale_id)
+    sale.products = data['products']
+    sale.totalAmount = data['totalAmount']
+    db.session.commit()
+    return jsonify({'success': True})
 
 
 @app.route('/api/sales/<string:sale_id>', methods=['DELETE'])
@@ -954,24 +938,15 @@ def add_wholesale_sale():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/wholesale-sales/<string:sale_id>', methods=['PUT'])
-def update_wholesale_sale(sale_id):
-    """Update wholesale sale"""
-    try:
-        sale = WholesaleSale.query.get(sale_id)
-        if not sale:
-            return jsonify({'error': 'Wholesale sale not found'}), 404
-        
-        data = request.get_json()
-        for key, value in data.items():
-            if hasattr(sale, key) and key != 'id':
-                setattr(sale, key, value)
-        
-        db.session.commit()
-        return jsonify(sale.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+@app.route('/api/wholesale-sales/<sale_id>', methods=['PUT'])
+def update_wholesale_sale_endpoint(sale_id):
+    data = request.json
+    # Update wholesale sale
+    sale = WholesaleSale.query.get(sale_id)
+    sale.products = data['products']
+    sale.totalAmount = data['totalAmount']
+    db.session.commit()
+    return jsonify({'success': True})
 
 @app.route('/api/wholesale-sales/<string:sale_id>', methods=['DELETE'])
 def delete_wholesale_sale(sale_id):
@@ -1363,6 +1338,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
