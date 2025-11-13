@@ -507,16 +507,20 @@ const SalesReturn: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {returns.map(r => (
-                                <tr key={r.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4">{r.date}</td>
-                                    <td className="px-6 py-4 font-mono text-xs">{r.originalInvoiceNumber}</td>
-                                    <td className="px-6 py-4 font-medium text-white">{r.customerName}</td>
-                                    <td className="px-6 py-4">{r.returnedProducts.map(p => {const productName = p.name || p.productId || 'Unknown Product';return `${p.quantity}x ${productName}`;}).join(', ')}</td>
-                                    <td className="px-6 py-4 text-right text-yellow-400 font-semibold">{formatCurrency(r.totalRefundAmount)}</td>
-                                </tr>
-                            ))}
+                          {returns.map(r => (
+                            <tr key={r.id}>
+                              <td>{r.date}</td>
+                              <td>{r.originalInvoiceNumber}</td>
+                              <td>{r.customerName}</td>
+                              <td>{r.returnedProducts.map(p => {
+                                  const productName = p.name || p.productId || 'Unknown Product';
+                                  return `${p.quantity}x ${productName}`;
+                              }).join(', ')}</td>
+                              <td>{formatCurrency(r.totalRefundAmount)}</td>
+                            </tr>
+                          ))}
                         </tbody>
+
                     </table>
                 </div>
             </div>
