@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSales, getWholesaleSales, getExpenses, getSalesReturns, getProducts,getWarehouses,getInventory  } from '../services/api';
-import { Sale, WholesaleSale, Expense, SalesReturn, Product, ExpenseCategory, PnlAnalysisData as PnlAnalysisDataType } from '../types';
+import { getSales, getWholesaleSales, getExpenses, getSalesReturns, getProducts,getWarehouses,getInventory,  } from '../services/api';
+import { Sale, WholesaleSale, Expense, SalesReturn, Product, ExpenseCategory, PnlAnalysisData as PnlAnalysisDataType, Warehouse } from '../types';
 import Button from './common/Button';
 import ApiError from './common/ApiError';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area } from 'recharts';
@@ -246,32 +246,44 @@ const Reporting: React.FC = () => {
     setReportData({ type: 'returns', totalReturns, totalRefundAmount, avgReturnValue, warehouseReturns, topReturnedProducts });
 }
 else if (reportType === 'warehouse') {
-    const warehouseData = allWarehouses.map(warehouse => {
-        const warehouseSales = [...filteredSales, ...filteredWholesale].filter(s => s.warehouseId === warehouse.id);
-        const totalSales = warehouseSales.reduce((sum, s) => sum + s.totalAmount, 0);
-        const salesCount = warehouseSales.length;
-        
-        const warehouseExpenses = filteredExpenses.filter(e => e.warehouseId === warehouse.id);
-        const totalExpenses = warehouseExpenses.reduce((sum, e) => sum + e.amount, 0);
-        
-        // Get inventory value (assuming you have inventory data with warehouseId)
-        const warehouseInventory = allInventory?.filter(i => i.warehouseId === warehouse.id) || [];
-        const totalInventory = warehouseInventory.reduce((sum, i) => sum + (i.quantity * (i.costPerUnit || 0)), 0);
-        
-        const netProfit = totalSales - totalExpenses;
+  const warehouseData = allWarehouses.map(warehouse => {
+    const warehouseSales = [...filteredSales, ...filteredWholesale].filter(
+      s => String(s.warehouseId) === String(warehouse.id)
+    );
 
-        return {
-            name: warehouse.name,
-            totalSales,
-            totalExpenses,
-            totalInventory,
-            netProfit,
-            salesCount
-        };
-    });
+    const totalSales = warehouseSales.reduce((sum, s) => sum + s.totalAmount, 0);
+    const salesCount = warehouseSales.length;
 
-    setReportData({ type: 'warehouse', warehouses: warehouseData });
+    const warehouseExpenses = filteredExpenses.filter(
+      e => String(e.warehouseId) === String(warehouse.id)
+    );
+
+    const totalExpenses = warehouseExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const warehouseInventory = allInventory?.filter(
+      i => String(i.warehouseId) === String(warehouse.id)
+    ) || [];
+
+    const totalInventory = warehouseInventory.reduce(
+      (sum, i) => sum + (i.quantity * (i.costPerUnit || 0)),
+      0
+    );
+
+    const netProfit = totalSales - totalExpenses;
+
+    return {
+      name: warehouse.name,
+      totalSales,
+      totalExpenses,
+      totalInventory,
+      netProfit,
+      salesCount,
+    };
+  });
+
+  setReportData({ type: 'warehouse', warehouses: warehouseData });
 }
+
 else if (reportType === 'credits') {
     const unpaidRetail = filteredSales.filter(s => s.status === 'Unpaid');
     const unpaidWholesale = filteredWholesale.filter(s => s.status === 'Unpaid');
