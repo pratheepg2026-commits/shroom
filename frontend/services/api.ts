@@ -48,7 +48,7 @@ export const getExpenses = async (): Promise<any[]> => {
   // ✅ Normalize backend snake_case to frontend camelCase
   return data.map((e: any) => ({
     ...e,
-    warehouseId: e.warehouse_id ?? e.warehouseId ?? null,
+    warehouseId: e.warehouse_id ?? null,
   }));
 };
 export const addExpense = (expense: any): Promise<any> => apiRequest('/expenses', { method: 'POST', body: JSON.stringify(expense) });
