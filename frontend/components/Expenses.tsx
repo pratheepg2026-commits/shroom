@@ -220,6 +220,7 @@ const Expenses: React.FC = () => {
             <thead className="bg-white/5 uppercase text-xs">
               <tr>
                 <th scope="col" className="px-6 py-3">Date</th>
+                <th scope="col" className="px-6 py-3">Warehouse</th>
                 <th scope="col" className="px-6 py-3">Description</th>
                 <th scope="col" className="px-6 py-3">Category</th>
                 <th scope="col" className="px-6 py-3">Amount</th>
@@ -230,6 +231,7 @@ const Expenses: React.FC = () => {
               {expenses.slice().sort((a, b) => b.date.localeCompare(a.date)).map(expense => (
                 <tr key={expense.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4">{expense.date}</td>
+                  <td className="px-6 py-4">{expense.warehouseName || 'N/A'}</td>
                   <td className="px-6 py-4 font-medium text-white">{expense.description}</td>
                   <td className="px-6 py-4">{expense.category}</td>
                   <td className="px-6 py-4">{formatCurrency(expense.amount)}</td>
