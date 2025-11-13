@@ -340,25 +340,23 @@ const SalesReturn: React.FC = () => {
     salesReturnData: any
 ) => {
     try {
-        // Prepare the complete return data
         const completeReturnData = {
             saleId: updatedSaleData.id,
             warehouseId: updatedSaleData.warehouseId || 'default',
             returnedProducts: salesReturnData.returnedProducts.map((p: any) => ({
                 productId: p.productId,
-                quantity: p.quantity
+                quantity: p.quantity,
+                price: p.price  // ✅ Include price for calculation
             })),
+            totalRefundAmount: salesReturnData.totalRefundAmount,  // ✅ Pass this
             date: salesReturnData.date || new Date().toISOString().split('T')[0]
         };
         
-        console.log('✅ Step 1: Submitting return record:', completeReturnData);
+        console.log('Submitting return with refund amount:', completeReturnData);
         
-        // Step 1: Save the return record
         await addSalesReturn(completeReturnData);
         
-        console.log('✅ Step 2: Updating original sale with reduced products');
-        
-        // Step 2: Update the original sale with reduced products and amount
+        // Update the original sale
         const saleUpdatePayload = {
             id: updatedSaleData.id,
             products: updatedSaleData.products,
@@ -372,20 +370,14 @@ const SalesReturn: React.FC = () => {
             await updateWholesaleSale(saleUpdatePayload);
         }
         
-        console.log('✅ Step 3: Refreshing all data');
-        
-        // Step 3: Refresh all data to reflect changes
         await fetchData();
         
-        console.log('✅ All steps completed successfully');
+        alert("✓ Return processed successfully!");
         
-        alert("✓ Return processed successfully! Sale and inventory have been updated.");
-        
-        // Step 4: Close modal and clear selection
         setIsModalOpen(false);
         setSelectedSale(null);
     } catch (err: any) {
-        console.error('❌ Return processing error:', err);
+        console.error('Return error:', err);
         alert(`Failed to process return: ${err.message || err}`);
     }
 };
