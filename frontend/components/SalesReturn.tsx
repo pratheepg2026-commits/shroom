@@ -335,9 +335,10 @@ const SalesReturn: React.FC = () => {
     salesReturnData: any
 ) => {
     try {
+        // Prepare the complete return data
         const completeReturnData = {
             saleId: updatedSaleData.id,
-            warehouseId: salesReturnData.warehouseId || 'default',
+            warehouseId: updatedSaleData.warehouseId || 'default',
             returnedProducts: salesReturnData.returnedProducts.map((p: any) => ({
                 productId: p.productId,
                 quantity: p.quantity
@@ -345,26 +346,45 @@ const SalesReturn: React.FC = () => {
             date: salesReturnData.date || new Date().toISOString().split('T')[0]
         };
         
-        console.log('Submitting return:', completeReturnData);
+        console.log('✅ Step 1: Submitting return record:', completeReturnData);
+        
+        // Step 1: Save the return record
         await addSalesReturn(completeReturnData);
         
+        console.log('✅ Step 2: Updating original sale with reduced products');
+        
+        // Step 2: Update the original sale with reduced products and amount
+        const saleUpdatePayload = {
+            id: updatedSaleData.id,
+            products: updatedSaleData.products,
+            totalAmount: updatedSaleData.totalAmount,
+            warehouseId: updatedSaleData.warehouseId
+        };
+        
         if (updatedSaleData.type === 'Retail') {
-            await updateSale(updatedSaleData);
+            await updateSale(saleUpdatePayload);
         } else {
-            await updateWholesaleSale(updatedSaleData);
+            await updateWholesaleSale(saleUpdatePayload);
         }
         
-        alert("✓ Return processed successfully! Inventory has been updated.");
-        await fetchData();
-
+        console.log('✅ Step 3: Refreshing all data');
         
+        // Step 3: Refresh all data to reflect changes
+        await fetchData();
+        
+        console.log('✅ All steps completed successfully');
+        
+        alert("✓ Return processed successfully! Sale and inventory have been updated.");
+        
+        // Step 4: Close modal and clear selection
         setIsModalOpen(false);
         setSelectedSale(null);
     } catch (err: any) {
-        console.error('Return error:', err);
+        console.error('❌ Return processing error:', err);
         alert(`Failed to process return: ${err.message || err}`);
     }
-}
+};
+
 
 
     const handleExportCSV = () => {
