@@ -114,3 +114,5 @@ export async function getWarehousesFromSupabase(): Promise<Warehouse[]> {
   if (error) throw error;
   return data || [];
 }
+export const updateExpense = (id: string, data: any) =>
+  apiRequest(`/expenses/${id}`, 'PUT', data);
