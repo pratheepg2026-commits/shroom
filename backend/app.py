@@ -348,44 +348,46 @@ def generate_random_string(length=6):
     """Generate a random lowercase alphanumeric string of given length."""
     chars = string.ascii_lowercase + string.digits
     return ''.join(random.choices(chars, k=length))
+    
 class SalesReturn(db.Model):
     __tablename__ = 'sales_returns'
     
-    id = db.Column(db.String, primary_key=True, default=lambda: f"return_{int(time.time() * 1000)}_{generate_random_string(8)}")
+    id = db.Column(db.String, primary_key=True)
     sale_id = db.Column(db.String, nullable=False)
-    returned_products = db.Column(db.JSON, nullable=False)  # jsonb in postgres
+    returned_products = db.Column(db.JSON, nullable=False)
     date = db.Column(db.String, nullable=False)
     
     def to_dict(self):
-    try:
         original_sale = Sale.query.get(self.sale_id) or WholesaleSale.query.get(self.sale_id)
-        if original_sale:
-            invoice_number = getattr(original_sale, 'invoiceNumber', 'Unknown')
-            # Try both customerName and shopName
-            if hasattr(original_sale, 'customerName'):
-                customer_name = original_sale.customerName
-            else:
-                customer_name = getattr(original_sale, 'shopName', 'Unknown')
-            warehouse_id = getattr(original_sale, 'warehouseId', None)
-        else:
-            invoice_number = 'Unknown'
-            customer_name = 'Unknown'
-            warehouse_id = None
-    except Exception as e:
-        print(f"Error in to_dict(): {e}")
+        
         invoice_number = 'Unknown'
         customer_name = 'Unknown'
         warehouse_id = None
-    
-    return {
-        'id': self.id,
-        'originalSaleId': self.sale_id,
-        'originalInvoiceNumber': invoice_number,
-        'customerName': customer_name,
-        'warehouseId': warehouse_id,
-        'returnedProducts': self.returned_products,
-        'date': self.date
-    }
+        
+        if original_sale:
+            # Safely get invoiceNumber or alternative field
+            invoice_number = getattr(original_sale, 'invoiceNumber', None) or getattr(original_sale, 'invoice_number', 'Unknown')
+            
+            # Get customer/shop name
+            if hasattr(original_sale, 'customerName'):
+                customer_name = original_sale.customerName
+            elif hasattr(original_sale, 'customer_name'):
+                customer_name = original_sale.customer_name
+            else:
+                customer_name = getattr(original_sale, 'shopName', 'Unknown')
+            
+            warehouse_id = getattr(original_sale, 'warehouseId', None) or getattr(original_sale, 'warehouse_id', None)
+        
+        return {
+            'id': self.id,
+            'originalSaleId': self.sale_id,
+            'originalInvoiceNumber': invoice_number,
+            'customerName': customer_name,
+            'warehouseId': warehouse_id,
+            'returnedProducts': self.returned_products,
+            'date': self.date
+        }
+
 
 
 
@@ -1355,6 +1357,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
