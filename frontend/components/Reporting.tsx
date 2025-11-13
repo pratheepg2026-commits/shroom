@@ -136,7 +136,7 @@ const Reporting: React.FC = () => {
 
         const filteredSales = allSales.filter(s => new Date(s.date) >= start && new Date(s.date) <= end);
         const filteredWholesale = allWholesale.filter(s => new Date(s.date) >= start && new Date(s.date) <= end);
-        const filteredExpenses = allExpenses.filter(e => new Date(e.date) >= start && new Date(e.date) <= end);
+        const filteredExpenses = allExpenses.filter(e => {const expenseDate = new Date(e.date); return expenseDate >= start && expenseDate <= end; });
         const filteredReturns = allReturns.filter(r => new Date(r.date) >= start && new Date(r.date) <= end);
 
         if (reportType === 'sales') {
