@@ -1136,49 +1136,28 @@ def get_sales_returns():
 
 @app.route('/api/sales-returns', methods=['POST'])
 def add_sales_return():
-    """Process sales return and restore inventory"""
-    try:
-        data = request.get_json()
-        
-        # Validate input
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-        if not data.get('saleId'):
-            return jsonify({'error': 'Missing required field: saleId'}), 400
-        if not data.get('returnedProducts'):
-            return jsonify({'error': 'Missing required field: returnedProducts'}), 400
-        
-        warehouse_id = data.get('warehouseId', 'default')
-        
-        # Add stock back for returned products
-        for p in data.get('returnedProducts', []):
-            product_id = p.get('productId')
-            quantity = p.get('quantity', 0)
-            
-            if not product_id:
-                return jsonify({'error': f'Product missing productId: {p}'}), 400
-            if quantity <= 0:
-                return jsonify({'error': f'Invalid quantity for product {product_id}'}), 400
-            
-            update_inventory(product_id, warehouse_id, quantity)
-        
-        # Create sales return record
-        sales_return = SalesReturn(
-            id=generate_id('ret'),
-            saleId=data['saleId'],
-            returnedProducts=data.get('returnedProducts'),
-            date=data.get('date', datetime.now().strftime('%Y-%m-%d'))
-        )
-        db.session.add(sales_return)
-        db.session.commit()
-        
-        return jsonify(sales_return.to_dict()), 201
-    except KeyError as e:
-        db.session.rollback()
-        return jsonify({'error': f'Missing field: {str(e)}'}), 400
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': f'Internal error: {str(e)}'}), 500
+    data = request.json
+    
+    # Calculate total refund amount
+    total_refund = 0
+    for product in data['returnedProducts']:
+        # Get product details to calculate refund
+        prod = Product.query.get(product['productId'])
+        if prod:
+            total_refund += product['quantity'] * prod.defaultPrice
+    
+    sales_return = SalesReturn(
+        saleId=data['saleId'],
+        warehouseId=data['warehouseId'],
+        returnedProducts=data['returnedProducts'],
+        totalRefundAmount=total_refund,  # ✅ Calculate and save
+        date=data['date']
+    )
+    
+    db.session.add(sales_return)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'id': sales_return.id})
 
 # --- AGGREGATED DATA APIs ---
 
@@ -1338,6 +1317,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
