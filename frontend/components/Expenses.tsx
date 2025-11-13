@@ -14,12 +14,10 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 const ExpenseForm: React.FC<{
-   warehouses: Warehouse[];
   onSave: (expense: Omit<Expense, 'id'>) => void;
   onCancel: () => void;
-}> = ({ warehouses,onSave, onCancel }) => {
+}> = ({ onSave, onCancel }) => {
   const [formData, setFormData] = useState<Omit<Expense, 'id'>>({
     category: ExpenseCategory.MISC,
     description: '',
@@ -27,15 +25,24 @@ const ExpenseForm: React.FC<{
     date: new Date().toISOString().split('T')[0],
     warehouse_id: '',
   });
-  
-  
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
+  useEffect(() => {
+    // Fetch warehouses from Supabase or your API
+    async function fetchWarehouses() {
+      try {
+        const response = await getWarehouses(); // Create this API call
+        setWarehouses(response);
+        if(response.length > 0) {
+          setFormData(prev => ({ ...prev, warehouse_id: response[0].id }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch warehouses", error);
+      }
+    }
+    fetchWarehouses();
+  }, []);
 
-
-  const getWarehouseName = (warehouseId: string) => {
-  const warehouse = allWarehouses.find(w => w.id === warehouseId);
-  return warehouse ? warehouse.name : 'N/A';
-};
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: name === 'amount' ? parseFloat(value) : value }));
@@ -83,21 +90,9 @@ const Expenses: React.FC = () => {
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingCSV, setIsExportingCSV] = useState(false);
-  const [allWarehouses, setAllWarehouses] = useState<Warehouse[]>([]);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
-   const getWarehouseName = (warehouseId: string) => {
-    const warehouse = allWarehouses.find(w => w.id === warehouseId);
-    return warehouse ? warehouse.name : 'N/A';
-  };
 
-  useEffect(() => {
-    async function fetchWarehouses() {
-      const data = await getWarehouses();
-      setAllWarehouses(data);
-    }
-    fetchWarehouses();
-  }, []);
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -236,7 +231,7 @@ const Expenses: React.FC = () => {
               {expenses.slice().sort((a, b) => b.date.localeCompare(a.date)).map(expense => (
                 <tr key={expense.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4">{expense.date}</td>
-                  <td className="px-6 py-4">{getWarehouseName(expense.warehouse_id)}</td>
+                  <td className="px-6 py-4">{expense.warehouseName || 'N/A'}</td>
                   <td className="px-6 py-4 font-medium text-white">{expense.description}</td>
                   <td className="px-6 py-4">{expense.category}</td>
                   <td className="px-6 py-4">{formatCurrency(expense.amount)}</td>
@@ -252,7 +247,6 @@ const Expenses: React.FC = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={'Add Expense'}>
         <ExpenseForm 
-          warehouses={allWarehouses}
           onSave={handleSave} 
           onCancel={() => setIsModalOpen(false)}
         />
