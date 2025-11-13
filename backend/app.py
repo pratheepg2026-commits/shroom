@@ -346,19 +346,25 @@ class Inventory(db.Model):  # Or whatever it's called
 
 
 class SalesReturn(db.Model):
-    """Sales returns/refunds"""
     __tablename__ = 'sales_returns'
     
-    id = db.Column(db.String(50), primary_key=True)
-    saleId = db.Column('sale_id', db.String(50), nullable=False)
-    returnedProducts = db.Column('returned_products', db.JSON)
-    date = db.Column(db.String(50), nullable=False)
-
+    id = db.Column(db.String, primary_key=True, default=lambda: f"return_{int(time.time() * 1000)}_{generate_random_string(8)}")
+    sale_id = db.Column(db.String, nullable=False)                    # ✅ snake_case
+    original_invoice_number = db.Column(db.String, nullable=False)
+    customer_name = db.Column(db.String, nullable=False)
+    warehouse_id = db.Column(db.String, nullable=False)               # ✅ snake_case
+    returned_products = db.Column(db.JSON, nullable=False)            # ✅ snake_case - stores [{productId, name, quantity, price}]
+    date = db.Column(db.String, nullable=False)
+    # ❌ No total_refund_amount column
+    
     def to_dict(self):
         return {
             'id': self.id,
-            'saleId': self.saleId,
-            'returnedProducts': self.returnedProducts or [],
+            'originalSaleId': self.sale_id,                           # ✅ Return as camelCase for frontend
+            'originalInvoiceNumber': self.original_invoice_number,
+            'customerName': self.customer_name,
+            'warehouseId': self.warehouse_id,
+            'returnedProducts': self.returned_products,               # Already has price in it
             'date': self.date
         }
 
@@ -1337,6 +1343,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
