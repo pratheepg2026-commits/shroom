@@ -349,24 +349,34 @@ class SalesReturn(db.Model):
     __tablename__ = 'sales_returns'
     
     id = db.Column(db.String, primary_key=True, default=lambda: f"return_{int(time.time() * 1000)}_{generate_random_string(8)}")
-    sale_id = db.Column(db.String, nullable=False)                    # ✅ snake_case
-    original_invoice_number = db.Column(db.String, nullable=False)
-    customer_name = db.Column(db.String, nullable=False)
-    warehouse_id = db.Column(db.String, nullable=False)               # ✅ snake_case
-    returned_products = db.Column(db.JSON, nullable=False)            # ✅ snake_case - stores [{productId, name, quantity, price}]
+    sale_id = db.Column(db.String, nullable=False)
+    returned_products = db.Column(db.JSON, nullable=False)  # jsonb in postgres
     date = db.Column(db.String, nullable=False)
-    # ❌ No total_refund_amount column
+    # ❌ No warehouse_id, original_invoice_number, customer_name columns
     
     def to_dict(self):
+        # Fetch related data from the original sale
+        original_sale = Sale.query.get(self.sale_id) or WholesaleSale.query.get(self.sale_id)
+        
+        if original_sale:
+            invoice_number = original_sale.invoice_number
+            customer_name = original_sale.customer_name if hasattr(original_sale, 'customer_name') else original_sale.shop_name
+            warehouse_id = original_sale.warehouse_id if hasattr(original_sale, 'warehouse_id') else None
+        else:
+            invoice_number = 'Unknown'
+            customer_name = 'Unknown'
+            warehouse_id = None
+        
         return {
             'id': self.id,
-            'originalSaleId': self.sale_id,                           # ✅ Return as camelCase for frontend
-            'originalInvoiceNumber': self.original_invoice_number,
-            'customerName': self.customer_name,
-            'warehouseId': self.warehouse_id,
-            'returnedProducts': self.returned_products,               # Already has price in it
+            'originalSaleId': self.sale_id,
+            'originalInvoiceNumber': invoice_number,
+            'customerName': customer_name,
+            'warehouseId': warehouse_id,
+            'returnedProducts': self.returned_products,
             'date': self.date
         }
+
 
 class InvoiceCounter(db.Model):
     """Invoice number counter"""
@@ -1133,44 +1143,34 @@ def add_inventory_stock():
 
 @app.route('/api/sales-returns', methods=['GET'])
 def get_sales_returns():
-    """Get all sales returns"""
+    """Get all sales returns with derived data"""
     try:
         returns = SalesReturn.query.all()
         return jsonify([r.to_dict() for r in returns])
     except Exception as e:
+        print(f"❌ Error getting sales returns: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/sales-returns', methods=['POST'])
 def add_sales_return():
     try:
         data = request.json
         
-        # Get the original sale to populate invoice and customer info
-        original_sale = None
-        sale = Sale.query.get(data.get('saleId'))
-        if sale:
-            original_sale = sale
-            customer_name = sale.customer_name
-            invoice_number = sale.invoice_number
-        else:
-            wsale = WholesaleSale.query.get(data.get('saleId'))
-            if wsale:
-                original_sale = wsale
-                customer_name = wsale.shop_name
-                invoice_number = wsale.invoice_number
+        # Validate that the sale exists
+        original_sale = Sale.query.get(data.get('saleId')) or WholesaleSale.query.get(data.get('saleId'))
         
         if not original_sale:
             return jsonify({'error': 'Original sale not found'}), 404
         
-        # Create sales return (don't save totalRefundAmount if column doesn't exist)
+        # Only save fields that exist in database
         sales_return = SalesReturn(
-            sale_id=data['saleId'],                    # ✅ Use snake_case for DB column
-            original_invoice_number=invoice_number,    # ✅ Get from original sale
-            customer_name=customer_name,               # ✅ Get from original sale
-            warehouse_id=data['warehouseId'],          # ✅ Use snake_case
-            returned_products=data['returnedProducts'], # ✅ Store as JSON with price
+            sale_id=data['saleId'],
+            returned_products=data['returnedProducts'],  # Must include {productId, name, quantity, price}
             date=data['date']
-            # ❌ Don't include totalRefundAmount since column doesn't exist
+            # ❌ Don't save warehouseId - it's not in the table
         )
         
         db.session.add(sales_return)
@@ -1181,7 +1181,7 @@ def add_sales_return():
     except Exception as e:
         print(f"❌ Error adding sales return: {str(e)}")
         import traceback
-        traceback.print_exc()  # Print full error for debugging
+        traceback.print_exc()
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
@@ -1343,6 +1343,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
