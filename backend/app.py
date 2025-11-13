@@ -352,17 +352,30 @@ class SalesReturn(db.Model):
     sale_id = db.Column(db.String, nullable=False)
     returned_products = db.Column(db.JSON, nullable=False)  # jsonb in postgres
     date = db.Column(db.String, nullable=False)
-    # ❌ No warehouse_id, original_invoice_number, customer_name columns
     
     def to_dict(self):
-        # Fetch related data from the original sale
-        original_sale = Sale.query.get(self.sale_id) or WholesaleSale.query.get(self.sale_id)
-        
-        if original_sale:
-            invoice_number = original_sale.invoice_number
-            customer_name = original_sale.customer_name if hasattr(original_sale, 'customer_name') else original_sale.shop_name
-            warehouse_id = original_sale.warehouse_id if hasattr(original_sale, 'warehouse_id') else None
-        else:
+        try:
+            # Fetch related data from the original sale
+            original_sale = Sale.query.get(self.sale_id) or WholesaleSale.query.get(self.sale_id)
+            
+            if original_sale:
+                # ✅ Use correct camelCase attribute names
+                invoice_number = original_sale.invoiceNumber
+                
+                # Check if it's a retail sale or wholesale sale
+                if hasattr(original_sale, 'customerName'):
+                    customer_name = original_sale.customerName
+                else:
+                    customer_name = original_sale.shopName
+                
+                warehouse_id = original_sale.warehouseId if hasattr(original_sale, 'warehouseId') else None
+            else:
+                invoice_number = 'Unknown'
+                customer_name = 'Unknown'
+                warehouse_id = None
+                
+        except Exception as e:
+            print(f"❌ Error in SalesReturn.to_dict(): {str(e)}")
             invoice_number = 'Unknown'
             customer_name = 'Unknown'
             warehouse_id = None
@@ -376,6 +389,7 @@ class SalesReturn(db.Model):
             'returnedProducts': self.returned_products,
             'date': self.date
         }
+
 
 
 class InvoiceCounter(db.Model):
@@ -1165,12 +1179,11 @@ def add_sales_return():
         if not original_sale:
             return jsonify({'error': 'Original sale not found'}), 404
         
-        # Only save fields that exist in database
+        # Only save fields that exist in database: id, sale_id, returned_products, date
         sales_return = SalesReturn(
             sale_id=data['saleId'],
             returned_products=data['returnedProducts'],  # Must include {productId, name, quantity, price}
             date=data['date']
-            # ❌ Don't save warehouseId - it's not in the table
         )
         
         db.session.add(sales_return)
@@ -1184,6 +1197,7 @@ def add_sales_return():
         traceback.print_exc()
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 # --- AGGREGATED DATA APIs ---
 
@@ -1343,6 +1357,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
