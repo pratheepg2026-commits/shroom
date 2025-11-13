@@ -14,7 +14,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-
+const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 const ExpenseForm: React.FC<{
    warehouses: Warehouse[];
   onSave: (expense: Omit<Expense, 'id'>) => void;
@@ -27,7 +27,7 @@ const ExpenseForm: React.FC<{
     date: new Date().toISOString().split('T')[0],
     warehouse_id: '',
   });
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  
   
 
   useEffect(() => {
