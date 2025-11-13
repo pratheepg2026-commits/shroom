@@ -1136,28 +1136,48 @@ def get_sales_returns():
 
 @app.route('/api/sales-returns', methods=['POST'])
 def add_sales_return():
-    data = request.json
-    
-    # Calculate total refund amount
-    total_refund = 0
-    for product in data['returnedProducts']:
-        # Get product details to calculate refund
-        prod = Product.query.get(product['productId'])
-        if prod:
-            total_refund += product['quantity'] * prod.defaultPrice
-    
-    sales_return = SalesReturn(
-        saleId=data['saleId'],
-        warehouseId=data['warehouseId'],
-        returnedProducts=data['returnedProducts'],
-        totalRefundAmount=total_refund,  # ✅ Calculate and save
-        date=data['date']
-    )
-    
-    db.session.add(sales_return)
-    db.session.commit()
-    
-    return jsonify({'success': True, 'id': sales_return.id})
+    try:
+        data = request.json
+        
+        # Get the original sale to populate invoice and customer info
+        original_sale = None
+        sale = Sale.query.get(data.get('saleId'))
+        if sale:
+            original_sale = sale
+            customer_name = sale.customer_name
+            invoice_number = sale.invoice_number
+        else:
+            wsale = WholesaleSale.query.get(data.get('saleId'))
+            if wsale:
+                original_sale = wsale
+                customer_name = wsale.shop_name
+                invoice_number = wsale.invoice_number
+        
+        if not original_sale:
+            return jsonify({'error': 'Original sale not found'}), 404
+        
+        # Create sales return (don't save totalRefundAmount if column doesn't exist)
+        sales_return = SalesReturn(
+            sale_id=data['saleId'],                    # ✅ Use snake_case for DB column
+            original_invoice_number=invoice_number,    # ✅ Get from original sale
+            customer_name=customer_name,               # ✅ Get from original sale
+            warehouse_id=data['warehouseId'],          # ✅ Use snake_case
+            returned_products=data['returnedProducts'], # ✅ Store as JSON with price
+            date=data['date']
+            # ❌ Don't include totalRefundAmount since column doesn't exist
+        )
+        
+        db.session.add(sales_return)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'id': sales_return.id})
+        
+    except Exception as e:
+        print(f"❌ Error adding sales return: {str(e)}")
+        import traceback
+        traceback.print_exc()  # Print full error for debugging
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 # --- AGGREGATED DATA APIs ---
 
@@ -1317,6 +1337,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
