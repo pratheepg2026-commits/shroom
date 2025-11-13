@@ -30,21 +30,7 @@ const ExpenseForm: React.FC<{
   
   
 
-  useEffect(() => {
-    // Fetch warehouses from Supabase or your API
-    async function fetchWarehouses() {
-      try {
-        const response = await getWarehouses(); // Create this API call
-        setWarehouses(response);
-        if(response.length > 0) {
-          setFormData(prev => ({ ...prev, warehouse_id: response[0].id }));
-        }
-      } catch (error) {
-        console.error("Failed to fetch warehouses", error);
-      }
-    }
-    fetchWarehouses();
-  }, []);
+
 
   const getWarehouseName = (warehouseId: string) => {
   const warehouse = allWarehouses.find(w => w.id === warehouseId);
