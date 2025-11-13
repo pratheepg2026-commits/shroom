@@ -1,6 +1,6 @@
 // Fix: Removed extraneous file markers that were causing syntax errors.
 import React, { useState, useEffect, useCallback } from 'react';
-import { getExpenses, addExpense, deleteExpense, getWarehouses    } from '../services/api';
+import { getExpenses, addExpense, deleteExpense, getWarehouses,updateExpense    } from '../services/api';
 import { Expense, ExpenseCategory } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
@@ -357,9 +357,9 @@ const Expenses: React.FC = () => {
         <Button
           onClick={async () => {
             try {
-              await apiRequest(`/expenses/${editingExpense.id}`, 'PUT', editingExpense);
+              await updateExpense(editingExpense.id, editingExpense);
               setShowEditModal(false);
-              fetchExpenses(); // refresh list
+              fetchData(); // refresh list
             } catch (err) {
               console.error('Failed to update expense:', err);
               alert('Failed to save changes');
@@ -368,6 +368,7 @@ const Expenses: React.FC = () => {
         >
           Save Changes
         </Button>
+
       </div>
     </div>
   </div>
