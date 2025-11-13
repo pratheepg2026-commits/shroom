@@ -152,7 +152,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
     
     const updatedSale = { ...sale, products: newProductsForSale, totalAmount: newTotalAmount };
     
-    // ✅ Map returnedProducts to include productId
+    // Map returnedProducts to include productId
     const returnedProductsWithIds = returnedProducts.map(p => {
         const product = allProducts.find(prod => prod.name === p.name);
         if (!product) {
@@ -161,14 +161,19 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
         }
         return {
             productId: product.id,
-            quantity: p.quantity
+            quantity: p.quantity,
+            price: p.price  // ✅ Include price
         };
     });
 
+    // ✅ Calculate total refund amount
+    const totalRefundAmount = returnedProducts.reduce((sum, p) => sum + p.quantity * p.price, 0);
+
     const salesReturnData = {
-        returnedProducts: returnedProductsWithIds,  // ✅ Already has productId
-        warehouseId: 'default',
+        returnedProducts: returnedProductsWithIds,
+        warehouseId: sale.warehouseId || 'default',
         date: new Date().toISOString().split('T')[0],
+        totalRefundAmount: totalRefundAmount  // ✅ Add this
     };
 
     onReturn(updatedSale, salesReturnData);
