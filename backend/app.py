@@ -950,187 +950,93 @@ def delete_sale(sale_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/sales/import-csv', methods=['POST'])
-def import_sales_csv():
+@app.route('/api/expenses/import-csv', methods=['POST'])
+def import_expenses_csv():
     """
-    Import sales from CSV.
-    Expected columns:
-      type (Retail/Wholesale)
-      date (YYYY-MM-DD)
-      status
-      warehouse (warehouse name)
-      customerName (for Retail)
-      shopName (for Wholesale)
-      contact (optional)
-      address (optional)
-      productName
-      quantity
-      price
+    Expected columns in CSV (header row):
+
+    date,category,description,amount,warehouse
+
+    - date: YYYY-MM-DD
+    - category: e.g. 'Rent', 'Fuel', etc.
+    - description: free text
+    - amount: number
+    - warehouse: warehouse NAME exactly as in DB (e.g. 'Mangalapuram')
     """
-    try:
-        if 'file' not in request.files:
-            return jsonify({'created': 0, 'errors': [{'row': 0, 'message': 'No file uploaded'}]}), 400
+    if 'file' not in request.files:
+        return jsonify({'created': 0, 'errors': [{'row': 0, 'message': 'No file uploaded'}]}), 400
 
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'created': 0, 'errors': [{'row': 0, 'message': 'Empty filename'}]}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'created': 0, 'errors': [{'row': 0, 'message': 'Empty filename'}]}), 400
 
-        content = file.read().decode('utf-8')
-        reader = csv.DictReader(StringIO(content))
+    content = file.read().decode('utf-8')
+    reader = csv.DictReader(StringIO(content))
 
-        required_cols = {'type', 'date', 'status', 'warehouse', 'productName', 'quantity', 'price'}
-        missing = required_cols - set(reader.fieldnames or [])
-        if missing:
-            return jsonify({
-                'created': 0,
-                'errors': [{
-                    'row': 0,
-                    'message': f'Missing required columns: {", ".join(sorted(missing))}'
-                }]
-            }), 400
+    required_cols = {'date', 'category', 'description', 'amount'}
+    header = set(reader.fieldnames or [])
+    missing = required_cols - header
+    if missing:
+        return jsonify({
+            'created': 0,
+            'errors': [{
+                'row': 0,
+                'message': f"Missing required columns: {', '.join(sorted(missing))}"
+            }]
+        }), 400
 
-        # Preload products & warehouses
-        products_by_name = {p.name.strip().lower(): p for p in Product.query.all()}
-        warehouses_by_name = {w.name.strip().lower(): w for w in Warehouse.query.all()}
+    # Optional warehouse column – map by name if present
+    warehouses_by_name = {w.name.strip().lower(): w for w in Warehouse.query.all()}
 
-        # Group rows into logical sales
-        grouped = {}  # key -> { 'type', 'date', 'status', 'warehouseId', 'customerName', 'shopName', 'contact', 'address', 'products': [] }
-        errors = []
-        row_num = 1  # counting from 1 (excluding header)
+    created = 0
+    errors = []
+    row_num = 1  # header is row 1 visually
 
-        for row in reader:
-            row_num += 1
+    for row in reader:
+        row_num += 1
+        try:
+            date_str = (row.get('date') or '').strip()
+            category = (row.get('category') or '').strip()
+            description = (row.get('description') or '').strip()
+            amount_str = (row.get('amount') or '').strip()
+            warehouse_name = (row.get('warehouse') or '').strip().lower()
+
+            if not (date_str and category and description and amount_str):
+                errors.append({'row': row_num, 'message': 'Missing required fields (date/category/description/amount).'})
+                continue
 
             try:
-                sale_type = (row.get('type') or '').strip()
-                if sale_type not in ('Retail', 'Wholesale'):
-                    errors.append({'row': row_num, 'message': f"Invalid type '{sale_type}'. Must be 'Retail' or 'Wholesale'."})
-                    continue
+                amount = float(amount_str)
+            except ValueError:
+                errors.append({'row': row_num, 'message': f"Invalid amount '{amount_str}'."})
+                continue
 
-                date_str = (row.get('date') or '').strip()
-                try:
-                    datetime.strptime(date_str, '%Y-%m-%d')
-                except ValueError:
-                    errors.append({'row': row_num, 'message': f"Invalid date '{date_str}', must be YYYY-MM-DD."})
-                    continue
+            if not warehouse_name:
+                errors.append({'row': row_num, 'message': "Missing 'warehouse' name."})
+                continue
 
-                status = (row.get('status') or '').strip() or 'Cash'
+            wh = warehouses_by_name.get(warehouse_name)
+            if not wh:
+                errors.append({'row': row_num, 'message': f"Warehouse '{row.get('warehouse')}' not found."})
+                continue
 
-                warehouse_name = (row.get('warehouse') or '').strip().lower()
-                warehouse = warehouses_by_name.get(warehouse_name)
-                if not warehouse:
-                    errors.append({'row': row_num, 'message': f"Warehouse '{row.get('warehouse')}' not found in database."})
-                    continue
+            exp = Expense(
+                id=generate_id('exp'),
+                category=category,
+                description=description,
+                amount=amount,
+                date=date_str,
+                warehouse_id=wh.id
+            )
+            db.session.add(exp)
+            created += 1
 
-                product_name = (row.get('productName') or '').strip()
-                product = products_by_name.get(product_name.lower())
-                if not product:
-                    errors.append({'row': row_num, 'message': f"Product '{product_name}' not found in database."})
-                    continue
+        except Exception as e:
+            errors.append({'row': row_num, 'message': f'Unexpected error: {str(e)}'})
 
-                try:
-                    quantity = int(row.get('quantity') or 0)
-                    price = float(row.get('price') or 0)
-                except ValueError:
-                    errors.append({'row': row_num, 'message': f"Invalid quantity or price in row."})
-                    continue
+    db.session.commit()
+    return jsonify({'created': created, 'errors': errors})
 
-                if quantity <= 0:
-                    errors.append({'row': row_num, 'message': 'Quantity must be > 0.'})
-                    continue
-
-                customer_name = (row.get('customerName') or '').strip()
-                shop_name = (row.get('shopName') or '').strip()
-                contact = (row.get('contact') or '').strip()
-                address = (row.get('address') or '').strip()
-
-                if sale_type == 'Retail' and not customer_name:
-                    errors.append({'row': row_num, 'message': 'Retail sale requires customerName.'})
-                    continue
-                if sale_type == 'Wholesale' and not shop_name:
-                    errors.append({'row': row_num, 'message': 'Wholesale sale requires shopName.'})
-                    continue
-
-                # Build grouping key (one sale can have many product rows)
-                key = (
-                    sale_type,
-                    date_str,
-                    status,
-                    warehouse.id,
-                    customer_name.lower(),
-                    shop_name.lower()
-                )
-
-                if key not in grouped:
-                    grouped[key] = {
-                        'type': sale_type,
-                        'date': date_str,
-                        'status': status,
-                        'warehouseId': warehouse.id,
-                        'customerName': customer_name,
-                        'shopName': shop_name,
-                        'contact': contact,
-                        'address': address,
-                        'products': []
-                    }
-
-                grouped[key]['products'].append({
-                    'productId': product.id,
-                    'name': product.name,   # for frontend convenience
-                    'quantity': quantity,
-                    'price': price
-                })
-
-            except Exception as e:
-                errors.append({'row': row_num, 'message': f'Unexpected error: {str(e)}'})
-
-        # Create sales in DB
-        created_count = 0
-
-        for key, sale_data in grouped.items():
-            try:
-                products_list = sale_data['products']
-                total_amount = sum(p['quantity'] * p['price'] for p in products_list)
-
-                if sale_data['type'] == 'Retail':
-                    sale = Sale(
-                        id=generate_id('sale'),
-                        invoiceNumber=get_next_invoice_number('sale'),
-                        customerName=sale_data['customerName'],
-                        products=products_list,
-                        totalAmount=total_amount,
-                        date=sale_data['date'],
-                        status=sale_data['status'],
-                        warehouseId=sale_data['warehouseId']
-                    )
-                    db.session.add(sale)
-                else:
-                    sale = WholesaleSale(
-                        id=generate_id('wsale'),
-                        invoiceNumber=get_next_invoice_number('wholesale_sale'),
-                        shopName=sale_data['shopName'],
-                        contact=sale_data['contact'],
-                        address=sale_data['address'],
-                        products=products_list,
-                        totalAmount=total_amount,
-                        date=sale_data['date'],
-                        status=sale_data['status'],
-                        warehouseId=sale_data['warehouseId']
-                    )
-                    db.session.add(sale)
-
-                created_count += 1
-
-            except Exception as e:
-                errors.append({'key': str(key), 'message': f'Failed to create sale: {str(e)}'})
-
-        db.session.commit()
-
-        return jsonify({'created': created_count, 'errors': errors}), 200
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'created': 0, 'errors': [{'row': 0, 'message': str(e)}]}), 500
 
 
 # --- WHOLESALE SALES API ---
@@ -1654,6 +1560,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
