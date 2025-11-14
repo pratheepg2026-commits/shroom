@@ -242,9 +242,7 @@ const SaleForm: React.FC<{
               placeholder="Address (optional)"
               className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200"
             />
-          </div>
-) 
-        ) : (
+          </div>) : (
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input type="text" name="shopName" value={formData.shopName} onChange={handleChange} placeholder="Shop Name" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
