@@ -42,17 +42,16 @@ const SaleForm: React.FC<{
 
   const [saleType, setSaleType] = useState<'Retail' | 'Wholesale'>(initialType);
 
-  const [formData, setFormData] = useState({
-    customerName: '',
-    shopName: '',
-    contact: '',
-    address: '',
-    products: [] as SaleProduct[],
-    totalAmount: 0,
-    date: getLocalDateString(new Date()),
-    status: 'Cash' as SaleStatus,
-    ...(sale || {})
-  });
+const [formData, setFormData] = useState({
+  customerName: sale?.customerName || '',
+  shopName: sale?.shopName || '',
+  contact: sale?.contact || '',
+  address: sale?.address || '',
+  products: sale?.products || [],
+  totalAmount: sale?.totalAmount || 0,
+  date: sale?.date ? sale.date : getLocalDateString(new Date()),
+  status: sale?.status || 'Cash',
+});
   const [currentProduct, setCurrentProduct] = useState('');
   const [currentQty, setCurrentQty] = useState(1);
   const [currentPrice, setCurrentPrice] = useState(0);
