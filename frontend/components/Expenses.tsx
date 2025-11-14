@@ -174,7 +174,7 @@ const Expenses: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
+
   const [isExportingCSV, setIsExportingCSV] = useState(false);
   const [isImporting, setIsImporting] = useState(false); // ✅ CSV state
 
@@ -253,48 +253,7 @@ const Expenses: React.FC = () => {
     }
   };
 
-  const handleExportPDF = () => {
-    setIsExporting(true);
-    const jspdf = (window as any).jspdf;
-    const autoTable = (window as any).autoTable;
-
-    if (!jspdf || !autoTable) {
-      alert('PDF generation libraries not loaded. Please try again.');
-      setIsExporting(false);
-      return;
-    }
-
-    try {
-      const { jsPDF } = jspdf;
-      const doc = new jsPDF();
-
-      doc.setFontSize(18);
-      doc.text('SHROOMMUSH - Expenses Report', 14, 22);
-      doc.setFontSize(11);
-      doc.setTextColor(100);
-      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-
-      autoTable(doc, {
-        startY: 40,
-        head: [['Date', 'Description', 'Category', 'Amount']],
-        body: expenses.map(exp => [
-          exp.date,
-          exp.description,
-          exp.category,
-          formatCurrency(exp.amount),
-        ]),
-        headStyles: { fillColor: [34, 197, 94] },
-      });
-
-      doc.save('expenses-report.pdf');
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('An error occurred while generating the PDF.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
+  
   const handleExportCSV = () => {
     setIsExportingCSV(true);
     try {
@@ -360,10 +319,8 @@ const Expenses: React.FC = () => {
           <Button onClick={handleImportClick} variant="secondary" disabled={isImporting}>
             {isImporting ? 'Importing...' : 'Import CSV'}
           </Button>
-
-          <Button onClick={handleExportPDF} variant="secondary" disabled={isExporting}>
-            {isExporting ? 'Exporting...' : 'Export as PDF'}
-          </Button>
+          
+        
 
           <Button onClick={() => setIsModalOpen(true)}>Add Expense</Button>
 
