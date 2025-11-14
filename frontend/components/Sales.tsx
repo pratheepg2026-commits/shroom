@@ -373,96 +373,66 @@ const Sales: React.FC = () => {
     }, [warehouses, selectedWarehouse]);
 
    const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
-     let finalWarehouse = selectedWarehouse;
-  
-  // ✅ fallback: if nothing is selected, auto-pick first warehouse
-    if (!finalWarehouse && warehouses.length > 0) {
-      finalWarehouse = warehouses[0].id;
-      setSelectedWarehouse(finalWarehouse);
-    }
-  
-    if (!finalWarehouse) {
-      alert("No warehouse selected — cannot save sale.");
-      return;
-    }
-  
-   
-     if (!selectedWarehouse) {
-        alert("Please select a warehouse before saving.");
-        return; // Prevent proceeding without valid warehouse
+  let finalWarehouse = selectedWarehouse;
+
+  // ✅ Fallback: pick first warehouse if nothing selected
+  if (!finalWarehouse && warehouses.length > 0) {
+    finalWarehouse = warehouses[0].id;
+    setSelectedWarehouse(finalWarehouse);
+  }
+
+  if (!finalWarehouse) {
+    alert("No warehouse selected — cannot save sale.");
+    return;
+  }
+
+  try {
+    const isEditing = !!saleData.id;
+
+    const payload = {
+      ...(isEditing ? { id: saleData.id } : {}),
+      customerName: saleData.customerName,
+      shopName: saleData.shopName,
+      contact: saleData.contact,
+      address: saleData.address,
+      // ✅ This respects whatever date came from the form (original for edit)
+      date: saleData.date,
+      status: saleData.status,
+      // ✅ Already transformed for FREE in SaleForm, so just use it
+      totalAmount: saleData.totalAmount,
+      isLoss: !!saleData.isLoss,
+      warehouseId: finalWarehouse,
+      products: saleData.products
+        .map((p: SaleProduct) => {
+          const product = products.find(prod => prod.name === p.name);
+          return product
+            ? { productId: product.id, quantity: p.quantity, price: p.price }
+            : null;
+        })
+        .filter((p: any) => p !== null),
+    };
+
+    if (saleType === 'Retail') {
+      if (isEditing) {
+        await updateSale(payload);
+      } else {
+        await addSale(payload);
       }
-
-    try {
-        const isEditing = !!saleData.id;
-        console.log('isEditing:', isEditing);
-      
-      
-        
-        const payload = {
-            ...(isEditing ? { id: saleData.id } : {}),
-            customerName: saleData.customerName,
-            shopName: saleData.shopName,
-            contact: saleData.contact,
-            address: saleData.address,
-            date: saleData.date,
-            status: saleData.status,
-            let prepared = { ...formData };
-            totalAmount: saleData.totalAmount,
-            isLoss: !!saleData.isLoss,
-
-            warehouseId: finalWarehouse,
-            products: saleData.products.map((p: SaleProduct) => {
-                const product = products.find(prod => prod.name === p.name);
-                console.log(`Mapping product: ${p.name} -> productId: ${product?.id}`);
-                return { 
-                    productId: product ? product.id : null, 
-                    quantity: p.quantity, 
-                    price: p.price 
-                };
-            }).filter((p: { productId: string | null}) => p.productId)
-        };
-
-        console.log('Final payload:', JSON.stringify(payload, null, 2));
-        console.log('Calling API...');
-
-        if (saleType === 'Retail') {
-            if (isEditing) {
-                console.log('Calling updateSale...');
-                const result = await updateSale(payload);
-                console.log('updateSale result:', result);
-            } else {
-                console.log('Calling addSale...');
-                const result = await addSale(payload);
-                console.log('addSale result:', result);
-            }
-        } else {
-            if (isEditing) {
-                console.log('Calling updateWholesaleSale...');
-                const result = await updateWholesaleSale(payload);
-                console.log('updateWholesaleSale result:', result);
-            } else {
-                console.log('Calling addWholesaleSale...');
-                const result = await addWholesaleSale(payload);
-                console.log('addWholesaleSale result:', result);
-            }
-        }
-
-        console.log('API call successful, refreshing data...');
-        await fetchData();
-        console.log('Data refreshed');
-        
-        setIsModalOpen(false);
-        setSelectedSale(null);
-        console.log('Modal closed, sale cleared');
-        
-    } catch (err: any) {
-        console.error('==========================================');
-        console.error('ERROR in handleSave:');
-        console.error('Error object:', err);
-        console.error('Error message:', err.message);
-        console.error('==========================================');
-        alert(`Failed to save sale: ${err.message || 'Unknown error'}`);
+    } else {
+      if (isEditing) {
+        await updateWholesaleSale(payload);
+      } else {
+        await addWholesaleSale(payload);
+      }
     }
+
+    await fetchData();
+    setIsModalOpen(false);
+    setSelectedSale(null);
+  } catch (err: any) {
+    console.error('ERROR in handleSave:', err);
+    alert(`Failed to save sale: ${err.message || 'Unknown error'}`);
+  }
 };
 
 
