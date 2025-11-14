@@ -177,6 +177,7 @@ const Expenses: React.FC = () => {
 
   const [isExportingCSV, setIsExportingCSV] = useState(false);
   const [isImporting, setIsImporting] = useState(false); // ✅ CSV state
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -278,52 +279,24 @@ const Expenses: React.FC = () => {
 
   setIsImporting(true);
   try {
-    const result = await importExpensesFromCSV(file); // { created, errors?: [...] }
-    console.log('[EXPENSE IMPORT RESULT]', result);
-
-    if (result?.errors && Array.isArray(result.errors) && result.errors.length > 0) {
-      console.error('[EXPENSE IMPORT ERRORS]', result.errors);
-
-      const errorLines = result.errors
-        .slice(0, 10) // avoid huge alerts
-        .map((err: any, idx: number) => {
-          // Try different possible field names:
-          const row =
-            err.row ??
-            err.line ??
-            err.rowNumber ??
-            (typeof err.rowIndex === 'number' ? err.rowIndex + 1 : undefined) ??
-            `#${idx + 1}`;
-
-          const msg =
-            err.message ??
-            err.error ??
-            (typeof err === 'string' ? err : JSON.stringify(err));
-
-          return `Row ${row}: ${msg}`;
-        })
+    const result = await importExpensesFromCSV(file);
+    if (result?.errors && result.errors.length > 0) {
+      const firstFew = result.errors.slice(0, 5)
+        .map((err: any, idx: number) => `Row ${err.row ?? idx + 1}: ${err.message}`)
         .join('\n');
-
-      alert(
-        `Import completed with issues.\n` +
-        `Imported: ${result.created ?? 0}\n` +
-        `Errors: ${result.errors.length}\n\n` +
-        errorLines
-      );
+      alert(`Import completed with some errors.\nImported: ${result.created}\n\n${firstFew}`);
     } else {
       alert(`Successfully imported ${result?.created ?? 0} expenses.`);
     }
-
     await fetchData();
   } catch (err: any) {
-    console.error('[EXPENSE IMPORT FAILED]', err);
-    alert(`Failed to import CSV: ${err.message || 'Unknown error'}`);
+    alert(`Failed to import expenses CSV: ${err.message || 'Unknown error'}`);
   } finally {
     setIsImporting(false);
-    // allow re-selecting the same file
     e.target.value = '';
   }
 };
+
 
 
   const handleEditClick = (expense: Expense) => {
@@ -345,15 +318,10 @@ const Expenses: React.FC = () => {
             {isExportingCSV ? 'Exporting...' : 'Export as CSV'}
           </Button>
 
-          <Button onClick={handleImportClick} variant="secondary" disabled={isImporting}>
+          <Button onClick={() => fileInputRef.current?.click()}variant="secondary" disabled={isImporting}>
             {isImporting ? 'Importing...' : 'Import CSV'}
           </Button>
           
-        
-
-          <Button onClick={() => setIsModalOpen(true)}>Add Expense</Button>
-
-          {/* Hidden file input for CSV */}
           <input
             ref={fileInputRef}
             type="file"
@@ -361,6 +329,21 @@ const Expenses: React.FC = () => {
             className="hidden"
             onChange={handleImportChange}
           />
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={handleImportChange}
+          />
+                    
+                  
+
+          <Button onClick={() => setIsModalOpen(true)}>Add Expense</Button>
+
+          {/* Hidden file input for CSV */}
+         
         </div>
       </div>
 
