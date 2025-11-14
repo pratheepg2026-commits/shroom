@@ -831,15 +831,6 @@ def get_stock_prep():
         return jsonify({'error': str(e)}), 500
 # --- SALES API ---
 
-@app.route('/api/sales', methods=['GET'])
-def get_sales():
-    """Get all retail sales"""
-    try:
-        sales = Sale.query.all()
-        return jsonify([s.to_dict() for s in sales])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/sales', methods=['POST'])
 def add_sale():
     """Create new retail sale"""
@@ -853,25 +844,25 @@ def add_sale():
         if not products_in_sale:
             return jsonify({'error': 'No products provided for sale'}), 400
 
-        # Check stock availability
+        # ✅ Check stock availability
         is_available, message = check_stock_availability(products_in_sale, warehouse_id)
         if not is_available:
             return jsonify({'error': message}), 400
 
-        # Deduct inventory
+        # ✅ Deduct inventory
         for p in products_in_sale:
             update_inventory(p['productId'], warehouse_id, -p['quantity'])
 
-        # Create sale record
+        # ✅ Create sale record
         sale = Sale(
             id=generate_id('sale'),
             invoiceNumber=get_next_invoice_number('sale'),
             customerName=data['customerName'],
             products=products_in_sale,
-            totalAmount=0 if data.get('status') == 'Free' else data['totalAmount'],
+            totalAmount=0 if data.get('status') == 'Free' else data.get('totalAmount', 0),
             date=data['date'],
             status=data['status'],
-            warehouseId=data.get('warehouseId')
+            warehouseId=warehouse_id
         )
 
         db.session.add(sale)
@@ -883,7 +874,7 @@ def add_sale():
                 id=generate_id('expense'),    
                 category='FREE_SAMPLES',
                 description=expense_desc,
-                amount=abs(sale.totalAmount or 0),
+                amount=abs(data.get('totalAmount', 0)),   # ✅ FIXED: use data instead of sale
                 date=sale.date,
                 warehouse_id=sale.warehouseId
             )
@@ -895,6 +886,7 @@ def add_sale():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 
 def check_stock_availability(products_list, warehouse_id):
@@ -1717,6 +1709,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
