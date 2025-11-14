@@ -902,13 +902,31 @@ def check_stock_availability(products_list, warehouse_id):
 
 @app.route('/api/sales/<sale_id>', methods=['PUT'])
 def update_sale_endpoint(sale_id):
-    data = request.json
-    # Update sale with new products array and totalAmount
-    sale = Sale.query.get(sale_id)
-    sale.products = data['products']
-    sale.totalAmount = data['totalAmount']
-    db.session.commit()
-    return jsonify({'success': True})
+    try:
+        data = request.get_json() or {}
+
+        sale = Sale.query.get(sale_id)
+        if not sale:
+            return jsonify({'error': 'Sale not found'}), 404
+
+        # ✅ update basic fields
+        sale.customerName = data.get('customerName', sale.customerName)
+        sale.date = data.get('date', sale.date)
+        sale.status = data.get('status', sale.status)
+        sale.warehouseId = data.get('warehouseId', sale.warehouseId)
+
+        # ✅ update products & totalAmount only if passed
+        if 'products' in data:
+            sale.products = data['products']
+        if 'totalAmount' in data:
+            sale.totalAmount = data['totalAmount']
+
+        db.session.commit()
+        return jsonify(sale.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/api/sales/<string:sale_id>', methods=['DELETE'])
@@ -1165,13 +1183,31 @@ def add_wholesale_sale():
 
 @app.route('/api/wholesale-sales/<sale_id>', methods=['PUT'])
 def update_wholesale_sale_endpoint(sale_id):
-    data = request.json
-    # Update wholesale sale
-    sale = WholesaleSale.query.get(sale_id)
-    sale.products = data['products']
-    sale.totalAmount = data['totalAmount']
-    db.session.commit()
-    return jsonify({'success': True})
+    try:
+        data = request.get_json() or {}
+
+        wsale = WholesaleSale.query.get(sale_id)
+        if not wsale:
+            return jsonify({'error': 'Wholesale sale not found'}), 404
+
+        wsale.shopName = data.get('shopName', wsale.shopName)
+        wsale.contact = data.get('contact', wsale.contact)
+        wsale.address = data.get('address', wsale.address)
+        wsale.date = data.get('date', wsale.date)
+        wsale.status = data.get('status', wsale.status)
+        wsale.warehouseId = data.get('warehouseId', wsale.warehouseId)
+
+        if 'products' in data:
+            wsale.products = data['products']
+        if 'totalAmount' in data:
+            wsale.totalAmount = data['totalAmount']
+
+        db.session.commit()
+        return jsonify(wsale.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/wholesale-sales/<string:sale_id>', methods=['DELETE'])
 def delete_wholesale_sale(sale_id):
@@ -1618,6 +1654,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
