@@ -494,7 +494,7 @@ const SalesReturn: React.FC = () => {
                                 <th scope="col" className="px-6 py-3">Original Invoice</th>
                                 <th scope="col" className="px-6 py-3">Customer</th>
                                 <th scope="col" className="px-6 py-3">Returned Products</th>
-                                <th scope="col" className="px-6 py-3 text-right">Refund Amount</th>
+                                <th scope="col" className="px-6 py-3 text-center">Refund Amount</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -507,7 +507,7 @@ const SalesReturn: React.FC = () => {
                                   const productName = p.name || p.productId || 'Unknown Product';
                                   return `${p.quantity}x ${productName}`;
                               }).join(', ')}</td>
-                              <td className="px-6 py-4" >{formatCurrency(r.totalRefundAmount)}</td>
+                              <td className="px-6 py-4 text-center" >{formatCurrency(r.totalRefundAmount)}</td>
                             </tr>
                           ))}
                         </tbody>
