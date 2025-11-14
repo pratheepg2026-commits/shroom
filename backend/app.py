@@ -1126,19 +1126,25 @@ def add_wholesale_sale():
     """Create new wholesale sale"""
     try:
         data = request.get_json()
-        warehouse_id = data.get('warehouseId', 'default')
+
+        warehouse_id = data.get('warehouseId')
+        if not warehouse_id:
+            return jsonify({'error': 'Valid warehouseId is required'}), 400
+
         products_in_sale = data.get('products', [])
-        
-        # Check stock availability
+        if not products_in_sale:
+            return jsonify({'error': 'No products provided for sale'}), 400
+
+        # ✅ Check stock availability
         is_available, message = check_stock_availability(products_in_sale, warehouse_id)
         if not is_available:
             return jsonify({'error': message}), 400
-        
-        # Deduct inventory
+
+        # ✅ Deduct inventory
         for p in products_in_sale:
             update_inventory(p['productId'], warehouse_id, -p['quantity'])
-        
-        # Create sale record
+
+        # ✅ Create wholesale sale record
         sale = WholesaleSale(
             id=generate_id('wsale'),
             invoiceNumber=get_next_invoice_number('wholesale_sale'),
@@ -1146,12 +1152,14 @@ def add_wholesale_sale():
             contact=data.get('contact', ''),
             address=data.get('address', ''),
             products=products_in_sale,
-            totalAmount=0 if data.get('status') == 'Free' else data['totalAmount'],
+            totalAmount=0 if data.get('status') == 'Free' else data.get('totalAmount', 0),
             date=data['date'],
             status=data['status'],
-            warehouseId = data.get('warehouseId')
+            warehouseId=warehouse_id
         )
         db.session.add(sale)
+
+        # ✅ Create Expense entry for Free Samples
         if sale.status == 'Free':
             expense_desc = f"Free wholesale sample - Invoice {sale.invoiceNumber}"
             free_expense = Expense(
@@ -1163,11 +1171,14 @@ def add_wholesale_sale():
                 warehouse_id=sale.warehouseId
             )
             db.session.add(free_expense)
+
         db.session.commit()
         return jsonify(sale.to_dict()), 201
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/wholesale-sales/<sale_id>', methods=['PUT'])
 def update_wholesale_sale_endpoint(sale_id):
@@ -1706,6 +1717,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
