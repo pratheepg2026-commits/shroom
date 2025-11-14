@@ -1,6 +1,6 @@
 // Sales.tsx - Complete with Warehouse Integration
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSales, addSale, updateSale, deleteSale, getProducts, getInventory, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getWarehouses } from '../services/api';
+import { getSales, addSale, updateSale, deleteSale, getProducts, getInventory, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getWarehouses,  importSalesFromCSV } from '../services/api';
 import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale, Warehouse } from '../types';
 import { exportToCSV } from '../services/csvExporter';
 import Button from './common/Button';
@@ -301,7 +301,9 @@ const Sales: React.FC = () => {
     const [saleToDelete, setSaleToDelete] = useState<{id: string, type: 'Retail' | 'Wholesale'} | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     const [isExportingCSV, setIsExportingCSV] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);        // ✅ NEW
 
+    const fileInputRef = useRef<HTMLInputElement | null>(null); 
      
     const EditIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -535,6 +537,34 @@ const Sales: React.FC = () => {
         }
     };
 
+    const handleImportClick = () => {
+      fileInputRef.current?.click();
+    };
+
+const handleImportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  setIsImporting(true);
+  try {
+    const result = await importSalesFromCSV(file); // calls /api/sales/import-csv
+    if (result?.errors && result.errors.length > 0) {
+      alert(
+        `Import completed with issues.\nImported: ${result.created}\nErrors: ${result.errors.length}`
+      );
+    } else {
+      alert(`Successfully imported ${result?.created ?? 0} sales.`);
+    }
+    await fetchData();
+  } catch (err: any) {
+    alert(`Failed to import CSV: ${err.message || 'Unknown error'}`);
+  } finally {
+    setIsImporting(false);
+    e.target.value = '';
+  }
+};
+
+
     const openDeleteConfirm = (id: string, type: 'Retail' | 'Wholesale') => {
         setSaleToDelete({id, type});
         setIsConfirmOpen(true);
@@ -559,15 +589,25 @@ const Sales: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">All Sales</h1>
                 <div className="flex items-center space-x-2">
-                    <Button onClick={handleExportCSV} variant="secondary" disabled={isExportingCSV}>
-                        {isExportingCSV ? 'Exporting...' : 'Export as CSV'}
-                    </Button>
-                    <Button onClick={handleExportPDF} variant="secondary" disabled={isExporting}>
-                        {isExporting ? 'Exporting...' : 'Export as PDF'}
-                    </Button>
-                    <Button onClick={() => { setSelectedSale(null); setIsModalOpen(true); }}>Add Sale</Button>
-                </div>
-            </div>
+                   <Button onClick={handleExportCSV} variant="secondary" disabled={isExportingCSV}>
+                    {isExportingCSV ? 'Exporting...' : 'Export CSV'}
+                  </Button>
+                  
+                  <Button onClick={handleImportClick} variant="secondary" disabled={isImporting}>
+                    {isImporting ? 'Importing...' : 'Import CSV'}
+                  </Button>
+                  
+                  <Button onClick={() => { setSelectedSale(null); setIsModalOpen(true); }}>
+                    Add Sale
+                  </Button>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={handleImportChange}
+                  />
 
             <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
