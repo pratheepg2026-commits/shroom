@@ -56,7 +56,7 @@ const SaleForm: React.FC<{
   const [currentProduct, setCurrentProduct] = useState('');
   const [currentQty, setCurrentQty] = useState(1);
   const [currentPrice, setCurrentPrice] = useState(0);
-  const [saleTiming, setSaleTiming] = useState<'immediate' | 'scheduled'>('immediate');
+  
   
   useEffect(() => {
     if (sale) {
