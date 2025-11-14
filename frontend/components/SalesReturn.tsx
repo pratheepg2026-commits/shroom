@@ -30,6 +30,19 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
     const [currentPrice, setCurrentPrice] = useState<number>(0);
     const [validationError, setValidationError] = useState<string>('');
 
+    const getProductName = (productId) => {
+      if (!Array.isArray(allProducts)) return "Unknown Product";
+    
+      const product = allProducts.find(p => 
+        p.id === productId || 
+        p.productId === productId || 
+        p.product_id === productId
+      );
+    
+      return product?.name || "Unknown Product";
+    };
+
+
     const originalProductsList = useMemo(() => {
         const productsOnSale = sale.products;
         const productsPreviouslyReturned = allReturnsForSale.flatMap(r => r.returnedProducts);
@@ -506,10 +519,16 @@ const SalesReturn: React.FC = () => {
                               <td className="px-6 py-4">{r.date}</td>
                               <td className="px-6 py-4">{r.originalInvoiceNumber}</td>
                               <td className="px-6 py-4">{r.customerName}</td>
-                              <td className="px-6 py-4" >{r.returnedProducts.map(p => {
-                                  const productName = p.name || p.productId || 'Unknown Product';
-                                  return `${p.quantity}x ${productName}`;
-                              }).join(', ')}</td>
+                              <td className="px-3 py-2 text-sm text-gray-700">
+                              {r.returnedProducts.map((p, idx) => (
+                                <span 
+                                  key={idx} 
+                                  className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium mr-2"
+                                >
+                                  {p.quantity}× {getProductName(p.productId)}
+                                </span>
+                              ))}
+                            </td>
                               <td className="px-6 py-4 text-center" >{formatCurrency(r.totalRefundAmount)}</td>
                             </tr>
                           ))}
