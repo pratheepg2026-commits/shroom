@@ -163,7 +163,7 @@ const SaleForm: React.FC<{
     ...formData,
     totalAmount:
       formData.status === "Free"
-        ? Math.abs(formData.totalAmount) * -1  // e.g., 100 → -100
+        ? Math.abs(formData.totalAmount) * (-1)  // e.g., 100 → -100
         : formData.totalAmount,
     isLoss: formData.status === "Free",
   };
