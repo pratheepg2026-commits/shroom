@@ -167,21 +167,17 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
     });
 
     // ✅ Calculate total refund amount
-    const refundAmount = r.returnedProducts.reduce((sum, p) => {
-      const quantity = Number(p.quantity);
-      const price = Number(p.price);
-      if (isNaN(quantity) || isNaN(price)) {
-        return sum;  // skip invalid values
-      }
-      return sum + quantity * price;
-    }, 0);
+   const totalRefundAmount = returnedProducts.reduce(
+  (sum, p) => sum + p.quantity * p.price,
+  0
+);
 
 
     const salesReturnData = {
         returnedProducts: returnedProductsWithIds,
         warehouseId: sale.warehouseId || 'default',
         date: new Date().toISOString().split('T')[0],
-        totalRefundAmount: totalRefundAmount  // ✅ Add this
+       totalRefundAmount: totalRefundAmount  // ✅ Add this
     };
 
     onReturn(updatedSale, salesReturnData);
