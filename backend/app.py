@@ -16,6 +16,9 @@ import time
 import random
 import string
 import pytz
+import csv
+import io
+
 from urllib.parse import quote_plus
 from datetime import datetime, timedelta
 from calendar import monthrange
@@ -929,6 +932,95 @@ def delete_sale(sale_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/sales/import-csv', methods=['POST'])
+def import_sales_from_csv():
+    """
+    Bulk import sales from a CSV file.
+
+    Expected columns (header row required):
+    date, customerName, totalAmount, status, warehouseId, invoiceNumber (optional), products (optional JSON string)
+
+    - If invoiceNumber is empty -> system generates one.
+    - If products is empty -> stored as [].
+    - Inventory is NOT adjusted in this import.
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'CSV file is required with field name "file"'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        # Read CSV content
+        stream = io.StringIO(file.stream.read().decode('utf-8'))
+        reader = csv.DictReader(stream)
+
+        created = 0
+        errors = []
+
+        for idx, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
+            try:
+                date = row.get('date', '').strip()
+                customer_name = row.get('customerName', '').strip()
+                total_amount_str = row.get('totalAmount', '').strip()
+                status = row.get('status', '').strip()
+                warehouse_id = row.get('warehouseId', '').strip() or None
+                invoice_number = row.get('invoiceNumber', '').strip()
+                products_raw = row.get('products', '').strip()
+
+                # Basic validation
+                if not (date and customer_name and total_amount_str and status):
+                    raise ValueError('Missing required fields (date/customerName/totalAmount/status)')
+
+                total_amount = float(total_amount_str)
+
+                # Try to parse products if provided, else empty list
+                products = []
+                if products_raw:
+                    try:
+                        import json
+                        products = json.loads(products_raw)
+                        if not isinstance(products, list):
+                            raise ValueError('products must be a JSON array')
+                    except Exception:
+                        # If invalid JSON, store as empty and report warning
+                        products = []
+                        errors.append(f'Row {idx}: Invalid products JSON, saved as empty list.')
+
+                # Generate invoice number if blank
+                if not invoice_number:
+                    invoice_number = get_next_invoice_number('sale')
+
+                sale = Sale(
+                    id=generate_id('sale'),
+                    invoiceNumber=invoice_number,
+                    customerName=customer_name,
+                    products=products,
+                    totalAmount=total_amount,
+                    date=date,
+                    status=status,
+                    warehouseId=warehouse_id
+                )
+                db.session.add(sale)
+                created += 1
+
+            except Exception as row_err:
+                errors.append(f'Row {idx}: {str(row_err)}')
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Sales import completed',
+            'created': created,
+            'errors': errors
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 # --- WHOLESALE SALES API ---
 
 @app.route('/api/wholesale-sales', methods=['GET'])
@@ -1053,6 +1145,72 @@ def delete_expense(exp_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+#-----csv expense---
+@app.route('/api/expenses/import-csv', methods=['POST'])
+def import_expenses_from_csv():
+    """
+    Bulk import expenses from a CSV file.
+
+    Expected columns (header row required):
+    date, category, description, amount, warehouse_id
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'CSV file is required with field name "file"'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        # Read CSV content
+        stream = io.StringIO(file.stream.read().decode('utf-8'))
+        reader = csv.DictReader(stream)
+
+        created = 0
+        errors = []
+
+        for idx, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
+            try:
+                date = row.get('date', '').strip()
+                category = row.get('category', '').strip()
+                description = row.get('description', '').strip()
+                amount_str = row.get('amount', '').strip()
+                warehouse_id = row.get('warehouse_id', '').strip()
+
+                # Basic validation
+                if not (date and category and description and amount_str and warehouse_id):
+                    raise ValueError('Missing required fields (date/category/description/amount/warehouse_id)')
+
+                amount = float(amount_str)
+
+                expense = Expense(
+                    id=generate_id('exp'),
+                    category=category,
+                    description=description,
+                    amount=amount,
+                    date=date,
+                    warehouse_id=warehouse_id
+                )
+                db.session.add(expense)
+                created += 1
+
+            except Exception as row_err:
+                errors.append(f'Row {idx}: {str(row_err)}')
+
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Expenses import completed',
+            'created': created,
+            'errors': errors
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 # --- WAREHOUSES API ---
 
@@ -1366,6 +1524,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
