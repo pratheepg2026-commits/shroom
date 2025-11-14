@@ -183,8 +183,7 @@ const Expenses: React.FC = () => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null); // ✅ for CSV input
-
+  
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
 
