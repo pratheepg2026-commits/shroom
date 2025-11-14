@@ -70,9 +70,15 @@ const SaleForm: React.FC<{
     }
   }, [sale]);
 
-  uuseEffect(() => {
+  useEffect(() => {
+  if (saleTiming === 'immediate') {
+    setFormData(prev => ({...prev, date: getLocalDateString(new Date())}));
+  }
+}, [saleTiming]);
+
+  useEffect(() => {
   // ✅ Only auto-set today's date for NEW sales
-  if (saleTiming === 'immediate' && !isEditing) {
+  if (!isEditing && saleTiming === 'immediate') {
     setFormData(prev => ({ ...prev, date: getLocalDateString(new Date()) }));
   }
 }, [saleTiming, isEditing]);
