@@ -936,19 +936,23 @@ def delete_sale(sale_id):
         sale = Sale.query.get(sale_id)
         if not sale:
             return jsonify({'error': 'Sale not found'}), 404
-        
-        warehouse_id = request.args.get('warehouseId', 'default')
-        
-        # Restore inventory
+
+        # ✅ use the sale's own warehouseId
+        warehouse_id = sale.warehouseId
+        if not warehouse_id:
+            return jsonify({'error': 'Sale has no warehouseId set'}), 400
+
+        # Restore inventory back to that warehouse
         for p in sale.products or []:
             update_inventory(p['productId'], warehouse_id, p['quantity'])
-        
+
         db.session.delete(sale)
         db.session.commit()
         return '', 204
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/expenses/import-csv', methods=['POST'])
 def import_expenses_csv():
@@ -1622,6 +1626,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
