@@ -499,7 +499,7 @@ const SalesReturn: React.FC = () => {
                         </thead>
                         <tbody>
                           {returns.map(r => (
-                            <tr key={r.id}"border-b hover:bg-gray-50 transition">
+                            <tr key={r.id} className="border-b hover:bg-gray-50 transition">
                               <td className="px-3 py-2 text-sm text-gray-700">{r.date}</td>
                               <td className="px-3 py-2 text-sm font-medium text-gray-800">{r.originalInvoiceNumber}</td>
                               <td className="px-3 py-2 text-sm text-gray-700">{r.customerName}</td>
