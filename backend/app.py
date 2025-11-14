@@ -874,16 +874,16 @@ def add_sale():
             warehouseId = data.get('warehouseId')
         )
         
-        db.session.add(sale)
+         db.session.add(sale)
          if sale.status == 'Free':
             expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
             free_expense = Expense(
-            category='FREE_SAMPLES',          # match your Enum
-            description=expense_desc,
-            amount=abs(sale.totalAmount or 0),
-            date=sale.date,
-            warehouse_id=sale.warehouseId
-        )
+                category='FREE_SAMPLES',          # match your Enum
+                description=expense_desc,
+                amount=abs(sale.totalAmount or 0),
+                date=sale.date,
+                warehouse_id=sale.warehouseId
+            )
         db.session.add(free_expense)
         db.session.commit()
         return jsonify(sale.to_dict()), 201
@@ -1689,6 +1689,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
