@@ -285,7 +285,17 @@ const SalesReturn: React.FC = () => {
     const [selectedSale, setSelectedSale] = useState<CombinedSale | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isExportingCSV, setIsExportingCSV] = useState(false);
-
+    const getProductName = (productId) => {
+      if (!Array.isArray(allProducts)) return "Unknown Product";
+    
+      const product = allProducts.find(p => 
+        p.id === productId || 
+        p.productId === productId || 
+        p.product_id === productId
+      );
+    
+      return product?.name || "Unknown Product";
+    };
     const fetchData = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -387,17 +397,7 @@ const SalesReturn: React.FC = () => {
     }
 };
 
-     const getProductName = (productId) => {
-      if (!Array.isArray(allProducts)) return "Unknown Product";
-    
-      const product = allProducts.find(p => 
-        p.id === productId || 
-        p.productId === productId || 
-        p.product_id === productId
-      );
-    
-      return product?.name || "Unknown Product";
-    };
+     
 
     const handleExportCSV = () => {
         setIsExportingCSV(true);
