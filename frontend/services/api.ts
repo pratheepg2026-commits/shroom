@@ -126,7 +126,7 @@ export async function importSalesFromCSV(file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE_URL}/sales/import-csv`, {
+  const response = await fetch(`${BASE_URL}/sales/import-csv`, {
     method: 'POST',
     body: formData,
   });
