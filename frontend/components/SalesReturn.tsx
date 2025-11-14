@@ -149,35 +149,30 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
     }).filter(p => p.quantity > 0);
 
     const newTotalAmount = newProductsForSale.reduce((sum, p) => sum + p.price * p.quantity, 0);
-    
+
     const updatedSale = { ...sale, products: newProductsForSale, totalAmount: newTotalAmount };
-    
-    // Map returnedProducts to include productId
+
     const returnedProductsWithIds = returnedProducts.map(p => {
         const product = allProducts.find(prod => prod.name === p.name);
-        if (!product) {
-            console.error('Product not found:', p.name);
-            throw new Error(`Product not found: ${p.name}`);
-        }
+        if (!product) throw new Error(`Product not found: ${p.name}`);
         return {
             productId: product.id,
             quantity: p.quantity,
-            price: p.price  // ✅ Include price
+            price: p.price
         };
     });
 
-    // ✅ Calculate total refund amount
-   const totalRefundAmount = returnedProducts.reduce(
-  (sum, p) => sum + p.quantity * p.price,
-  0
-);
-
+    // ✅ Correct refund calculation
+    const totalRefundAmount = returnedProducts.reduce(
+        (sum, p) => sum + p.quantity * p.price,
+        0
+    );
 
     const salesReturnData = {
         returnedProducts: returnedProductsWithIds,
         warehouseId: sale.warehouseId || 'default',
         date: new Date().toISOString().split('T')[0],
-       totalRefundAmount: totalRefundAmount  // ✅ Add this
+        totalRefundAmount
     };
 
     onReturn(updatedSale, salesReturnData);
