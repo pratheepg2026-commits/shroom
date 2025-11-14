@@ -868,7 +868,7 @@ def add_sale():
             invoiceNumber=get_next_invoice_number('sale'),
             customerName=data['customerName'],
             products=products_in_sale,
-            totalAmount=0 if data.get('status') == 'Free' else data['totalAmount'],
+            totalAmount=0 if data.get('status') == 'Free' else data('totalAmount',0),
             date=data['date'],
             status=data['status'],
             warehouseId=data.get('warehouseId')
@@ -1717,6 +1717,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
