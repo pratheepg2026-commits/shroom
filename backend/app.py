@@ -18,7 +18,7 @@ import string
 import pytz
 import csv
 import io
-
+from io import StringIO
 from urllib.parse import quote_plus
 from datetime import datetime, timedelta
 from calendar import monthrange
@@ -933,92 +933,186 @@ def delete_sale(sale_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sales/import-csv', methods=['POST'])
-def import_sales_from_csv():
+def import_sales_csv():
     """
-    Bulk import sales from a CSV file.
-
-    Expected columns (header row required):
-    date, customerName, totalAmount, status, warehouseId, invoiceNumber (optional), products (optional JSON string)
-
-    - If invoiceNumber is empty -> system generates one.
-    - If products is empty -> stored as [].
-    - Inventory is NOT adjusted in this import.
+    Import sales from CSV.
+    Expected columns:
+      type (Retail/Wholesale)
+      date (YYYY-MM-DD)
+      status
+      warehouse (warehouse name)
+      customerName (for Retail)
+      shopName (for Wholesale)
+      contact (optional)
+      address (optional)
+      productName
+      quantity
+      price
     """
     try:
         if 'file' not in request.files:
-            return jsonify({'error': 'CSV file is required with field name "file"'}), 400
+            return jsonify({'created': 0, 'errors': [{'row': 0, 'message': 'No file uploaded'}]}), 400
 
         file = request.files['file']
         if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
+            return jsonify({'created': 0, 'errors': [{'row': 0, 'message': 'Empty filename'}]}), 400
 
-        # Read CSV content
-        stream = io.StringIO(file.stream.read().decode('utf-8'))
-        reader = csv.DictReader(stream)
+        content = file.read().decode('utf-8')
+        reader = csv.DictReader(StringIO(content))
 
-        created = 0
+        required_cols = {'type', 'date', 'status', 'warehouse', 'productName', 'quantity', 'price'}
+        missing = required_cols - set(reader.fieldnames or [])
+        if missing:
+            return jsonify({
+                'created': 0,
+                'errors': [{
+                    'row': 0,
+                    'message': f'Missing required columns: {", ".join(sorted(missing))}'
+                }]
+            }), 400
+
+        # Preload products & warehouses
+        products_by_name = {p.name.strip().lower(): p for p in Product.query.all()}
+        warehouses_by_name = {w.name.strip().lower(): w for w in Warehouse.query.all()}
+
+        # Group rows into logical sales
+        grouped = {}  # key -> { 'type', 'date', 'status', 'warehouseId', 'customerName', 'shopName', 'contact', 'address', 'products': [] }
         errors = []
+        row_num = 1  # counting from 1 (excluding header)
 
-        for idx, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
+        for row in reader:
+            row_num += 1
+
             try:
-                date = row.get('date', '').strip()
-                customer_name = row.get('customerName', '').strip()
-                total_amount_str = row.get('totalAmount', '').strip()
-                status = row.get('status', '').strip()
-                warehouse_id = row.get('warehouseId', '').strip() or None
-                invoice_number = row.get('invoiceNumber', '').strip()
-                products_raw = row.get('products', '').strip()
+                sale_type = (row.get('type') or '').strip()
+                if sale_type not in ('Retail', 'Wholesale'):
+                    errors.append({'row': row_num, 'message': f"Invalid type '{sale_type}'. Must be 'Retail' or 'Wholesale'."})
+                    continue
 
-                # Basic validation
-                if not (date and customer_name and total_amount_str and status):
-                    raise ValueError('Missing required fields (date/customerName/totalAmount/status)')
+                date_str = (row.get('date') or '').strip()
+                try:
+                    datetime.strptime(date_str, '%Y-%m-%d')
+                except ValueError:
+                    errors.append({'row': row_num, 'message': f"Invalid date '{date_str}', must be YYYY-MM-DD."})
+                    continue
 
-                total_amount = float(total_amount_str)
+                status = (row.get('status') or '').strip() or 'Cash'
 
-                # Try to parse products if provided, else empty list
-                products = []
-                if products_raw:
-                    try:
-                        import json
-                        products = json.loads(products_raw)
-                        if not isinstance(products, list):
-                            raise ValueError('products must be a JSON array')
-                    except Exception:
-                        # If invalid JSON, store as empty and report warning
-                        products = []
-                        errors.append(f'Row {idx}: Invalid products JSON, saved as empty list.')
+                warehouse_name = (row.get('warehouse') or '').strip().lower()
+                warehouse = warehouses_by_name.get(warehouse_name)
+                if not warehouse:
+                    errors.append({'row': row_num, 'message': f"Warehouse '{row.get('warehouse')}' not found in database."})
+                    continue
 
-                # Generate invoice number if blank
-                if not invoice_number:
-                    invoice_number = get_next_invoice_number('sale')
+                product_name = (row.get('productName') or '').strip()
+                product = products_by_name.get(product_name.lower())
+                if not product:
+                    errors.append({'row': row_num, 'message': f"Product '{product_name}' not found in database."})
+                    continue
 
-                sale = Sale(
-                    id=generate_id('sale'),
-                    invoiceNumber=invoice_number,
-                    customerName=customer_name,
-                    products=products,
-                    totalAmount=total_amount,
-                    date=date,
-                    status=status,
-                    warehouseId=warehouse_id
+                try:
+                    quantity = int(row.get('quantity') or 0)
+                    price = float(row.get('price') or 0)
+                except ValueError:
+                    errors.append({'row': row_num, 'message': f"Invalid quantity or price in row."})
+                    continue
+
+                if quantity <= 0:
+                    errors.append({'row': row_num, 'message': 'Quantity must be > 0.'})
+                    continue
+
+                customer_name = (row.get('customerName') or '').strip()
+                shop_name = (row.get('shopName') or '').strip()
+                contact = (row.get('contact') or '').strip()
+                address = (row.get('address') or '').strip()
+
+                if sale_type == 'Retail' and not customer_name:
+                    errors.append({'row': row_num, 'message': 'Retail sale requires customerName.'})
+                    continue
+                if sale_type == 'Wholesale' and not shop_name:
+                    errors.append({'row': row_num, 'message': 'Wholesale sale requires shopName.'})
+                    continue
+
+                # Build grouping key (one sale can have many product rows)
+                key = (
+                    sale_type,
+                    date_str,
+                    status,
+                    warehouse.id,
+                    customer_name.lower(),
+                    shop_name.lower()
                 )
-                db.session.add(sale)
-                created += 1
 
-            except Exception as row_err:
-                errors.append(f'Row {idx}: {str(row_err)}')
+                if key not in grouped:
+                    grouped[key] = {
+                        'type': sale_type,
+                        'date': date_str,
+                        'status': status,
+                        'warehouseId': warehouse.id,
+                        'customerName': customer_name,
+                        'shopName': shop_name,
+                        'contact': contact,
+                        'address': address,
+                        'products': []
+                    }
+
+                grouped[key]['products'].append({
+                    'productId': product.id,
+                    'name': product.name,   # for frontend convenience
+                    'quantity': quantity,
+                    'price': price
+                })
+
+            except Exception as e:
+                errors.append({'row': row_num, 'message': f'Unexpected error: {str(e)}'})
+
+        # Create sales in DB
+        created_count = 0
+
+        for key, sale_data in grouped.items():
+            try:
+                products_list = sale_data['products']
+                total_amount = sum(p['quantity'] * p['price'] for p in products_list)
+
+                if sale_data['type'] == 'Retail':
+                    sale = Sale(
+                        id=generate_id('sale'),
+                        invoiceNumber=get_next_invoice_number('sale'),
+                        customerName=sale_data['customerName'],
+                        products=products_list,
+                        totalAmount=total_amount,
+                        date=sale_data['date'],
+                        status=sale_data['status'],
+                        warehouseId=sale_data['warehouseId']
+                    )
+                    db.session.add(sale)
+                else:
+                    sale = WholesaleSale(
+                        id=generate_id('wsale'),
+                        invoiceNumber=get_next_invoice_number('wholesale_sale'),
+                        shopName=sale_data['shopName'],
+                        contact=sale_data['contact'],
+                        address=sale_data['address'],
+                        products=products_list,
+                        totalAmount=total_amount,
+                        date=sale_data['date'],
+                        status=sale_data['status'],
+                        warehouseId=sale_data['warehouseId']
+                    )
+                    db.session.add(sale)
+
+                created_count += 1
+
+            except Exception as e:
+                errors.append({'key': str(key), 'message': f'Failed to create sale: {str(e)}'})
 
         db.session.commit()
 
-        return jsonify({
-            'message': 'Sales import completed',
-            'created': created,
-            'errors': errors
-        }), 200
+        return jsonify({'created': created_count, 'errors': errors}), 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'created': 0, 'errors': [{'row': 0, 'message': str(e)}]}), 500
 
 
 # --- WHOLESALE SALES API ---
@@ -1524,6 +1618,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
