@@ -55,7 +55,8 @@ const [formData, setFormData] = useState({
   const [currentProduct, setCurrentProduct] = useState('');
   const [currentQty, setCurrentQty] = useState(1);
   const [currentPrice, setCurrentPrice] = useState(0);
-  
+  console.log('Editing sale data:', formData);
+
   
   useEffect(() => {
     if (sale) {
