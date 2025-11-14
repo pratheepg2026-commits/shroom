@@ -1167,6 +1167,31 @@ def add_expense():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/expenses/<string:expense_id>', methods=['PUT'])
+def update_expense(expense_id):
+    try:
+        expense = Expense.query.get(expense_id)
+        if not expense:
+            return jsonify({'error': 'Expense not found'}), 404
+
+        data = request.get_json() or {}
+
+        expense.category = data.get('category', expense.category)
+        expense.description = data.get('description', expense.description)
+        expense.amount = data.get('amount', expense.amount)
+        expense.date = data.get('date', expense.date)
+
+        # Optional warehouse change
+        if 'warehouse_id' in data:
+            expense.warehouse_id = data['warehouse_id']
+
+        db.session.commit()
+        return jsonify(expense.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/expenses/<string:exp_id>', methods=['DELETE'])
 def delete_expense(exp_id):
     """Delete expense"""
@@ -1560,6 +1585,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
