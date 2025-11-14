@@ -868,7 +868,7 @@ def add_sale():
             invoiceNumber=get_next_invoice_number('sale'),
             customerName=data['customerName'],
             products=products_in_sale,
-            totalAmount=data['totalAmount'],
+            totalAmount=0 if data.get('status') == 'Free' else data['totalAmount'],
             date=data['date'],
             status=data['status'],
             warehouseId=data.get('warehouseId')
@@ -1146,12 +1146,23 @@ def add_wholesale_sale():
             contact=data.get('contact', ''),
             address=data.get('address', ''),
             products=products_in_sale,
-            totalAmount=data['totalAmount'],
+            totalAmount=0 if data.get('status') == 'Free' else data['totalAmount'],
             date=data['date'],
             status=data['status'],
             warehouseId = data.get('warehouseId')
         )
         db.session.add(sale)
+        if sale.status == 'Free':
+            expense_desc = f"Free wholesale sample - Invoice {sale.invoiceNumber}"
+            free_expense = Expense(
+                id=generate_id('expense'),
+                category='FREE_SAMPLES',
+                description=expense_desc,
+                amount=abs(data.get('totalAmount', 0)),
+                date=sale.date,
+                warehouse_id=sale.warehouseId
+            )
+            db.session.add(free_expense)
         db.session.commit()
         return jsonify(sale.to_dict()), 201
     except Exception as e:
@@ -1695,6 +1706,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
