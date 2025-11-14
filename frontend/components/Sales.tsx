@@ -407,11 +407,18 @@ const Sales: React.FC = () => {
             address: saleData.address,
             date: saleData.date,
             status: saleData.status,
-            totalAmount: saleData.status === "Free" 
-            ? -Math.abs(saleData.totalAmount)
-            : saleData.totalAmount,
-        
-            isLoss: saleData.status === "Free",
+            let prepared = { ...formData };
+
+            if (prepared.status === "Free") {
+              prepared = {
+                ...prepared,
+                totalAmount: -Math.abs(prepared.totalAmount),
+                isLoss: true,
+              };
+            }
+            
+            onSave(prepared, saleType);
+
             warehouseId: finalWarehouse,
             products: saleData.products.map((p: SaleProduct) => {
                 const product = products.find(prod => prod.name === p.name);
