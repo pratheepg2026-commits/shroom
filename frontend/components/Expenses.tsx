@@ -278,23 +278,37 @@ const Expenses: React.FC = () => {
 
   setIsImporting(true);
   try {
-    const result = await importExpensesFromCSV(file); // expects { created, errors?: [{ row, message }] }
+    const result = await importExpensesFromCSV(file); // { created, errors?: [...] }
     console.log('[EXPENSE IMPORT RESULT]', result);
 
-    if (result?.errors && result.errors.length > 0) {
-      // Log full detail in console
+    if (result?.errors && Array.isArray(result.errors) && result.errors.length > 0) {
       console.error('[EXPENSE IMPORT ERRORS]', result.errors);
 
       const errorLines = result.errors
-        .slice(0, 10) // avoid insane alerts if many
-        .map((err: any) => `Row ${err.row}: ${err.message}`)
+        .slice(0, 10) // avoid huge alerts
+        .map((err: any, idx: number) => {
+          // Try different possible field names:
+          const row =
+            err.row ??
+            err.line ??
+            err.rowNumber ??
+            (typeof err.rowIndex === 'number' ? err.rowIndex + 1 : undefined) ??
+            `#${idx + 1}`;
+
+          const msg =
+            err.message ??
+            err.error ??
+            (typeof err === 'string' ? err : JSON.stringify(err));
+
+          return `Row ${row}: ${msg}`;
+        })
         .join('\n');
 
       alert(
         `Import completed with issues.\n` +
-        `Imported: ${result.created}\n` +
+        `Imported: ${result.created ?? 0}\n` +
         `Errors: ${result.errors.length}\n\n` +
-        `${errorLines}`
+        errorLines
       );
     } else {
       alert(`Successfully imported ${result?.created ?? 0} expenses.`);
@@ -306,6 +320,7 @@ const Expenses: React.FC = () => {
     alert(`Failed to import CSV: ${err.message || 'Unknown error'}`);
   } finally {
     setIsImporting(false);
+    // allow re-selecting the same file
     e.target.value = '';
   }
 };
