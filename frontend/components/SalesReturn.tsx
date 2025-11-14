@@ -30,7 +30,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
     const [currentPrice, setCurrentPrice] = useState<number>(0);
     const [validationError, setValidationError] = useState<string>('');
 
-    c
+    
 
 
     const originalProductsList = useMemo(() => {
