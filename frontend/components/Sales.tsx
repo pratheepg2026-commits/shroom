@@ -147,6 +147,13 @@ const SaleForm: React.FC<{
         alert("Please select a warehouse.");
         return;
     }
+    if (formData.status === "Free") {
+      setFormData(prev => ({
+          ...prev,
+          totalAmount: -Math.abs(prev.totalAmount),
+          isLoss: true
+      }));
+  }
     onSave(formData, saleType);
   };
   
@@ -362,19 +369,12 @@ const Sales: React.FC = () => {
       return;
     }
   
-    console.log('✅ Using warehouse:', finalWarehouse);
+   
      if (!selectedWarehouse) {
         alert("Please select a warehouse before saving.");
         return; // Prevent proceeding without valid warehouse
       }
 
-    console.log('==========================================');
-    console.log('handleSave CALLED');
-    console.log('saleData:', JSON.stringify(saleData, null, 2));
-    console.log('saleType:', saleType);
-    console.log('selectedWarehouse:', selectedWarehouse);
-    console.log('==========================================');
-    
     try {
         const isEditing = !!saleData.id;
         console.log('isEditing:', isEditing);
@@ -389,7 +389,11 @@ const Sales: React.FC = () => {
             address: saleData.address,
             date: saleData.date,
             status: saleData.status,
-            totalAmount: saleData.totalAmount,
+            totalAmount: saleData.status === "Free" 
+            ? -Math.abs(saleData.totalAmount)
+            : saleData.totalAmount,
+        
+            isLoss: saleData.status === "Free",
             warehouseId: finalWarehouse,
             products: saleData.products.map((p: SaleProduct) => {
                 const product = products.find(prod => prod.name === p.name);
