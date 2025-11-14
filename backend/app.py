@@ -352,7 +352,9 @@ def generate_random_string(length=6):
 class SalesReturn(db.Model):
     __tablename__ = 'sales_returns'
     
-    id = db.Column(db.String, primary_key=True)
+    id = Column(UUID(as_uuid=True),
+                primary_key=True,
+                server_default=text("gen_random_uuid()"))
     sale_id = db.Column(db.String, nullable=False)
     returned_products = db.Column(db.JSON, nullable=False)
     date = db.Column(db.String, nullable=False)
@@ -1361,6 +1363,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
