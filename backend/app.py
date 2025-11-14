@@ -880,6 +880,7 @@ def add_sale():
         if sale.status == 'Free':
             expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
             free_expense = Expense(
+                id=generate_id('expense'),    
                 category='FREE_SAMPLES',
                 description=expense_desc,
                 amount=abs(sale.totalAmount or 0),
@@ -1193,7 +1194,9 @@ def delete_wholesale_sale(sale_id):
         if not sale:
             return jsonify({'error': 'Wholesale sale not found'}), 404
         
-        warehouse_id = request.args.get('warehouseId', 'default')
+        warehouse_id = sale.warehouseId
+        if not warehouse_id:
+            return jsonify({'error': 'Sale has no warehouseId set'}), 400
         
         # Restore inventory
         for p in sale.products or []:
@@ -1692,6 +1695,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
