@@ -160,18 +160,14 @@ const SaleForm: React.FC<{
   }
 
   const prepared = {
-    ...formData,
-    totalAmount:
-      formData.status === "Free"
-        ? Math.abs(formData.totalAmount) * (-1)  // e.g., 100 → -100
-        : formData.totalAmount,
-    isLoss: formData.status === "Free",
-  };
-
-  onSave(prepared, saleType);
+  ...formData,
+  // Keep the original (positive) total in DB
+  totalAmount: formData.totalAmount,
+  // Flag it as a loss logically
+  isLoss: formData.status === "Free",
 };
-
-  
+    onSave(prepared, saleType);
+};
   const retailProducts = products.filter(p => !p.name.toLowerCase().includes('monthly'));
 
   return (
@@ -612,7 +608,9 @@ const handleImportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                         {s.type}
                     </span>
                 </td>
-                <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
+                <td className="px-6 py-4">{formatCurrency(s.status === 'Free'
+                ? -Math.abs(s.totalAmount) // show visually as loss
+                : s.totalAmount )}</td>
                 <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(s.status)}`}>
                         {s.status}
