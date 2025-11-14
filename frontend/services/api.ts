@@ -139,3 +139,20 @@ export async function importSalesFromCSV(file: File) {
   // Expected shape: { created: number, errors?: Array<{ row: number; message: string }> }
   return response.json();
 }
+export async function importExpensesFromCSV(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${BASE_URL}/expenses/import-csv`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || 'Failed to import expenses CSV');
+  }
+
+  // Expected shape: { created: number, errors?: Array<{ row: number; message: string }> }
+  return response.json();
+}
