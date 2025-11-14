@@ -847,34 +847,35 @@ def add_sale():
     """Create new retail sale"""
     try:
         data = request.get_json()
+
         warehouse_id = data.get('warehouseId')
         if not warehouse_id:
             return jsonify({'error': 'Valid warehouseId is required'}), 400
-            
+
         products_in_sale = data.get('products', [])
         if not products_in_sale:
             return jsonify({'error': 'No products provided for sale'}), 400
 
-        # Check stock availability
+        # ✅ Check stock availability
         is_available, message = check_stock_availability(products_in_sale, warehouse_id)
         if not is_available:
             return jsonify({'error': message}), 400
 
-        # Deduct inventory
+        # ✅ Deduct inventory
         for p in products_in_sale:
             update_inventory(p['productId'], warehouse_id, -p['quantity'])
 
-        # Create sale record
+        # ✅ Create sale record
         sale = Sale(
             id=generate_id('sale'),
             invoiceNumber=get_next_invoice_number('sale'),
-            customerName=data['customerName'],
-            contact=data.get('contact', ''),        # ✅ optional
-            address=data.get('address', ''),  
+            customerName=data.get('customerName'),
+            contact=data.get('contact', ''),     # optional
+            address=data.get('address', ''),     # optional
             products=products_in_sale,
-            totalAmount=0 if data.get('status') == 'Free' else data('totalAmount',0),
-            date=data['date'],
-            status=data['status'],
+            totalAmount=0 if data.get('status') == 'Free' else data.get('totalAmount', 0),
+            date=data.get('date'),
+            status=data.get('status'),
             warehouseId=data.get('warehouseId')
         )
 
@@ -884,7 +885,7 @@ def add_sale():
         if sale.status == 'Free':
             expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
             free_expense = Expense(
-                id=generate_id('expense'),    
+                id=generate_id('expense'),
                 category='FREE_SAMPLES',
                 description=expense_desc,
                 amount=abs(data.get('totalAmount', 0)),
@@ -1721,6 +1722,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
