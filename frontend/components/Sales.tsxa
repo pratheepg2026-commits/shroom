@@ -161,11 +161,8 @@ const SaleForm: React.FC<{
 
   const prepared = {
     ...formData,
-    totalAmount:
-      formData.status === "Free"
-        ? Math.abs(formData.totalAmount) * (-1)  // e.g., 100 → -100
-        : formData.totalAmount,
-    isLoss: formData.status === "Free",
+    totalAmount: saleData.totalAmount,   // already negative if free
+    isLoss: saleData.status === "Free",
   };
 
   onSave(prepared, saleType);
