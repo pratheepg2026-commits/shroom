@@ -159,15 +159,14 @@ const SaleForm: React.FC<{
     return;
   }
 
-  let prepared = { ...formData };
-
-  if (prepared.status === "Free") {
-    prepared = {
-      ...prepared,
-      totalAmount: -Math.abs(prepared.totalAmount),
-      isLoss: true,
-    };
-  }
+  const prepared = {
+    ...formData,
+    totalAmount:
+      formData.status === "Free"
+        ? -Math.abs(formData.totalAmount)  // e.g., 100 → -100
+        : formData.totalAmount,
+    isLoss: formData.status === "Free",
+  };
 
   onSave(prepared, saleType);
 };
