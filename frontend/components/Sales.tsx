@@ -508,21 +508,34 @@ const handleImportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   setIsImporting(true);
   try {
     const result = await importSalesFromCSV(file); // calls /api/sales/import-csv
+
+    console.log('[IMPORT RESULT]', result);  // 👈 helpful in console
+
     if (result?.errors && result.errors.length > 0) {
+      const firstError = result.errors[0];
       alert(
-        `Import completed with issues.\nImported: ${result.created}\nErrors: ${result.errors.length}`
+        [
+          `Import completed with issues.`,
+          `Imported: ${result.created}`,
+          `Errors: ${result.errors.length}`,
+          `First error (row ${firstError.row ?? 'N/A'}):`,
+          firstError.message ?? JSON.stringify(firstError),
+        ].join('\n')
       );
     } else {
       alert(`Successfully imported ${result?.created ?? 0} sales.`);
     }
+
     await fetchData();
   } catch (err: any) {
+    console.error('[IMPORT ERROR]', err);
     alert(`Failed to import CSV: ${err.message || 'Unknown error'}`);
   } finally {
     setIsImporting(false);
-    e.target.value = '';
+    e.target.value = ''; // allow re-upload same file
   }
 };
+
 
 
     const openDeleteConfirm = (id: string, type: 'Retail' | 'Wholesale') => {
