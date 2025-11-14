@@ -871,20 +871,23 @@ def add_sale():
             totalAmount=data['totalAmount'],
             date=data['date'],
             status=data['status'],
-            warehouseId = data.get('warehouseId')
+            warehouseId=data.get('warehouseId')
         )
-        
-         db.session.add(sale)
-         if sale.status == 'Free':
+
+        db.session.add(sale)
+
+        # ✅ Handle Free Sample as Expense
+        if sale.status == 'Free':
             expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
             free_expense = Expense(
-                category='FREE_SAMPLES',          # match your Enum
+                category='FREE_SAMPLES',
                 description=expense_desc,
                 amount=abs(sale.totalAmount or 0),
                 date=sale.date,
                 warehouse_id=sale.warehouseId
             )
-        db.session.add(free_expense)
+            db.session.add(free_expense)
+
         db.session.commit()
         return jsonify(sale.to_dict()), 201
 
@@ -1689,6 +1692,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
