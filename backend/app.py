@@ -874,8 +874,8 @@ def add_sale():
             warehouseId = data.get('warehouseId')
         )
          if sale.status == 'Free':
-        expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
-        free_expense = Expense(
+            expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
+            free_expense = Expense(
             category='FREE_SAMPLES',          # match your Enum
             description=expense_desc,
             amount=abs(sale.totalAmount or 0),
@@ -1688,6 +1688,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
