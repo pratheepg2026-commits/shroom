@@ -1,3 +1,5 @@
+import type { InventoryItem } from '../types';
+
 const BASE_URL =import.meta.env.VITE_API_URL?.trim() || 'https://shroommush.onrender.com/api';
 
 console.log('[DEBUG] Using BASE_URL:', BASE_URL);
@@ -114,5 +116,26 @@ export async function getWarehousesFromSupabase(): Promise<Warehouse[]> {
   if (error) throw error;
   return data || [];
 }
-export const updateExpense = (id: string, data: any) =>
-  apiRequest(`/expenses/${id}`, 'PUT', data);
+export const updateExpense = (id: string, data: any): Promise<any> =>
+  apiRequest(`/expenses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+export async function importSalesFromCSV(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/sales/import-csv`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || 'Failed to import sales CSV');
+  }
+
+  // Expected shape: { created: number, errors?: Array<{ row: number; message: string }> }
+  return response.json();
+}
