@@ -238,6 +238,8 @@ class Sale(db.Model):
             'id': self.id,
             'invoiceNumber': self.invoiceNumber,
             'customerName': self.customerName,
+            'contact': self.contact,
+            'address': self.address,
             'date': self.date,
             'status': self.status,
             'totalAmount': self.totalAmount,
@@ -1722,6 +1724,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
