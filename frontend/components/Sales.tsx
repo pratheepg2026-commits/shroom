@@ -148,24 +148,30 @@ const SaleForm: React.FC<{
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if(formData.products.length === 0) {
-        alert("Please add at least one product to the sale.");
-        return;
-    }
-    if(!selectedWarehouse) {
-        alert("Please select a warehouse.");
-        return;
-    }
-    if (formData.status === "Free") {
-      setFormData(prev => ({
-          ...prev,
-          totalAmount: -Math.abs(prev.totalAmount),
-          isLoss: true
-      }));
+  e.preventDefault();
+
+  if (formData.products.length === 0) {
+    alert("Please add at least one product to the sale.");
+    return;
   }
-    onSave(formData, saleType);
-  };
+  if (!selectedWarehouse) {
+    alert("Please select a warehouse.");
+    return;
+  }
+
+  let prepared = { ...formData };
+
+  if (prepared.status === "Free") {
+    prepared = {
+      ...prepared,
+      totalAmount: -Math.abs(prepared.totalAmount),
+      isLoss: true,
+    };
+  }
+
+  onSave(prepared, saleType);
+};
+
   
   const retailProducts = products.filter(p => !p.name.toLowerCase().includes('monthly'));
 
