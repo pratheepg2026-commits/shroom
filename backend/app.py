@@ -207,6 +207,8 @@ class Sale(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     invoiceNumber = db.Column('invoice_number', db.String(50), unique=True)
     customerName = db.Column('customer_name', db.String(100), nullable=False)
+    contact = db.Column(db.String, nullable=True)   # ✅ add this line
+    address = db.Column(db.String, nullable=True)  
     products = db.Column(db.JSON)
     totalAmount = db.Column('total_amount', db.Float, nullable=False)
     date = db.Column(db.String(50), nullable=False)
@@ -867,6 +869,8 @@ def add_sale():
             id=generate_id('sale'),
             invoiceNumber=get_next_invoice_number('sale'),
             customerName=data['customerName'],
+            contact=data.get('contact', ''),        # ✅ optional
+            address=data.get('address', ''),  
             products=products_in_sale,
             totalAmount=0 if data.get('status') == 'Free' else data('totalAmount',0),
             date=data['date'],
@@ -1717,6 +1721,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
