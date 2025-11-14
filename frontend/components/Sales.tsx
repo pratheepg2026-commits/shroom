@@ -215,6 +215,25 @@ const SaleForm: React.FC<{
 
         {saleType === 'Retail' ? (
              <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} placeholder="Customer Name" className="w-full bg-gray-800/50 border border-white/20 rounded-md p-2 text-gray-200" required />
+             <div className="form-group">
+                <label>Customer Contact (optional)</label>
+                <input
+                  type="text"
+                  value={formData.contact || ''}
+                  onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                  placeholder="Mobile number"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Address (optional)</label>
+                <input
+                  type="text"
+                  value={formData.address || ''}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Customer address"
+                />
+              </div>
         ) : (
             <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
