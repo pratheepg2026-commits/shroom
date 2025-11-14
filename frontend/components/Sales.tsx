@@ -35,6 +35,9 @@ const SaleForm: React.FC<{
 }> = ({ sale, products, inventory, warehouses, selectedWarehouse, onWarehouseChange, onSave, onCancel }) => {
   
   const isEditing = sale !== null;
+  const [saleTiming, setSaleTiming] = useState<'immediate' | 'scheduled'>(
+  isEditing ? 'scheduled' : 'immediate'
+);
   const initialType = isEditing ? sale.type : 'Retail';
 
   const [saleType, setSaleType] = useState<'Retail' | 'Wholesale'>(initialType);
@@ -67,11 +70,12 @@ const SaleForm: React.FC<{
     }
   }, [sale]);
 
-  useEffect(() => {
-    if (saleTiming === 'immediate') {
-        setFormData(prev => ({...prev, date: getLocalDateString(new Date())}));
-    }
-  }, [saleTiming]);
+  uuseEffect(() => {
+  // ✅ Only auto-set today's date for NEW sales
+  if (saleTiming === 'immediate' && !isEditing) {
+    setFormData(prev => ({ ...prev, date: getLocalDateString(new Date()) }));
+  }
+}, [saleTiming, isEditing]);
 
   useEffect(() => {
     const total = formData.products.reduce((sum, p) => sum + p.price * p.quantity, 0);
