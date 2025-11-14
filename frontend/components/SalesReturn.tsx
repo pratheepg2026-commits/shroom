@@ -387,7 +387,17 @@ const SalesReturn: React.FC = () => {
     }
 };
 
-
+     const getProductName = (productId) => {
+      if (!Array.isArray(allProducts)) return "Unknown Product";
+    
+      const product = allProducts.find(p => 
+        p.id === productId || 
+        p.productId === productId || 
+        p.product_id === productId
+      );
+    
+      return product?.name || "Unknown Product";
+    };
 
     const handleExportCSV = () => {
         setIsExportingCSV(true);
@@ -418,17 +428,7 @@ const SalesReturn: React.FC = () => {
     };
     
     const formatCurrency = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
-    const getProductName = (productId) => {
-      if (!Array.isArray(allProducts)) return "Unknown Product";
-    
-      const product = allProducts.find(p => 
-        p.id === productId || 
-        p.productId === productId || 
-        p.product_id === productId
-      );
-    
-      return product?.name || "Unknown Product";
-    };
+   
     if (loading) return <LoadingSpinner />;
     if (error) return <ApiError onRetry={fetchData} />;
     
