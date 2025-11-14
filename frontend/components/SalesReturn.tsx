@@ -155,6 +155,9 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ sale, allReturnsForSale, onRetu
     const returnedProductsWithIds = returnedProducts.map(p => {
         const product = allProducts.find(prod => prod.name === p.name);
         if (!product) throw new Error(`Product not found: ${p.name}`);
+        console.log("All products:", allProducts);
+        console.log("Trying lookup for:", p.productId);
+
         return {
             productId: product.id,
             quantity: p.quantity,
