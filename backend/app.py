@@ -1431,54 +1431,91 @@ def add_sales_return():
 
 @app.route('/api/dashboard-stats', methods=['GET'])
 def get_dashboard_stats():
-    """Get dashboard statistics for current month"""
     try:
         current_month_sales = [s for s in Sale.query.all() if is_current_month(s.date)]
         current_month_wholesale = [ws for ws in WholesaleSale.query.all() if is_current_month(ws.date)]
         current_month_expenses = [e for e in Expense.query.all() if is_current_month(e.date)]
-        
-        total_sales = sum(s.totalAmount for s in current_month_sales) + sum(ws.totalAmount for ws in current_month_wholesale)
-        total_expenses = sum(e.amount for e in current_month_expenses)
-        
+
+        # ✅ Split sales: paid vs free/loss
+        retail_paid = [s for s in current_month_sales if s.status != 'Free' and not getattr(s, 'isLoss', False)]
+        wholesale_paid = [ws for ws in current_month_wholesale if ws.status != 'Free' and not getattr(ws, 'isLoss', False)]
+
+        retail_free = [s for s in current_month_sales if s.status == 'Free' or getattr(s, 'isLoss', False)]
+        wholesale_free = [ws for ws in current_month_wholesale if ws.status == 'Free' or getattr(ws, 'isLoss', False)]
+
+        # ✅ Sales = only PAID amounts
+        total_paid_retail = sum(s.totalAmount for s in retail_paid)
+        total_paid_wholesale = sum(ws.totalAmount for ws in wholesale_paid)
+        total_sales = total_paid_retail + total_paid_wholesale
+
+        # ✅ Free samples: treat as EXPENSE (take absolute value)
+        free_sample_expense = sum(
+            abs(s.totalAmount)
+            for s in (retail_free + wholesale_free)
+        )
+
+        # ✅ Normal expenses from Expense table
+        normal_expenses = sum(e.amount for e in current_month_expenses)
+
+        # ✅ Total expenses = normal + free samples
+        total_expenses = normal_expenses + free_sample_expense
+
+        # ✅ Profit = paid sales - (normal expenses + free samples)
+        net_profit = total_sales - total_expenses
+
+        # ✅ Per-day sales: only paid orders
         sales_by_day = {}
-        for s in current_month_sales:
+        for s in retail_paid:
             day = datetime.strptime(s.date, '%Y-%m-%d').day
             if day not in sales_by_day:
                 sales_by_day[day] = {'sales': 0, 'retailOrders': 0, 'wholesaleOrders': 0}
             sales_by_day[day]['sales'] += s.totalAmount
             sales_by_day[day]['retailOrders'] += 1
-        
-        for ws in current_month_wholesale:
+
+        for ws in wholesale_paid:
             day = datetime.strptime(ws.date, '%Y-%m-%d').day
             if day not in sales_by_day:
                 sales_by_day[day] = {'sales': 0, 'retailOrders': 0, 'wholesaleOrders': 0}
             sales_by_day[day]['sales'] += ws.totalAmount
             sales_by_day[day]['wholesaleOrders'] += 1
-        
+
+        # ✅ Expense breakdown (only normal expenses in category split)
         expense_breakdown = {}
         for e in current_month_expenses:
             cat = e.category
             expense_breakdown[cat] = expense_breakdown.get(cat, 0) + e.amount
-        
-        net_profit = total_sales - total_expenses
-        
+
         stats = {
-            'currentMonthSales': total_sales,
-            'currentMonthRetailSales': sum(s.totalAmount for s in current_month_sales),
-            'currentMonthWholesaleSales': sum(ws.totalAmount for ws in current_month_wholesale),
-            'activeSubscriptions': len([s for s in Subscription.query.all() if s.status == 'Active']),
-            'currentMonthExpenses': total_expenses,
+            'currentMonthSales': total_sales,                      # only paid
+            'currentMonthRetailSales': total_paid_retail,          # only paid retail
+            'currentMonthWholesaleSales': total_paid_wholesale,    # only paid wholesale
+
+            'currentMonthExpenses': total_expenses,                # includes free sample
+            'currentMonthNormalExpenses': normal_expenses,         # optional
+            'freeSampleAsExpense': free_sample_expense,            # optional
+
             'currentMonthProfit': net_profit,
-            'salesByDay': [{'day': d, **data} for d, data in sales_by_day.items()],
-            'expenseBreakdown': [{'name': name, 'value': value} for name, value in expense_breakdown.items()]
+
+            'activeSubscriptions': len(
+                [s for s in Subscription.query.all() if s.status == 'Active']
+            ),
+
+            'salesByDay': [
+                {'day': d, **data}
+                for d, data in sales_by_day.items()
+            ],
+            'expenseBreakdown': [
+                {'name': name, 'value': value}
+                for name, value in expense_breakdown.items()
+            ],
         }
-        
-        if net_profit > 0:
-            stats['expenseBreakdown'].append({'name': 'Net Profit', 'value': net_profit})
-        
-        return jsonify(stats)
+
+        return jsonify(stats), 200
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print("Error generating dashboard stats:", e)
+        return jsonify({'error': 'Failed to generate dashboard stats'}), 500
+
 
 @app.route('/api/customers', methods=['GET'])
 def get_customers():
@@ -1585,6 +1622,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
