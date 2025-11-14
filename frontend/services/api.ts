@@ -152,7 +152,5 @@ export async function importExpensesFromCSV(file: File) {
     const text = await response.text().catch(() => '');
     throw new Error(text || 'Failed to import expenses CSV');
   }
-
-  // Expected shape: { created: number, errors?: Array<{ row: number; message: string }> }
-  return response.json();
+  return response.json(); // { created, errors: [...] }
 }
