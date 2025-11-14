@@ -7,6 +7,9 @@ Production-Ready Version
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Boolean, text
+from sqlalchemy.dialects.postgresql import UUID
+
 from datetime import datetime
 import os
 import time
@@ -1363,6 +1366,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
