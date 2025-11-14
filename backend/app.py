@@ -873,6 +873,16 @@ def add_sale():
             status=data['status'],
             warehouseId = data.get('warehouseId')
         )
+         if sale.status == 'Free':
+        expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
+        free_expense = Expense(
+            category='FREE_SAMPLES',          # match your Enum
+            description=expense_desc,
+            amount=abs(sale.totalAmount or 0),
+            date=sale.date,
+            warehouse_id=sale.warehouseId
+        )
+        db.session.add(free_expense)
         db.session.add(sale)
         db.session.commit()
         return jsonify(sale.to_dict()), 201
@@ -909,10 +919,18 @@ def update_sale_endpoint(sale_id):
         if not sale:
             return jsonify({'error': 'Sale not found'}), 404
 
-        # ✅ update basic fields
+        # ----- BASIC FIELDS (same as before, only slightly safer for date) -----
         sale.customerName = data.get('customerName', sale.customerName)
-        sale.date = data.get('date', sale.date)
-        sale.status = data.get('status', sale.status)
+
+        # date comes as "YYYY-MM-DD" from frontend; keep existing if not sent
+        if 'date' in data and data['date']:
+            try:
+                sale.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            except ValueError:
+                # If your column is a string, you can just store it as is
+                sale.date = data['date']
+
+        sale.status      = data.get('status', sale.status)
         sale.warehouseId = data.get('warehouseId', sale.warehouseId)
 
         # ✅ update products & totalAmount only if passed
@@ -921,11 +939,43 @@ def update_sale_endpoint(sale_id):
         if 'totalAmount' in data:
             sale.totalAmount = data['totalAmount']
 
+        # ----- NEW: sync FREE sample to Expenses table -----
+        # We'll identify the linked expense by description + category
+        expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
+        free_expense = Expense.query.filter_by(
+            category='FREE_SAMPLES',      # make sure this exists in your Enum
+            description=expense_desc
+        ).first()
+
+        if sale.status == 'Free':
+            # If sale is FREE, ensure an expense exists & is correct
+            amount = abs(sale.totalAmount or 0)
+
+            if free_expense:
+                free_expense.amount       = amount
+                free_expense.date         = sale.date
+                free_expense.warehouse_id = sale.warehouseId
+            else:
+                new_exp = Expense(
+                    category='FREE_SAMPLES',
+                    description=expense_desc,
+                    amount=amount,
+                    date=sale.date,
+                    warehouse_id=sale.warehouseId
+                )
+                db.session.add(new_exp)
+        else:
+            # If sale is NOT free anymore, delete existing FREE_SAMPLES expense
+            if free_expense:
+                db.session.delete(free_expense)
+        # ----- END NEW -----
+
         db.session.commit()
         return jsonify(sale.to_dict())
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 
 
@@ -944,7 +994,18 @@ def delete_sale(sale_id):
 
         # Restore inventory back to that warehouse
         for p in sale.products or []:
+            # assumes p has productId & quantity
             update_inventory(p['productId'], warehouse_id, p['quantity'])
+
+        # ----- NEW: delete linked FREE_SAMPLES expense, if any -----
+        expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
+        free_expense = Expense.query.filter_by(
+            category='FREE_SAMPLES',
+            description=expense_desc
+        ).first()
+        if free_expense:
+            db.session.delete(free_expense)
+        # ----- END NEW -----
 
         db.session.delete(sale)
         db.session.commit()
@@ -952,6 +1013,7 @@ def delete_sale(sale_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/api/expenses/import-csv', methods=['POST'])
@@ -1626,6 +1688,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
