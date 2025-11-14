@@ -1,5 +1,5 @@
 // Sales.tsx - Complete with Warehouse Integration
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getSales, addSale, updateSale, deleteSale, getProducts, getInventory, getWholesaleSales, addWholesaleSale, updateWholesaleSale, deleteWholesaleSale, getWarehouses,  importSalesFromCSV } from '../services/api';
 import { Sale, Product, SaleProduct, InventoryItem, SaleStatus, WholesaleSale, Warehouse } from '../types';
 import { exportToCSV } from '../services/csvExporter';
@@ -608,6 +608,8 @@ const handleImportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                     className="hidden"
                     onChange={handleImportChange}
                   />
+                </div>
+             </div>
 
             <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
