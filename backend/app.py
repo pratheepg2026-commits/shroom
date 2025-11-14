@@ -873,6 +873,8 @@ def add_sale():
             status=data['status'],
             warehouseId = data.get('warehouseId')
         )
+        
+        db.session.add(sale)
          if sale.status == 'Free':
             expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
             free_expense = Expense(
@@ -883,7 +885,6 @@ def add_sale():
             warehouse_id=sale.warehouseId
         )
         db.session.add(free_expense)
-        db.session.add(sale)
         db.session.commit()
         return jsonify(sale.to_dict()), 201
 
@@ -1688,6 +1689,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
