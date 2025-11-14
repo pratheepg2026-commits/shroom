@@ -299,7 +299,7 @@ const Sales: React.FC = () => {
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [selectedSale, setSelectedSale] = useState<CombinedSale | null>(null);
     const [saleToDelete, setSaleToDelete] = useState<{id: string, type: 'Retail' | 'Wholesale'} | null>(null);
-    const [isExporting, setIsExporting] = useState(false);
+    
     const [isExportingCSV, setIsExportingCSV] = useState(false);
     const [isImporting, setIsImporting] = useState(false);        // ✅ NEW
 
@@ -471,47 +471,7 @@ const Sales: React.FC = () => {
         }
     };
     
-    const handleExportPDF = () => {
-        setIsExporting(true);
-        const jspdf = (window as any).jspdf;
-        const autoTable = (window as any).autoTable;
-    
-        if (!jspdf || !autoTable) {
-            alert("PDF generation libraries not loaded.");
-            setIsExporting(false);
-            return;
-        }
-    
-        try {
-          const { jsPDF } = jspdf;
-          const doc = new jsPDF();
-    
-          doc.setFontSize(18);
-          doc.text("SHROOMMUSH - Sales Report", 14, 22);
-    
-          autoTable(doc, {
-            startY: 40,
-            head: [['Date', 'Type', 'Invoice #', 'Customer/Shop', 'Total', 'Status']],
-            body: sales.map(s => [
-                s.date,
-                s.type,
-                s.invoiceNumber,
-                s.type === 'Retail' ? s.customerName : s.shopName,
-                formatCurrency(s.totalAmount),
-                s.status,
-            ]),
-            headStyles: { fillColor: [34, 197, 94] },
-          });
-    
-          doc.save('sales-report.pdf');
-        } catch (error) {
-          console.error("Error exporting PDF:", error);
-          alert("An error occurred while generating the PDF.");
-        } finally {
-          setIsExporting(false);
-        }
-      };
-
+   
     const handleExportCSV = () => {
         setIsExportingCSV(true);
         try {
