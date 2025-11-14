@@ -273,29 +273,43 @@ const Expenses: React.FC = () => {
   };
 
   const handleImportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    setIsImporting(true);
-    try {
-      const result = await importExpensesFromCSV(file);
-      // Expecting { created: number, errors?: [{ row, message }] }
-      if (result?.errors?.length) {
-        alert(
-          `Import completed with issues.\nImported: ${result.created}\nErrors: ${result.errors.length}`,
-        );
-      } else {
-        alert(`Successfully imported ${result?.created ?? 0} expenses.`);
-      }
-      await fetchData();
-    } catch (err: any) {
-      console.error('CSV import failed', err);
-      alert(`Failed to import expenses CSV: ${err.message || 'Unknown error'}`);
-    } finally {
-      setIsImporting(false);
-      e.target.value = '';
+  setIsImporting(true);
+  try {
+    const result = await importExpensesFromCSV(file); // expects { created, errors?: [{ row, message }] }
+    console.log('[EXPENSE IMPORT RESULT]', result);
+
+    if (result?.errors && result.errors.length > 0) {
+      // Log full detail in console
+      console.error('[EXPENSE IMPORT ERRORS]', result.errors);
+
+      const errorLines = result.errors
+        .slice(0, 10) // avoid insane alerts if many
+        .map((err: any) => `Row ${err.row}: ${err.message}`)
+        .join('\n');
+
+      alert(
+        `Import completed with issues.\n` +
+        `Imported: ${result.created}\n` +
+        `Errors: ${result.errors.length}\n\n` +
+        `${errorLines}`
+      );
+    } else {
+      alert(`Successfully imported ${result?.created ?? 0} expenses.`);
     }
-  };
+
+    await fetchData();
+  } catch (err: any) {
+    console.error('[EXPENSE IMPORT FAILED]', err);
+    alert(`Failed to import CSV: ${err.message || 'Unknown error'}`);
+  } finally {
+    setIsImporting(false);
+    e.target.value = '';
+  }
+};
+
 
   const handleEditClick = (expense: Expense) => {
     setEditingExpense(expense);
