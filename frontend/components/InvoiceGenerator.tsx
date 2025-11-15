@@ -256,7 +256,7 @@ const InvoiceGenerator: React.FC = () => {
               <p>Thank you for your business!</p>
              
              
-              <p className="terms" style="text-align: left;" > Terms & Conditions: <br/>
+              <p className="terms" > Terms & Conditions: <br/>
               1. All mushrooms are freshly harvested and must be refrigerated immediately after delivery.<br/>
               2.Customer is responsible for proper handling and storage after delivery. The farm is not liable for spoilage caused by improper storage or delay in refrigeration.<br/> 
               3. Any quality issues must be reported within 6 hours of delivery with proof.<br/> 
@@ -416,7 +416,9 @@ const InvoiceGenerator: React.FC = () => {
         .terms {
           font-size: 12px;
           color: #666;
+          text-align: left;
         }
+        
 
         /* Screen preview styles */
         @media screen {
