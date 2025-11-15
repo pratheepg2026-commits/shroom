@@ -249,8 +249,10 @@ const InvoiceGenerator: React.FC = () => {
             {/* Footer */}
             <div className="invoice-footer">
               <p>Thank you for your business!</p>
-              <p className="terms">Terms & Conditions: All mushrooms are freshly harvested and inspected before dispatch. Mushrooms being perishable items must be stored in a cool environment immediately after delivery.
-              Customer is responsible for proper handling and storage after delivery. The farm is not liable for spoilage caused by improper storage or delay in refrigeration.</p>
+              <p className="terms">Terms & Conditions: 
+              </p>
+              <p>Customer is responsible for proper handling and storage after delivery. The farm is not liable for spoilage caused by improper storage or delay in refrigeration.</p>
+            <p>All mushrooms are freshly harvested and inspected before dispatch. Mushrooms being perishable items must be stored in a cool environment immediately after delivery.</p>
             </div>
           </div>
         </div>
