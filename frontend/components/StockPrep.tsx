@@ -42,130 +42,103 @@ const StockPrep: React.FC = () => {
 
   
 const fetchStockPrep = React.useCallback(async () => {
-  console.log('[DEBUG] fetchStockPrep() called');
-  setLoading(true);
-  setError(null);
+    console.log('[DEBUG] fetchStockPrep() called');
+    setLoading(true);
+    setError(null);
 
-  try {
-    const response = await fetch('https://shroommush.onrender.com/api/stock-prep', {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    try {
+        const response = await fetch('https://shroommush.onrender.com/api/stock-prep', {
+            headers: { 'Content-Type': 'application/json' },
+        });
 
-    console.log('[DEBUG] Response status:', response.status);
+        console.log('[DEBUG] Response status:', response.status);
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const raw = await response.json();
+        console.log('[DEBUG] Parsed data:', raw);
+
+        // Backend already calculates today/tomorrow in IST – if missing, bail
+        if (!raw.today || !raw.tomorrow) {
+            console.warn('[DEBUG] Incomplete stock prep response', raw);
+            setStockData(null);
+            return;
+        }
+
+        // Map backend delivery -> UI StockPrepOrder
+        const mapDelivery = (d: any): StockPrepOrder => {
+            const base = {
+                id: d.id,
+                customerName: d.customerName || d.name || 'Unknown',
+                deliveryDate: d.deliveryDate || d.date || '',
+                type: (d.type as StockPrepOrder['type']) || 'Retail',
+                address: d.address || '',
+                phone: d.phone || d.contact || '',
+            };
+
+            // Subscriptions: backend sends "boxes" + "plan"
+            if (base.type === 'Subscription') {
+                const boxes = d.boxes ?? d.quantity ?? 0;
+                const planName = d.plan || 'Subscription';
+                const products =
+                    boxes > 0 ? [{ name: planName, quantity: boxes }] : [];
+                return { ...base, products };
+            }
+
+            // Retail / Wholesale: backend sends "products"
+            const apiProducts = Array.isArray(d.products) ? d.products : [];
+            const products = apiProducts.map((p: any) => ({
+                name: p.name || p.productName || 'Item',
+                quantity: p.quantity ?? p.qty ?? 0,
+            }));
+
+            return { ...base, products };
+        };
+
+        // Build DayData from backend "today"/"tomorrow"
+        const buildDayData = (day: any): DayData => {
+            const deliveries: StockPrepOrder[] = (day.deliveries || []).map(mapDelivery);
+
+            const totalBoxes = deliveries.reduce(
+                (sum, d) =>
+                    sum +
+                    d.products.reduce(
+                        (pSum, p) => pSum + (p.quantity || 0),
+                        0
+                    ),
+                0
+            );
+
+            return {
+                date: day.date,
+                day: day.day,
+                deliveries,
+                totalBoxes,
+                breakdown: {
+                    subscriptions: deliveries.filter(d => d.type === 'Subscription').length,
+                    retail: deliveries.filter(d => d.type === 'Retail').length,
+                    wholesale: deliveries.filter(d => d.type === 'Wholesale').length,
+                },
+            };
+        };
+
+        const finalStockData: StockPrepData = {
+            today: buildDayData(raw.today),
+            tomorrow: buildDayData(raw.tomorrow),
+        };
+
+        console.log('[DEBUG] finalStockData:', finalStockData);
+        setStockData(finalStockData);
+    } catch (err) {
+        console.error('[DEBUG] fetchStockPrep error:', err);
+        setError((err as Error).message || 'Failed to load stock data');
+    } finally {
+        setLoading(false);
     }
-
-    const data = await response.json();
-    console.log('[DEBUG] Parsed data:', data);
-
-    if (!data.dateRange) {
-      console.warn('[DEBUG] Missing dateRange in API response');
-      setStockData(null);
-      return;
-    }
-
-    // Process deliveries for a specific date
-    const processDeliveries = (targetDate: string): StockPrepOrder[] => {
-      const orders: StockPrepOrder[] = [];
-      
-      console.log(`[DEBUG] Processing deliveries for ${targetDate}`);
-
-      // Process subscriptions - check if delivery matches target date
-      (data.subscriptions || []).forEach((sub: any) => {
-        // For now, add active subscriptions to today's deliveries
-        // You can add logic to calculate actual delivery dates based on preferredDeliveryDay
-        const subDate = sub.startDate || '';
-        const dayOfWeek = new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' });
-        
-        if (sub.status === 'Active' && sub.preferredDeliveryDay === dayOfWeek) {
-          orders.push({
-            id: sub.id,
-            customerName: sub.name || 'Unknown',
-            products: [{ name: sub.plan || 'Subscription', quantity: 1 }],
-            deliveryDate: targetDate,
-            type: 'Subscription',
-            address: sub.address || '',
-            phone: sub.phone || ''
-          });
-          console.log(`[DEBUG] Added subscription: ${sub.name} for ${dayOfWeek}`);
-        }
-      });
-
-      // Process retail sales matching target date
-      (data.retailSales || []).forEach((sale: any) => {
-        if (sale.date === targetDate && sale.status === 'Pending') {
-          orders.push({
-            id: sale.id,
-            customerName: sale.customerName || 'Unknown',
-            products: sale.products || [],
-            deliveryDate: sale.date,
-            type: 'Retail',
-            address: sale.address || '',
-            phone: sale.phone || ''
-          });
-          console.log(`[DEBUG] Added retail sale: ${sale.customerName}`);
-        }
-      });
-
-      // Process wholesale sales matching target date
-      (data.wholesaleSales || []).forEach((sale: any) => {
-        if (sale.date === targetDate && sale.status === 'Pending') {
-          orders.push({
-            id: sale.id,
-            customerName: sale.shopName || 'Unknown',
-            products: sale.products || [],
-            deliveryDate: sale.date,
-            type: 'Wholesale',
-            address: sale.address || '',
-            phone: sale.contact || ''
-          });
-          console.log(`[DEBUG] Added wholesale sale: ${sale.shopName}`);
-        }
-      });
-
-      console.log(`[DEBUG] Total orders for ${targetDate}: ${orders.length}`);
-      return orders;
-    };
-
-    const todayDeliveries = processDeliveries(data.dateRange.today);
-    const tomorrowDeliveries = processDeliveries(data.dateRange.tomorrow);
-
-    const makeDayData = (dateStr: string, deliveries: StockPrepOrder[]): DayData => {
-      const totalBoxes = deliveries.reduce((sum, d) => 
-        sum + d.products.reduce((pSum, p) => pSum + (p.quantity || 0), 0), 0
-      );
-
-      return {
-        date: dateStr,
-        day: new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' }),
-        deliveries,
-        totalBoxes,
-        breakdown: {
-          subscriptions: deliveries.filter(d => d.type === 'Subscription').length,
-          retail: deliveries.filter(d => d.type === 'Retail').length,
-          wholesale: deliveries.filter(d => d.type === 'Wholesale').length,
-        }
-      };
-    };
-
-    const finalStockData: StockPrepData = {
-      today: makeDayData(data.dateRange.today, todayDeliveries),
-      tomorrow: makeDayData(data.dateRange.tomorrow, tomorrowDeliveries),
-    };
-
-    console.log('[DEBUG] finalStockData:', finalStockData);
-    setStockData(finalStockData);
-
-  } catch (err) {
-    console.error('[DEBUG] fetchStockPrep error:', err);
-    setError((err as Error).message || 'Unknown error');
-  } finally {
-    console.log('[DEBUG] Setting loading = false');
-    setLoading(false);
-  }
 }, []);
+
 
 useEffect(() => {
     fetchStockPrep();
