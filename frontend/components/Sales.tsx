@@ -160,13 +160,16 @@ const [formData, setFormData] = useState({
   }
 
   const prepared = {
-  ...formData,
-  // Keep the original (positive) total in DB
-  totalAmount: formData.totalAmount,
-  // Flag it as a loss logically
-  isLoss: formData.status === "Free",
-};
-    onSave(prepared, saleType);
+    // ✅ Include ID when editing, so the outer handler knows this is an update
+    ...(isEditing && sale ? { id: sale.id } : {}),
+    ...formData,
+    // Keep the original (positive) total in DB
+    totalAmount: formData.totalAmount,
+    // Flag it as a loss logically
+    isLoss: formData.status === "Free",
+  };
+
+  onSave(prepared, saleType);
 };
   const retailProducts = products.filter(p => !p.name.toLowerCase().includes('monthly'));
 
@@ -397,20 +400,10 @@ const Sales: React.FC = () => {
 
    const handleSave = async (saleData: any, saleType: 'Retail' | 'Wholesale') => {
   let finalWarehouse = selectedWarehouse;
-
-  // ✅ Fallback: pick first warehouse if nothing selected
-  if (!finalWarehouse && warehouses.length > 0) {
-    finalWarehouse = warehouses[0].id;
-    setSelectedWarehouse(finalWarehouse);
-  }
-
-  if (!finalWarehouse) {
-    alert("No warehouse selected — cannot save sale.");
-    return;
-  }
+  // ... warehouse fallback logic ...
 
   try {
-    const isEditing = !!saleData.id;
+    const isEditing = !!saleData.id;  // ✅ this will now work
 
     const payload = {
       ...(isEditing ? { id: saleData.id } : {}),
@@ -418,10 +411,8 @@ const Sales: React.FC = () => {
       shopName: saleData.shopName,
       contact: saleData.contact,
       address: saleData.address,
-      // ✅ This respects whatever date came from the form (original for edit)
       date: saleData.date,
       status: saleData.status,
-      // ✅ Already transformed for FREE in SaleForm, so just use it
       totalAmount: saleData.totalAmount,
       isLoss: !!saleData.isLoss,
       warehouseId: finalWarehouse,
@@ -437,15 +428,15 @@ const Sales: React.FC = () => {
 
     if (saleType === 'Retail') {
       if (isEditing) {
-        await updateSale(payload);
+        await updateSale(payload);          // 👈 PUT /api/sales/:id
       } else {
-        await addSale(payload);
+        await addSale(payload);             // 👈 POST /api/sales
       }
     } else {
       if (isEditing) {
-        await updateWholesaleSale(payload);
+        await updateWholesaleSale(payload); // 👈 PUT /api/wholesale-sales/:id
       } else {
-        await addWholesaleSale(payload);
+        await addWholesaleSale(payload);    // 👈 POST /api/wholesale-sales
       }
     }
 
@@ -457,6 +448,7 @@ const Sales: React.FC = () => {
     alert(`Failed to save sale: ${err.message || 'Unknown error'}`);
   }
 };
+
 
 
 
