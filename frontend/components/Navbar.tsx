@@ -50,6 +50,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) => {
         <NavItem view="subscriptions" label="Subscriptions" icon={<SubscriptionIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="sales" label="Sales" icon={<SalesIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="salesReturn" label="Sales Return" icon={<SalesReturnIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
+         <NavItem view="invoiceGenerator" label="Invoice Generator" icon={<InvoiceGeneratorIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="products" label="Products" icon={<ProductsIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="pnl" label="P&L" icon={<ProfitLossIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="expenses" label="Expenses" icon={<ExpenseIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
@@ -120,6 +121,12 @@ const SalesReturnIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2z" />
     </svg>
+);
+const InvoiceGeneratorIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5h6m-6 4h6" />
+  </svg>
 );
 const ProductsIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m0 10l8 4m0 0l8-4m-8 4V7" /></svg>
