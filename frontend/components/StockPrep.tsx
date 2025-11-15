@@ -158,82 +158,87 @@ useEffect(() => {
                 return 'bg-gray-500/20 text-gray-400';
         }
     };
-
-    const DeliverySection = ({ title, data }: { title: string; data: DayData }) => (
-        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-                <div>
-                    <h3 className="text-xl font-semibold text-emerald-400">{title}</h3>
-                    <p className="text-gray-400 text-sm">{data.day}, {data.date}</p>
-                </div>
-                <div className="bg-emerald-500/20 rounded-lg px-4 py-2">
-                    <p className="text-2xl font-bold text-emerald-400">{data.totalBoxes}</p>
-                    <p className="text-xs text-gray-400">Total Boxes</p>
-                </div>
+const DeliverySection = ({ title, data }: { title: string; data: DayData }) => (
+    <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+            <div>
+                <h3 className="text-xl font-semibold text-emerald-400">{title}</h3>
+                <p className="text-gray-400 text-sm">
+                    {data.day}, {data.date}
+                </p>
             </div>
-
-            <div className="flex gap-2 mb-4 flex-wrap">
-                <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium">
-                    {data.breakdown.subscriptions} Subscriptions
-                </span>
-                <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium">
-                    {data.breakdown.retail} Retail
-                </span>
-                <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-medium">
-                    {data.breakdown.wholesale} Wholesale
-                </span>
+            <div className="bg-emerald-500/20 rounded-lg px-4 py-2">
+                <p className="text-2xl font-bold text-emerald-400">{data.totalBoxes}</p>
+                <p className="text-xs text-gray-400">Total Boxes</p>
             </div>
+        </div>
 
-            {data.deliveries.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No deliveries scheduled</p>
-            ) : (
-                <div className="space-y-3">
-                    {data.deliveries.map((delivery) => (
-                        <div key={`${delivery.type}-${delivery.id}`} ...>
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                        <h4 className="font-semibold text-white">
-                                            {delivery.customerName}
-                                        </h4>
-                                        <span
-                                            className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeBadgeClass(delivery.type)}`}
-                                        >
-                                            {delivery.type}
-                                        </span>
-                                    </div>
-                    
-                                    {/* 👇 Add this block */}
-                                    {delivery.address && (
-                                        <p className="text-sm text-gray-400">
-                                            {delivery.address}
-                                        </p>
-                                    )}
-                    
-                                    {delivery.phone && (
-                                        <p className="text-sm text-gray-400">
-                                            Phone: {delivery.phone}
-                                        </p>
-                                    )}
-                                    {/* 👆 Up to here */}
-                    
-                                    <div className="mt-2 text-sm text-gray-300">
-                                        {delivery.products.map((p, idx) => (
-                                            <span key={idx} className="inline-block mr-3">
-                                                {p.quantity} x {p.name}
-                                            </span>
-                                        ))}
-                                    </div>
+        <div className="flex gap-2 mb-4 flex-wrap">
+            <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium">
+                {data.breakdown.subscriptions} Subscriptions
+            </span>
+            <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium">
+                {data.breakdown.retail} Retail
+            </span>
+            <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-medium">
+                {data.breakdown.wholesale} Wholesale
+            </span>
+        </div>
+
+        {data.deliveries.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No deliveries scheduled</p>
+        ) : (
+            <div className="space-y-3">
+                {data.deliveries.map((delivery) => (
+                    <div
+                        key={`${delivery.type}-${delivery.id}`}
+                        className="bg-white/5 rounded-lg p-4 border border-white/5"
+                    >
+                        <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <h4 className="font-semibold text-white">
+                                        {delivery.customerName}
+                                    </h4>
+                                    <span
+                                        className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeBadgeClass(
+                                            delivery.type
+                                        )}`}
+                                    >
+                                        {delivery.type}
+                                    </span>
                                 </div>
-                                {/* ...rest of your right-side content, if any */}
+
+                                {/* Address */}
+                                {delivery.address && (
+                                    <p className="text-sm text-gray-400">
+                                        {delivery.address}
+                                    </p>
+                                )}
+
+                                {/* Phone */}
+                                {delivery.phone && (
+                                    <p className="text-sm text-gray-400">
+                                        Phone: {delivery.phone}
+                                    </p>
+                                )}
+
+                                {/* Products */}
+                                <div className="mt-2 text-sm text-gray-300">
+                                    {delivery.products.map((p, idx) => (
+                                        <span key={idx} className="inline-block mr-3">
+                                            {p.quantity} x {p.name}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    ))}
-  </div>
-            )}
-        </div>
-    );
-
+                    </div>
+                ))}
+            </div>
+        )}
+    </div>
+);
     if (loading) return <LoadingSpinner />;
     if (error) return <div className="text-red-400 text-center py-8">{error}</div>;
 
