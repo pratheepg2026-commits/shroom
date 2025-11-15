@@ -127,6 +127,7 @@ export interface SalesReturn {
     returnedProducts: SalesReturnProduct[];
     totalRefundAmount: number;
     date: string; // YYYY-MM-DD
+    reason?: string;
 }
 
 // Types for Customer Hub
