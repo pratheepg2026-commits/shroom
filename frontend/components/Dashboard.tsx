@@ -28,6 +28,39 @@ const ExpenseIcon = () => (
 const ProfitLossIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
 );
+const BoxIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M3.75 7.5L12 3.75l8.25 3.75M3.75 7.5V16.5L12 20.25m0-12.75v9M20.25 7.5V16.5L12 20.25"
+    />
+  </svg>
+);
+
+const ReturnIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 15L3 9l6-6M3 9h9a6 6 0 010 12h-3"
+    />
+  </svg>
+);
 
 
 const LoadingSpinner = () => (
@@ -139,85 +172,62 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate }) => {
                     {isExporting ? 'Exporting...' : 'Export as PDF'}
                 </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('reporting')}>
-                    <Card 
-                        title="Current Month Sales" 
-                        value={formatCurrency(stats.currentMonthSales)}
-                        icon={<CurrencyRupeeIcon className="h-8 w-8" />}
-                        description={`Retail: ${formatCurrency(stats.currentMonthRetailSales)} | Wholesale: ${formatCurrency(stats.currentMonthWholesaleSales)}`}
-                    />
-                </div>
-                 <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('subscriptions', { filterStatus: Status.ACTIVE })}>
-                    <Card 
-                        title="Active Subscriptions" 
-                        value={stats.activeSubscriptions}
-                        icon={<UsersIcon className="h-8 w-8" />}
-                    />
-                </div>
-                 <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('expenses')}>
-                    <Card 
-                        title="Current Month Expenses" 
-                        value={formatCurrency(stats.currentMonthExpenses)}
-                        icon={<ExpenseIcon />}
-                    />
-                </div>
-                 <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('pnl')}>
-                    <Card 
-                        title="Current Month Profit" 
-                        value={formatCurrency(stats.currentMonthProfit)}
-                        icon={<ProfitLossIcon />}
-                        description={stats.currentMonthProfit >= 0 ? 'In profit' : 'In loss'}
-                    />
-                </div>
-            </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('reporting')}>
+        <Card 
+            title="Current Month Sales" 
+            value={formatCurrency(stats.currentMonthSales)}
+            icon={<CurrencyRupeeIcon className="h-8 w-8" />}
+            description={`Retail: ${formatCurrency(stats.currentMonthRetailSales)} | Wholesale: ${formatCurrency(stats.currentMonthWholesaleSales)}`}
+        />
+    </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold mb-4 text-white">Sales this Month</h2>
-                    <ResponsiveContainer width="100%" height={300}>
-                       <BarChart data={salesChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <defs>
-                                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0.4}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                            <XAxis dataKey="day" stroke="#9ca3af" tick={{ fill: '#d1d5db' }} />
-                            <YAxis stroke="#9ca3af" tick={{ fill: '#d1d5db' }} tickFormatter={(value) => formatCurrency(value as number)} />
-                            <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255, 255, 255, 0.05)'}}/>
-                            <Bar dataKey="sales" fill="url(#colorSales)" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+    <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('subscriptions', { filterStatus: Status.ACTIVE })}>
+        <Card 
+            title="Active Subscriptions" 
+            value={stats.activeSubscriptions}
+            icon={<UsersIcon className="h-8 w-8" />}
+        />
+    </div>
 
-                <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold mb-4 text-white">
-                        {stats.currentMonthProfit >= 0 ? 'Revenue Breakdown' : 'Expense Breakdown'}
-                    </h2>
-                     <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                             <Tooltip contentStyle={{ backgroundColor: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}/>
-                             <Legend wrapperStyle={{ color: '#e5e7eb' }}/>
-                             <Pie
-                                data={stats.expenseBreakdown}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                outerRadius={100}
-                                fill="#8884d8"
-                                dataKey="value"
-                                nameKey="name"
-                            >
-                                {stats.expenseBreakdown.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.name === 'Net Profit' ? '#f59e0b' : PIE_COLORS[index % PIE_COLORS.length]} />
-                                ))}
-                            </Pie>
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
+    <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('expenses')}>
+        <Card 
+            title="Current Month Expenses" 
+            value={formatCurrency(stats.currentMonthExpenses)}
+            icon={<ExpenseIcon />}
+        />
+    </div>
+
+    <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('pnl')}>
+        <Card 
+            title="Current Month Profit" 
+            value={formatCurrency(stats.currentMonthProfit)}
+            icon={<ProfitLossIcon />}
+            description={stats.currentMonthProfit >= 0 ? 'In profit' : 'In loss'}
+        />
+    </div>
+
+    {/* 🔽 NEW CARD: Total Boxes Sold */}
+    <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('reporting', { defaultReport: 'warehouse' })}>
+        <Card 
+            title="Total Boxes Sold (This Month)" 
+            value={stats.totalBoxesSold.toString()}
+            icon={<BoxIcon className="h-8 w-8" />}
+            description="Total quantity sold across all invoices"
+        />
+    </div>
+
+    {/* 🔽 NEW CARD: Total Returns */}
+    <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => navigate('reporting', { defaultReport: 'returns' })}>
+        <Card 
+            title="Total Returns (This Month)" 
+            value={formatCurrency(stats.totalReturnAmount)}
+            icon={<ReturnIcon className="h-8 w-8" />}
+            description={`${stats.totalReturnCount} return invoices`}
+        />
+    </div>
+</div>
+
         </div>
     );
 };
