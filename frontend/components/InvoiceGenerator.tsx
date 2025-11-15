@@ -242,7 +242,7 @@ const InvoiceGenerator: React.FC = () => {
 
   </div>
 </div>
-
+</div>
 
 
       {/* Invoice Preview & Print View */}
