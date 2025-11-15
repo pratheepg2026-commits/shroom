@@ -1,5 +1,5 @@
 // Fix: Create types file to define data structures and resolve module resolution errors.
-export type View = 'dashboard' | 'subscriptions' | 'sales' | 'salesReturn' | 'products' | 'pnl' | 'expenses' | 'unitEconomics' | 'inventory' | 'stockPrep' | 'reporting' | 'customers';
+export type View = 'dashboard' | 'subscriptions' | 'sales' | 'salesReturn' |'invoiceGenerator' |'products' | 'pnl' | 'expenses' | 'unitEconomics' | 'inventory' | 'stockPrep' | 'reporting' | 'customers';
 import { Sale, WholesaleSale, Expense, SalesReturn, Product, ExpenseCategory, PnlAnalysisData as PnlAnalysisDataType, Warehouse } from '../types';
 
 export enum Status {
