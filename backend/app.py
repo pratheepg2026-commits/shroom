@@ -368,7 +368,7 @@ class SalesReturn(db.Model):
     sale_id = db.Column(db.String, nullable=False)
     returned_products = db.Column(db.JSON, nullable=False)
     date = db.Column(db.String, nullable=False)
-    
+    reason = db.Column(db.String(255), nullable=True)
     def to_dict(self):
         original_sale = Sale.query.get(self.sale_id) or WholesaleSale.query.get(self.sale_id)
         
@@ -402,6 +402,7 @@ class SalesReturn(db.Model):
             'warehouseId': warehouse_id,
             'returnedProducts': self.returned_products,
             'date': self.date,
+            'reason': self.reason or '',
             'totalRefundAmount': total_refund  # Pass calculated refund amount
         }
     
@@ -1522,7 +1523,7 @@ def add_inventory_stock():
 def get_sales_returns():
     """Get all sales returns with derived data"""
     try:
-        returns = SalesReturn.query.all()
+        returns = SalesReturn.query.order_by(SalesReturn.date.desc(), SalesReturn.id.desc()).all()
         return jsonify([r.to_dict() for r in returns])
     except Exception as e:
         print(f"❌ Error getting sales returns: {str(e)}")
@@ -1546,7 +1547,8 @@ def add_sales_return():
         sales_return = SalesReturn(
             sale_id=data['saleId'],
             returned_products=data['returnedProducts'],  # Must include {productId, name, quantity, price}
-            date=data['date']
+            date=data['date'],
+            reason=data.get('reason', '') 
         )
         
         db.session.add(sales_return)
@@ -1757,6 +1759,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
