@@ -119,63 +119,93 @@ const InvoiceGenerator: React.FC = () => {
           </form>
         </div>
 
-        {/* Sales List */}
-        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden mb-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left text-gray-300">
-              <thead className="bg-white/5 uppercase text-xs">
-                <tr>
-                  <th scope="col" className="px-6 py-3">Date</th>
-                  <th scope="col" className="px-6 py-3">Invoice #</th>
-                  <th scope="col" className="px-6 py-3">Customer/Shop</th>
-                  <th scope="col" className="px-6 py-3">Type</th>
-                  <th scope="col" className="px-6 py-3">Amount</th>
-                  <th scope="col" className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSales.slice()
-                .sort((a, b) => {
-                  // Sort by date descending (newest first)
-                  const dateCompare = b.date.localeCompare(a.date);
-                  if (dateCompare !== 0) return dateCompare;
-                  
-                  // If dates are equal, sort by invoice number descending
-                  return b.invoiceNumber.localeCompare(a.invoiceNumber);}).map(s => (
-                              <tr
-                    key={s.id}
-                    className={`border-b border-white/10 hover:bg-white/5 transition-colors ${
-                      selectedSale?.id === s.id ? 'bg-emerald-500/10' : ''
-                    }`}
+     {/* Sales List */}
+<div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg overflow-hidden mb-6">
+  <div className="overflow-x-auto">
+    <table className="min-w-full text-sm text-left text-gray-300">
+      <thead className="bg-white/5 uppercase text-xs">
+        <tr>
+          <th scope="col" className="px-6 py-3">Date</th>
+          <th scope="col" className="px-6 py-3">Invoice #</th>
+          <th scope="col" className="px-6 py-3">Customer/Shop</th>
+          <th scope="col" className="px-6 py-3">Type</th>
+          <th scope="col" className="px-6 py-3">Amount</th>
+          <th scope="col" className="px-6 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filteredSales
+          .slice()
+          .sort((a, b) => {
+            // Sort by date descending (newest first)
+            const dateCompare = b.date.localeCompare(a.date);
+            if (dateCompare !== 0) return dateCompare;
+            return b.invoiceNumber.localeCompare(a.invoiceNumber);
+          })
+          .map(s => (
+            <tr
+              key={s.id}
+              className={`border-b border-white/10 hover:bg-white/5 transition-colors ${
+                selectedSale?.id === s.id ? 'bg-emerald-500/10' : ''
+              }`}
+            >
+              <td className="px-6 py-4">{s.date}</td>
+              <td className="px-6 py-4 font-mono text-xs">{s.invoiceNumber}</td>
+              <td className="px-6 py-4 font-medium text-white">
+                {'customerName' in s ? s.customerName : s.shopName}
+              </td>
+              <td className="px-6 py-4">
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    s.type === 'Retail'
+                      ? 'bg-blue-500/20 text-blue-300'
+                      : 'bg-purple-500/20 text-purple-300'
+                  }`}
+                >
+                  {s.type}
+                </span>
+              </td>
+              <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
+              <td className="px-6 py-4 text-right">
+                <div className="flex justify-end gap-2">
+                  {/* Select Button */}
+                  <Button 
+                    variant={selectedSale?.id === s.id ? 'primary' : 'secondary'} 
+                    onClick={() => handleSelectSale(s)}
                   >
-                    <td className="px-6 py-4">{s.date}</td>
-                    <td className="px-6 py-4 font-mono text-xs">{s.invoiceNumber}</td>
-                    <td className="px-6 py-4 font-medium text-white">
-                      {'customerName' in s ? s.customerName : s.shopName}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          s.type === 'Retail'
-                            ? 'bg-blue-500/20 text-blue-300'
-                            : 'bg-purple-500/20 text-purple-300'
-                        }`}
-                      >
-                        {s.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
-                    <td className="px-6 py-4 text-right">
-                      <Button variant="secondary" onClick={() => handleSelectSale(s)}>
-                        Select
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    {selectedSale?.id === s.id ? 'Selected' : 'Select'}
+                  </Button>
+                  
+                  {/* Print Button - only show if this sale is selected */}
+                  {selectedSale?.id === s.id && (
+                    <Button 
+                      variant="primary" 
+                      onClick={handlePrint}
+                      className="flex items-center gap-1"
+                    >
+                      <span>🖨️</span>
+                      <span>Print</span>
+                    </Button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{/* Remove this entire section - no longer needed */}
+{/* 
+{selectedSale && (
+  <div className="flex justify-end mb-6">
+    <Button onClick={handlePrint} variant="primary">
+      🖨️ Print Invoice
+    </Button>
+  </div>
+)}
+*/}
 
         {/* Print Button */}
         {selectedSale && (
