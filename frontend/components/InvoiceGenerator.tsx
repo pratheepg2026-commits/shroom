@@ -134,8 +134,15 @@ const InvoiceGenerator: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredSales.map(s => (
-                  <tr
+                {filteredSales.slice()
+                .sort((a, b) => {
+                  // Sort by date descending (newest first)
+                  const dateCompare = b.date.localeCompare(a.date);
+                  if (dateCompare !== 0) return dateCompare;
+                  
+                  // If dates are equal, sort by invoice number descending
+                  return b.invoiceNumber.localeCompare(a.invoiceNumber);}).map(s => (
+                              <tr
                     key={s.id}
                     className={`border-b border-white/10 hover:bg-white/5 transition-colors ${
                       selectedSale?.id === s.id ? 'bg-emerald-500/10' : ''
