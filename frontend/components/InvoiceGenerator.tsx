@@ -188,9 +188,9 @@ const InvoiceGenerator: React.FC = () => {
             <div className="invoice-header">
               <div className="company-info">
                 <h1>SHROOMMUSH</h1>
-                <p>Mushroom Farming & Distribution</p>
-                <p>Contact: +91-XXXXXXXXXX</p>
-                <p>Email: info@shroommush.com</p>
+                <p>By Amina Organic Farms</p>
+                <p>Contact: +91-6282700864</p>
+                <p>Email: shroommush@gmail.com</p>
               </div>
               <div className="invoice-details">
                 <h2>INVOICE</h2>
