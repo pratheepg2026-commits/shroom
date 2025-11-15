@@ -97,9 +97,7 @@ export interface DashboardStats {
         name: string;
         value: number;
     }[];
-    totalBoxesSold: number;           // total quantity sold in current month
-    totalReturnAmount: number;        // ₹ value of returns in current month
-    totalReturnCount: number;         // number of return invoices (for description)
+         // number of return invoices (for description)
 }
 
 export interface Warehouse {
