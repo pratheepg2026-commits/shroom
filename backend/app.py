@@ -763,37 +763,58 @@ def get_stock_prep():
                 elif delivery_date == tomorrow_str:
                     tomorrow_deliveries.append(delivery_obj)
 
-        # Process retail sales
+                # Process retail sales
         for sale in retail_sales:
+            s = sale.to_dict()  # use the helper that already builds products with names
+
             delivery_obj = {
                 'type': 'Retail',
-                'id': sale.id,
-                'customerName': getattr(sale, 'customerName', ''),
-                'address': getattr(sale, 'address', ''),
-                'phone': getattr(sale, 'phone', ''),
-                'products': getattr(sale, 'products', []),
-                'deliveryDate': sale.date
+                'id': s.get('id'),
+                'customerName': s.get('customerName', ''),
+                'address': s.get('address', ''),
+                # In the model it's called "contact", not "phone"
+                'phone': s.get('contact', ''),
+                # Only keep name + quantity for stock prep
+                'products': [
+                    {
+                        'name': p.get('name', 'Item'),
+                        'quantity': p.get('quantity', 0),
+                    }
+                    for p in s.get('products', [])
+                ],
+                'deliveryDate': s.get('date', ''),
             }
-            if sale.date == today_str:
+
+            if s.get('date') == today_str:
                 today_deliveries.append(delivery_obj)
-            elif sale.date == tomorrow_str:
+            elif s.get('date') == tomorrow_str:
                 tomorrow_deliveries.append(delivery_obj)
 
         # Process wholesale sales
         for wsale in wholesale_sales:
+            w = wsale.to_dict()  # again, use helper to resolve product names
+
             delivery_obj = {
                 'type': 'Wholesale',
-                'id': wsale.id,
-                'customerName': getattr(wsale, 'shopName', ''),
-                'address': getattr(wsale, 'address', ''),
-                'phone': getattr(wsale, 'contact', ''),
-                'products': getattr(wsale, 'products', []),
-                'deliveryDate': wsale.date
+                'id': w.get('id'),
+                'customerName': w.get('shopName', ''),
+                'address': w.get('address', ''),
+                'phone': w.get('contact', ''),
+                'products': [
+                    {
+                        'name': p.get('name', 'Item'),
+                        'quantity': p.get('quantity', 0),
+                    }
+                    for p in w.get('products', [])
+                ],
+                'deliveryDate': w.get('date', ''),
             }
-            if wsale.date == today_str:
+
+            if w.get('date') == today_str:
                 today_deliveries.append(delivery_obj)
-            elif wsale.date == tomorrow_str:
+            elif w.get('date') == tomorrow_str:
                 tomorrow_deliveries.append(delivery_obj)
+
 
         total_today = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in today_deliveries)
         total_tomorrow = sum(d.get('boxes', sum(p.get('quantity', 0) for p in d.get('products', []))) for d in tomorrow_deliveries)
@@ -1724,6 +1745,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
