@@ -134,64 +134,53 @@ const InvoiceGenerator: React.FC = () => {
         </tr>
       </thead>
       <tbody>
-        {filteredSales
-          .slice()
-          .sort((a, b) => {
-            // Sort by date descending (newest first)
-            const dateCompare = b.date.localeCompare(a.date);
-            if (dateCompare !== 0) return dateCompare;
-            return b.invoiceNumber.localeCompare(a.invoiceNumber);
-          })
-          .map(s => (
-            <tr
-              key={s.id}
-              className={`border-b border-white/10 hover:bg-white/5 transition-colors ${
-                selectedSale?.id === s.id ? 'bg-emerald-500/10' : ''
-              }`}
-            >
-              <td className="px-6 py-4">{s.date}</td>
-              <td className="px-6 py-4 font-mono text-xs">{s.invoiceNumber}</td>
-              <td className="px-6 py-4 font-medium text-white">
-                {'customerName' in s ? s.customerName : s.shopName}
-              </td>
-              <td className="px-6 py-4">
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                    s.type === 'Retail'
-                      ? 'bg-blue-500/20 text-blue-300'
-                      : 'bg-purple-500/20 text-purple-300'
-                  }`}
-                >
-                  {s.type}
-                </span>
-              </td>
-              <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
-              <td className="px-6 py-4 text-right">
-                <div className="flex justify-end gap-2">
-                  {/* Select Button */}
-                  <Button 
-                    variant={selectedSale?.id === s.id ? 'primary' : 'secondary'} 
-                    onClick={() => handleSelectSale(s)}
-                  >
-                    {selectedSale?.id === s.id ? 'Selected' : 'Select'}
-                  </Button>
-                  
-                  {/* Print Button - only show if this sale is selected */}
-                  {selectedSale?.id === s.id && (
-                    <Button 
-                      variant="primary" 
-                      onClick={handlePrint}
-                      className="flex items-center gap-1"
-                    >
-                      <span>🖨️</span>
-                      <span>Print</span>
-                    </Button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-      </tbody>
+  {filteredSales
+    .slice()
+    .sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return b.invoiceNumber.localeCompare(a.invoiceNumber);
+    })
+    .map(s => (
+      <tr
+        key={s.id}
+        className="border-b border-white/10 hover:bg-white/5 transition-colors"
+      >
+        <td className="px-6 py-4">{s.date}</td>
+        <td className="px-6 py-4 font-mono text-xs">{s.invoiceNumber}</td>
+        <td className="px-6 py-4 font-medium text-white">
+          {'customerName' in s ? s.customerName : s.shopName}
+        </td>
+        <td className="px-6 py-4">
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              s.type === 'Retail'
+                ? 'bg-blue-500/20 text-blue-300'
+                : 'bg-purple-500/20 text-purple-300'
+            }`}
+          >
+            {s.type}
+          </span>
+        </td>
+        <td className="px-6 py-4">{formatCurrency(s.totalAmount)}</td>
+        <td className="px-6 py-4 text-right">
+          {/* Single Print Invoice button */}
+          <Button 
+            variant="primary"
+            onClick={() => {
+              setSelectedSale(s);
+              setTimeout(() => handlePrint(), 100);
+            }}
+            className="flex items-center gap-2"
+          >
+            <span>🖨️</span>
+            <span>Print Invoice</span>
+          </Button>
+        </td>
+      </tr>
+    ))}
+</tbody>
+
     </table>
   </div>
 </div>
