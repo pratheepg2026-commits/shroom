@@ -243,26 +243,7 @@ const InvoiceGenerator: React.FC = () => {
   </div>
 </div>
 
-{/* Remove this entire section - no longer needed */}
-{/* 
-{selectedSale && (
-  <div className="flex justify-end mb-6">
-    <Button onClick={handlePrint} variant="primary">
-      🖨️ Print Invoice
-    </Button>
-  </div>
-)}
-*/}
 
-        {/* Print Button */}
-        {selectedSale && (
-          <div className="flex justify-end mb-6">
-            <Button onClick={handlePrint} variant="primary">
-              🖨️ Print Invoice
-            </Button>
-          </div>
-        )}
-      </div>
 
       {/* Invoice Preview & Print View */}
       {selectedSale && (
