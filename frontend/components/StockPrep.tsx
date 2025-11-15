@@ -189,39 +189,47 @@ useEffect(() => {
             ) : (
                 <div className="space-y-3">
                     {data.deliveries.map((delivery) => (
-                        <div 
-                            key={`${delivery.type}-${delivery.id}`} 
-                            className="bg-gray-800/50 rounded-lg p-4 border border-white/10 hover:bg-gray-800/70 transition"
-                        >
+                        <div key={`${delivery.type}-${delivery.id}`} ...>
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                        <h4 className="font-semibold text-white">{delivery.customerName}</h4>
-                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeBadgeClass(delivery.type)}`}>
+                                        <h4 className="font-semibold text-white">
+                                            {delivery.customerName}
+                                        </h4>
+                                        <span
+                                            className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeBadgeClass(delivery.type)}`}
+                                        >
                                             {delivery.type}
                                         </span>
                                     </div>
-                                    
+                    
+                                    {/* 👇 Add this block */}
                                     {delivery.address && (
-                                        <p className="text-sm text-gray-400">{delivery.address}</p>
+                                        <p className="text-sm text-gray-400">
+                                            {delivery.address}
+                                        </p>
                                     )}
-                                    
+                    
                                     {delivery.phone && (
-                                        <p className="text-sm text-gray-400">📞 {delivery.phone}</p>
+                                        <p className="text-sm text-gray-400">
+                                            Phone: {delivery.phone}
+                                        </p>
                                     )}
-                                    
-                                    <p className="text-xs text-emerald-400 mt-2">
-                                        {delivery.products.map(p => `${p.quantity}x ${p.name}`).join(', ')}
-                                    </p>
+                                    {/* 👆 Up to here */}
+                    
+                                    <div className="mt-2 text-sm text-gray-300">
+                                        {delivery.products.map((p, idx) => (
+                                            <span key={idx} className="inline-block mr-3">
+                                                {p.quantity} x {p.name}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
-                                
-                                <div className="bg-emerald-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                                    {delivery.products.reduce((sum, p) => sum + p.quantity, 0)}
-                                </div>
+                                {/* ...rest of your right-side content, if any */}
                             </div>
                         </div>
                     ))}
-                </div>
+  </div>
             )}
         </div>
     );
