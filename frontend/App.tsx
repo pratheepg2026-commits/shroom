@@ -12,6 +12,7 @@ import Inventory from './components/Inventory';
 import StockPrep from './components/StockPrep';
 import Reporting from './components/Reporting';
 import Customers from './components/Customers';
+import InvoiceGenerator from './components/InvoiceGenerator';
 import { View, Status } from './types';
 
 const App: React.FC = () => {
@@ -49,6 +50,8 @@ const App: React.FC = () => {
         return <Reporting />;
       case 'customers':
         return <Customers />;
+      case 'invoiceGenerator':  // ✅ Add this
+      return <InvoiceGenerator />;
       default:
         return <Dashboard navigate={navigate} />;
     }
