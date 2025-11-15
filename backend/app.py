@@ -974,11 +974,20 @@ def update_sale_endpoint(sale_id):
 
         # ----- NEW: sync FREE sample to Expenses table -----
         # We'll identify the linked expense by description + category
+                # ----- NEW: sync FREE sample to Expenses table -----
         expense_desc = f"Free sample - Invoice {sale.invoiceNumber}"
         free_expense = Expense.query.filter_by(
-            category='FREE_SAMPLES',      # make sure this exists in your Enum
+            category='FREE_SAMPLES',
             description=expense_desc
         ).first()
+
+        # Normalize date to string (YYYY-MM-DD) for Expense, since column is String
+        if isinstance(sale.date, datetime):
+            date_str = sale.date.strftime('%Y-%m-%d')
+        elif hasattr(sale.date, 'strftime'):  # datetime.date
+            date_str = sale.date.strftime('%Y-%m-%d')
+        else:
+            date_str = str(sale.date)
 
         if sale.status == 'Free':
             # If sale is FREE, ensure an expense exists & is correct
@@ -986,14 +995,15 @@ def update_sale_endpoint(sale_id):
 
             if free_expense:
                 free_expense.amount       = amount
-                free_expense.date         = sale.date
+                free_expense.date         = date_str
                 free_expense.warehouse_id = sale.warehouseId
             else:
                 new_exp = Expense(
+                    id=generate_id('expense'),        # 👈 REQUIRED
                     category='FREE_SAMPLES',
                     description=expense_desc,
                     amount=amount,
-                    date=sale.date,
+                    date=date_str,
                     warehouse_id=sale.warehouseId
                 )
                 db.session.add(new_exp)
@@ -1001,6 +1011,8 @@ def update_sale_endpoint(sale_id):
             # If sale is NOT free anymore, delete existing FREE_SAMPLES expense
             if free_expense:
                 db.session.delete(free_expense)
+        # ----- END NEW -----
+
         # ----- END NEW -----
 
         db.session.commit()
@@ -1745,6 +1757,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
