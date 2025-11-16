@@ -257,7 +257,7 @@ const InvoiceGenerator: React.FC = () => {
                     <img 
                         src={Logo} 
                         alt="Logo"
-                        className="h-20 w-auto object-contain scale-125"
+                        className="h-20 w-auto object-contain scale-80"
                     />
                 </div>
 
