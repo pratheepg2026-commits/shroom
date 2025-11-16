@@ -253,7 +253,7 @@ const InvoiceGenerator: React.FC = () => {
             {/* Header */}
             <div className="invoice-header">
               <div className="company-info">
-                <div className="w-full flex items-center h-20 border-b border-white/10 justify-start !justify-start">
+                <div className="flex items-center justify-start h-20 border-b border-white/10">
                     <img 
                         src={Logo} 
                         alt="Logo"
