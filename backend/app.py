@@ -1066,16 +1066,16 @@ def import_sales_csv():
     Import sales (both Retail and Wholesale) from CSV file
     
     Expected CSV columns:
-    type,customerOrShop,contact,address,date,status,warehouseId,productId,quantity,price
+    type,customerOrShop,contact,address,date,status,warehouseName,productName,quantity,price
     
     - type: 'Retail' or 'Wholesale'
     - customerOrShop: Customer name (Retail) or Shop name (Wholesale)
-    - contact: Phone number
-    - address: Address
+    - contact: Phone number (optional)
+    - address: Address (optional)
     - date: YYYY-MM-DD
     - status: Cash, GPay, Paid, Unpaid, Free
-    - warehouseId: Warehouse ID from database
-    - productId: Product ID from database
+    - warehouseName: Warehouse name (e.g., "Main Warehouse", "Storage A")
+    - productName: Product name (e.g., "Fresh Oyster Mushroom 250g")
     - quantity: Number (integer)
     - price: Price per unit (float)
     """
@@ -1089,7 +1089,7 @@ def import_sales_csv():
     content = file.read().decode('utf-8')
     reader = csv.DictReader(StringIO(content))
     
-    required_cols = {'type', 'customerOrShop', 'date', 'status', 'warehouseId', 'productId', 'quantity', 'price'}
+    required_cols = {'type', 'customerOrShop', 'date', 'status', 'warehouseName', 'productName', 'quantity', 'price'}
     header = set(reader.fieldnames or [])
     missing = required_cols - header
     if missing:
@@ -1105,7 +1105,21 @@ def import_sales_csv():
     errors = []
     row_num = 1
     
-    # Group rows by unique sale (same customer/shop + date + type)
+    # Cache for lookups to avoid repeated queries
+    warehouse_cache = {}
+    product_cache = {}
+    
+    # Pre-load all warehouses and products
+    all_warehouses = Warehouse.query.all()
+    all_products = Product.query.all()
+    
+    for w in all_warehouses:
+        warehouse_cache[w.name.lower().strip()] = w.id
+    
+    for p in all_products:
+        product_cache[p.name.lower().strip()] = p.id
+    
+    # Group rows by unique sale (same customer/shop + date + type + warehouse)
     sales_grouped = {}
     
     for row in reader:
@@ -1115,21 +1129,35 @@ def import_sales_csv():
             customer_or_shop = (row.get('customerOrShop') or '').strip()
             date_str = (row.get('date') or '').strip()
             status = (row.get('status') or '').strip()
-            warehouse_id = (row.get('warehouseId') or '').strip()
-            product_id = (row.get('productId') or '').strip()
+            warehouse_name = (row.get('warehouseName') or '').strip()
+            product_name = (row.get('productName') or '').strip()
             quantity_str = (row.get('quantity') or '').strip()
             price_str = (row.get('price') or '').strip()
             contact = (row.get('contact') or '').strip()
             address = (row.get('address') or '').strip()
             
             # Validate required fields
-            if not all([sale_type, customer_or_shop, date_str, status, warehouse_id, product_id, quantity_str, price_str]):
+            if not all([sale_type, customer_or_shop, date_str, status, warehouse_name, product_name, quantity_str, price_str]):
                 errors.append({'row': row_num, 'message': 'Missing required fields'})
                 continue
             
             if sale_type not in ['Retail', 'Wholesale']:
                 errors.append({'row': row_num, 'message': f"Invalid type '{sale_type}'. Must be 'Retail' or 'Wholesale'"})
                 continue
+            
+            # Lookup warehouse ID by name
+            warehouse_key = warehouse_name.lower().strip()
+            if warehouse_key not in warehouse_cache:
+                errors.append({'row': row_num, 'message': f"Warehouse not found: '{warehouse_name}'"})
+                continue
+            warehouse_id = warehouse_cache[warehouse_key]
+            
+            # Lookup product ID by name
+            product_key = product_name.lower().strip()
+            if product_key not in product_cache:
+                errors.append({'row': row_num, 'message': f"Product not found: '{product_name}'"})
+                continue
+            product_id = product_cache[product_key]
             
             try:
                 quantity = int(quantity_str)
@@ -1239,6 +1267,7 @@ def import_sales_csv():
     
     db.session.commit()
     return jsonify({'created': created, 'errors': errors}), 200
+
 
 
 @app.route('/api/expenses/import-csv', methods=['POST'])
@@ -1938,6 +1967,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
