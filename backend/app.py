@@ -1210,9 +1210,11 @@ def import_sales_csv():
                     warehouseId=sale_data['warehouseId']
                 )
                 
-                # Deduct inventory
-                for p in products:
-                    update_inventory(p['productId'], sale_data['warehouseId'], -p['quantity'])
+                # ✅ Skip inventory check for CSV imports (historical data)
+                # Just record the sale without deducting inventory
+                # Comment out or remove these lines:
+                # for p in products:
+                #     update_inventory(p['productId'], sale_data['warehouseId'], -p['quantity'])
                 
                 db.session.add(sale)
                 
@@ -1242,9 +1244,10 @@ def import_sales_csv():
                     warehouseId=sale_data['warehouseId']
                 )
                 
-                # Deduct inventory
-                for p in products:
-                    update_inventory(p['productId'], sale_data['warehouseId'], -p['quantity'])
+                # ✅ Skip inventory check for wholesale imports too
+                # Comment out or remove these lines:
+                # for p in products:
+                #     update_inventory(p['productId'], sale_data['warehouseId'], -p['quantity'])
                 
                 db.session.add(sale)
                 
@@ -1967,6 +1970,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
