@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View } from '../types';
+import logo from "../assets/logo.svg";
 
 interface NavbarProps {
   currentView: View;
@@ -92,11 +93,17 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) => {
 };
 
 // Icons
-const MushroomIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-        <path d="M12 2C9.24 2 7 4.24 7 7c0 1.68.81 3.15 2.05 4.07C6.01 11.53 4 14.49 4 18c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2 0-3.51-2.01-6.47-5.05-6.93C16.19 10.15 17 8.68 17 7c0-2.76-2.24-5-5-5zM10 12.1c-1.14-.6-2-1.78-2-3.1 0-1.65 1.35-3 3-3s3 1.35 3 3c0 1.32-.86 2.5-2 3.1V18h-2v-5.9z"/>
-    </svg>
-);
+const MushroomIcon: React.FC<{ className?: string }> = ({ className }) => {
+    return (
+        <img
+            src={logo}
+            alt="Logo"
+            className={className}
+        />
+    );
+};
+
+export default MushroomIcon;
 const DashboardIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
 );
