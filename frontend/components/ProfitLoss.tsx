@@ -73,6 +73,10 @@ const ProfitLoss: React.FC = () => {
 
     return { sales, wholesaleSales, expenses, salesReturns };
   }, [startDate, endDate, allSales, allWholesaleSales, allExpenses, allSalesReturns]);
+     // ✅ MOVE THIS TO TOP - Define formatCurrency FIRST
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
+  };
 
   // ✅ FIXED: Split paid vs free sales
   const paidRetailSales = filteredData.sales.filter(s => s.status !== 'Free');
