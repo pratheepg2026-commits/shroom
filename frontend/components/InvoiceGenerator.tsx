@@ -3,6 +3,7 @@ import { getSales, getWholesaleSales } from '../services/api';
 import { Sale, WholesaleSale } from '../types';
 import Button from './common/Button';
 import ApiError from './common/ApiError';
+import Logo from '../assets/logo.svg';
 
 type CombinedSale = (Sale & { type: 'Retail' }) | (WholesaleSale & { type: 'Wholesale' });
 
@@ -252,7 +253,14 @@ const InvoiceGenerator: React.FC = () => {
             {/* Header */}
             <div className="invoice-header">
               <div className="company-info">
-                <h1>SHROOMMUSH</h1>
+                <div className="flex items-center justify-center h-20 border-b border-white/10">
+                    <img 
+                        src={Logo} 
+                        alt="Logo"
+                        className="h-20 w-auto object-contain scale-150"
+                    />
+                </div>
+
                 <p>By Amina Organic Farms</p>
                 <p>Contact: +91-6282700864</p>
                 <p>Email: shroommush@gmail.com</p>
