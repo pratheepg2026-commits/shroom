@@ -40,8 +40,9 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView }) => {
   const navContent = (isExpanded: boolean) => (
     <>
       <div className="flex items-center justify-center h-20 border-b border-white/10">
-          <MushroomIcon className="h-16 w-16 text-emerald-400" />
+      <MushroomIcon className="h-16 w-48 object-contain" />
       </div>
+
       <nav className="flex-grow p-4">
         <NavItem view="dashboard" label="Dashboard" icon={<DashboardIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
         <NavItem view="stockPrep" label="Stock Prep" icon={<StockPrepIcon />} currentView={currentView} onClick={handleNavClick} isExpanded={isExpanded} />
