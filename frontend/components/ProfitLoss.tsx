@@ -104,28 +104,28 @@ const ProfitLoss: React.FC = () => {
 
   // ✅ Include Free samples in expense breakdown
   const allExpenseItems = [
-    ...filteredData.expenses.map(e => ({
-      id: e.id,
-      description: e.description,
-      category: e.category,
-      date: e.date,
-      amount: e.amount
-    })),
-    ...freeRetailSales.map(s => ({
-      id: `free_retail_${s.id}`,
-      description: `Free Sample - ${s.customerName}`,
-      category: 'FREE_SAMPLES',
-      date: s.date,
-      amount: Math.abs(s.totalAmount)
-    })),
-    ...freeWholesaleSales.map(ws => ({
-      id: `free_wholesale_${ws.id}`,
-      description: `Free Sample - ${ws.shopName}`,
-      category: 'FREE_SAMPLES',
-      date: ws.date,
-      amount: Math.abs(ws.totalAmount)
-    }))
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  ...filteredData.expenses.map(e => ({
+    id: e.id,
+    description: e.description,
+    category: e.category,
+    date: e.date,
+    amount: e.amount  // ✅ Raw number
+  })),
+  ...freeRetailSales.map(s => ({
+    id: `free_retail_${s.id}`,
+    description: `Free Sample - ${s.customerName}`,
+    category: 'FREE_SAMPLES',
+    date: s.date,
+    amount: Math.abs(s.totalAmount)  // ✅ Raw number
+  })),
+  ...freeWholesaleSales.map(ws => ({
+    id: `free_wholesale_${ws.id}`,
+    description: `Free Sample - ${ws.shopName}`,
+    category: 'FREE_SAMPLES',
+    date: ws.date,
+    amount: Math.abs(ws.totalAmount)  // ✅ Raw number
+  }))
+].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
   const handleExportPDF = () => {
     setIsExporting(true);
