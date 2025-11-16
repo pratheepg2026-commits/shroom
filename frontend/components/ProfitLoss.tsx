@@ -74,24 +74,59 @@ const ProfitLoss: React.FC = () => {
     return { sales, wholesaleSales, expenses, salesReturns };
   }, [startDate, endDate, allSales, allWholesaleSales, allExpenses, allSalesReturns]);
 
+  // ✅ FIXED: Split paid vs free sales
+  const paidRetailSales = filteredData.sales.filter(s => s.status !== 'Free');
+  const paidWholesaleSales = filteredData.wholesaleSales.filter(ws => ws.status !== 'Free');
+  const freeRetailSales = filteredData.sales.filter(s => s.status === 'Free');
+  const freeWholesaleSales = filteredData.wholesaleSales.filter(ws => ws.status === 'Free');
 
-  const totalRetailRevenue = filteredData.sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
-  const totalWholesaleRevenue = filteredData.wholesaleSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+  // Calculate PAID revenue only
+  const totalRetailRevenue = paidRetailSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+  const totalWholesaleRevenue = paidWholesaleSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
   const totalRevenue = totalRetailRevenue + totalWholesaleRevenue;
 
-  const totalExpenses = filteredData.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  // Calculate expenses (includes Free samples)
+  const normalExpenses = filteredData.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const freeSampleExpense = [
+    ...freeRetailSales.map(s => Math.abs(s.totalAmount)),
+    ...freeWholesaleSales.map(ws => Math.abs(ws.totalAmount))
+  ].reduce((sum, amount) => sum + amount, 0);
+  const totalExpenses = normalExpenses + freeSampleExpense;
+
   const totalReturnsLoss = filteredData.salesReturns.reduce((sum, sReturn) => sum + sReturn.totalRefundAmount, 0);
   const netProfit = totalRevenue - totalExpenses - totalReturnsLoss;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
-  };
-
+  // ✅ Only show PAID sales in revenue breakdown
   const allRevenueItems = [
-    ...filteredData.sales.map(s => ({...s, type: 'Retail', name: s.customerName})),
-    ...filteredData.wholesaleSales.map(ws => ({...ws, type: 'Wholesale', name: ws.shopName}))
+    ...paidRetailSales.map(s => ({...s, type: 'Retail', name: s.customerName})),
+    ...paidWholesaleSales.map(ws => ({...ws, type: 'Wholesale', name: ws.shopName}))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  
+
+  // ✅ Include Free samples in expense breakdown
+  const allExpenseItems = [
+    ...filteredData.expenses.map(e => ({
+      id: e.id,
+      description: e.description,
+      category: e.category,
+      date: e.date,
+      amount: e.amount
+    })),
+    ...freeRetailSales.map(s => ({
+      id: `free_retail_${s.id}`,
+      description: `Free Sample - ${s.customerName}`,
+      category: 'FREE_SAMPLES',
+      date: s.date,
+      amount: Math.abs(s.totalAmount)
+    })),
+    ...freeWholesaleSales.map(ws => ({
+      id: `free_wholesale_${ws.id}`,
+      description: `Free Sample - ${ws.shopName}`,
+      category: 'FREE_SAMPLES',
+      date: ws.date,
+      amount: Math.abs(ws.totalAmount)
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
   const handleExportPDF = () => {
     setIsExporting(true);
 
@@ -289,15 +324,15 @@ const ProfitLoss: React.FC = () => {
                 <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-4 text-white">Expense Breakdown</h2>
                     <ul className="max-h-96 overflow-y-auto pr-2">
-                        {filteredData.expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
-                            <li key={expense.id} className="flex justify-between py-2 border-b border-white/10">
-                                <div>
-                                    <p className="text-gray-300">{expense.description}</p>
-                                    <p className="text-xs text-gray-400">{expense.date} - {expense.category}</p>
-                                </div>
-                                <span className="font-semibold text-red-400">-{formatCurrency(expense.amount)}</span>
-                            </li>
-                        ))}
+                      {allExpenseItems.map(expense => (
+                        <li key={expense.id} className="flex justify-between py-2 border-b border-white/10">
+                          <div>
+                            <p className="text-gray-300">{expense.description}</p>
+                            <p className="text-xs text-gray-400">{expense.date} - {expense.category}</p>
+                          </div>
+                          <span className="font-semibold text-red-400">-{formatCurrency(expense.amount)}</span>
+                        </li>
+                      ))}
                     </ul>
                 </div>
             </div>
