@@ -1060,6 +1060,185 @@ def delete_sale(sale_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/sales/import-csv', methods=['POST'])
+def import_sales_csv():
+    """
+    Import sales (both Retail and Wholesale) from CSV file
+    
+    Expected CSV columns:
+    type,customerOrShop,contact,address,date,status,warehouseId,productId,quantity,price
+    
+    - type: 'Retail' or 'Wholesale'
+    - customerOrShop: Customer name (Retail) or Shop name (Wholesale)
+    - contact: Phone number
+    - address: Address
+    - date: YYYY-MM-DD
+    - status: Cash, GPay, Paid, Unpaid, Free
+    - warehouseId: Warehouse ID from database
+    - productId: Product ID from database
+    - quantity: Number (integer)
+    - price: Price per unit (float)
+    """
+    if 'file' not in request.files:
+        return jsonify({'created': 0, 'errors': [{'row': 0, 'message': 'No file uploaded'}]}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'created': 0, 'errors': [{'row': 0, 'message': 'Empty filename'}]}), 400
+    
+    content = file.read().decode('utf-8')
+    reader = csv.DictReader(StringIO(content))
+    
+    required_cols = {'type', 'customerOrShop', 'date', 'status', 'warehouseId', 'productId', 'quantity', 'price'}
+    header = set(reader.fieldnames or [])
+    missing = required_cols - header
+    if missing:
+        return jsonify({
+            'created': 0,
+            'errors': [{
+                'row': 0,
+                'message': f"Missing required columns: {', '.join(sorted(missing))}"
+            }]
+        }), 400
+    
+    created = 0
+    errors = []
+    row_num = 1
+    
+    # Group rows by unique sale (same customer/shop + date + type)
+    sales_grouped = {}
+    
+    for row in reader:
+        row_num += 1
+        try:
+            sale_type = (row.get('type') or '').strip()
+            customer_or_shop = (row.get('customerOrShop') or '').strip()
+            date_str = (row.get('date') or '').strip()
+            status = (row.get('status') or '').strip()
+            warehouse_id = (row.get('warehouseId') or '').strip()
+            product_id = (row.get('productId') or '').strip()
+            quantity_str = (row.get('quantity') or '').strip()
+            price_str = (row.get('price') or '').strip()
+            contact = (row.get('contact') or '').strip()
+            address = (row.get('address') or '').strip()
+            
+            # Validate required fields
+            if not all([sale_type, customer_or_shop, date_str, status, warehouse_id, product_id, quantity_str, price_str]):
+                errors.append({'row': row_num, 'message': 'Missing required fields'})
+                continue
+            
+            if sale_type not in ['Retail', 'Wholesale']:
+                errors.append({'row': row_num, 'message': f"Invalid type '{sale_type}'. Must be 'Retail' or 'Wholesale'"})
+                continue
+            
+            try:
+                quantity = int(quantity_str)
+                price = float(price_str)
+            except ValueError:
+                errors.append({'row': row_num, 'message': 'Invalid quantity or price format'})
+                continue
+            
+            # Create unique key for grouping products into same sale
+            sale_key = f"{sale_type}|{customer_or_shop}|{date_str}|{status}|{warehouse_id}"
+            
+            if sale_key not in sales_grouped:
+                sales_grouped[sale_key] = {
+                    'type': sale_type,
+                    'customerOrShop': customer_or_shop,
+                    'contact': contact,
+                    'address': address,
+                    'date': date_str,
+                    'status': status,
+                    'warehouseId': warehouse_id,
+                    'products': []
+                }
+            
+            sales_grouped[sale_key]['products'].append({
+                'productId': product_id,
+                'quantity': quantity,
+                'price': price
+            })
+            
+        except Exception as e:
+            errors.append({'row': row_num, 'message': f'Unexpected error: {str(e)}'})
+    
+    # Now create sales from grouped data
+    for sale_key, sale_data in sales_grouped.items():
+        try:
+            products = sale_data['products']
+            total_amount = sum(p['quantity'] * p['price'] for p in products)
+            
+            if sale_data['type'] == 'Retail':
+                sale = Sale(
+                    id=generate_id('sale'),
+                    invoiceNumber=get_next_invoice_number('sale'),
+                    customerName=sale_data['customerOrShop'],
+                    contact=sale_data['contact'],
+                    address=sale_data['address'],
+                    products=products,
+                    totalAmount=0 if sale_data['status'] == 'Free' else total_amount,
+                    date=sale_data['date'],
+                    status=sale_data['status'],
+                    warehouseId=sale_data['warehouseId']
+                )
+                
+                # Deduct inventory
+                for p in products:
+                    update_inventory(p['productId'], sale_data['warehouseId'], -p['quantity'])
+                
+                db.session.add(sale)
+                
+                # Handle Free samples as expense
+                if sale.status == 'Free':
+                    free_expense = Expense(
+                        id=generate_id('expense'),
+                        category='FREE_SAMPLES',
+                        description=f"Free sample - Invoice {sale.invoiceNumber}",
+                        amount=abs(total_amount),
+                        date=sale.date,
+                        warehouse_id=sale.warehouseId
+                    )
+                    db.session.add(free_expense)
+                
+            else:  # Wholesale
+                sale = WholesaleSale(
+                    id=generate_id('wsale'),
+                    invoiceNumber=get_next_invoice_number('wholesale_sale'),
+                    shopName=sale_data['customerOrShop'],
+                    contact=sale_data['contact'],
+                    address=sale_data['address'],
+                    products=products,
+                    totalAmount=0 if sale_data['status'] == 'Free' else total_amount,
+                    date=sale_data['date'],
+                    status=sale_data['status'],
+                    warehouseId=sale_data['warehouseId']
+                )
+                
+                # Deduct inventory
+                for p in products:
+                    update_inventory(p['productId'], sale_data['warehouseId'], -p['quantity'])
+                
+                db.session.add(sale)
+                
+                # Handle Free samples as expense
+                if sale.status == 'Free':
+                    free_expense = Expense(
+                        id=generate_id('expense'),
+                        category='FREE_SAMPLES',
+                        description=f"Free wholesale sample - Invoice {sale.invoiceNumber}",
+                        amount=abs(total_amount),
+                        date=sale.date,
+                        warehouse_id=sale.warehouseId
+                    )
+                    db.session.add(free_expense)
+            
+            created += 1
+            
+        except Exception as e:
+            errors.append({'sale_key': sale_key, 'message': f'Error creating sale: {str(e)}'})
+    
+    db.session.commit()
+    return jsonify({'created': created, 'errors': errors}), 200
 
 
 @app.route('/api/expenses/import-csv', methods=['POST'])
@@ -1759,6 +1938,7 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5001, host='0.0.0.0')
+
 
 
 
