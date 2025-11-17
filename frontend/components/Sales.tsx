@@ -123,6 +123,7 @@ const [formData, setFormData] = useState({
 
   const handleAddProduct = () => {
     const product = products.find(p => p.id === currentProduct);
+    const qty = parseFloat(currentQtyInput);
     if (!product || currentQty <= 0) {  // Changed from currentQty <= 0
     alert('Please select a product and enter valid quantity'); 
     return;
@@ -136,10 +137,10 @@ const [formData, setFormData] = useState({
 
     setFormData(prev => ({
       ...prev,
-      products: [...prev.products, { name: product.name, quantity: currentQty, price: currentPrice }]
+      products: [...prev.products, { name: product.name, quantity: qty, price: currentPrice }]
     }));
     setCurrentProduct('');
-    setCurrentQty(0.5);
+    setCurrentQtyInput('1');
     setCurrentPrice(0);
   };
 
