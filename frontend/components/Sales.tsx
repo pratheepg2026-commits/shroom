@@ -290,7 +290,18 @@ const [formData, setFormData] = useState({
                 </div>
                  <div>
                     <label className="text-xs text-gray-400">Qty</label>
-                    <input type="number" value={currentQty} onChange={e => setCurrentQty(parseInt(e.target.value) || 0)}  step="any" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
+                    <input type="number" value={currentQty} onChange={e => {
+                      const val = e.target.value;
+                      // Allow empty string or valid number (including partial decimals like "1.")
+                      if (val === '' || val === '-' || val === '.') {
+                        setCurrentQty(0);
+                      } else {
+                        const parsed = parseFloat(val);
+                        if (!isNaN(parsed)) {
+                          setCurrentQty(parsed);
+                        }
+                      }
+                    }}  step="any" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200"  placeholder="1.5" />
                 </div>
                  <Button type="button" variant="secondary" onClick={handleAddProduct} className="w-full h-10" disabled={!selectedWarehouse}>Add</Button>
             </div>
