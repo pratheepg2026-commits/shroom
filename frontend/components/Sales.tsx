@@ -291,26 +291,8 @@ const [formData, setFormData] = useState({
                     </select>
                  </div>
                 <div>
-                    <input 
-    type="number" 
-    inputMode="decimal" 
-    value={currentQty || ''} 
-    onChange={e => {
-      const val = e.target.value;
-      if (val === '') {
-        setCurrentQty(0);
-      } else if (/^\d*\.?\d*$/.test(val)) {
-        const parsed = parseFloat(val);
-        if (!isNaN(parsed)) {
-          setCurrentQty(parsed);
-        }
-      }
-    }}
-    step="0.01"
-    min="0"
-    className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200"  
-    placeholder="1.5" 
-  />
+                    <label className="text-xs text-gray-400">Price</label>
+                    <input type="number" value={currentPrice} onChange={e => setCurrentPrice(parseFloat(e.target.value))} min="0" step="0.01" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
                 </div>
                  <div>
                     <label className="text-xs text-gray-400">Qty</label>
