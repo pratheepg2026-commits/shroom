@@ -290,7 +290,7 @@ const [formData, setFormData] = useState({
                 </div>
                  <div>
                     <label className="text-xs text-gray-400">Qty</label>
-                    <input type="number" value={currentQty} onChange={e => setCurrentQty(parseInt(e.target.value) || 0)} min="0.1" step="0.5" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
+                    <input type="number" value={currentQty} onChange={e => setCurrentQty(parseInt(e.target.value) || 0)}  step="any" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
                 </div>
                  <Button type="button" variant="secondary" onClick={handleAddProduct} className="w-full h-10" disabled={!selectedWarehouse}>Add</Button>
             </div>
