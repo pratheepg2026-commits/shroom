@@ -307,7 +307,7 @@ const [formData, setFormData] = useState({
                           setCurrentQty(parsed);
                       
                       }
-                    }}   className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200"  placeholder="1.5" />
+                    }  className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200"  placeholder="1.5" />
                 </div>
                  <Button type="button" variant="secondary" onClick={handleAddProduct} className="w-full h-10" disabled={!selectedWarehouse}>Add</Button>
             </div>
