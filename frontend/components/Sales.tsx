@@ -145,7 +145,7 @@ const [formData, setFormData] = useState({
       products: [...prev.products, { name: product.name, quantity: currentQty, price: currentPrice }]
     }));
     setCurrentProduct('');
-    setCurrentQty(1);
+    setCurrentQty(0.5);
     setCurrentPrice(0);
   };
 
