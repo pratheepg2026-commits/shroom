@@ -53,7 +53,7 @@ const [formData, setFormData] = useState({
   status: sale?.status || 'Cash',
 });
   const [currentProduct, setCurrentProduct] = useState('');
-  const [currentQty, setCurrentQty] = useState(1);
+  const [currentQty, setCurrentQty] = useState(0.5);
   const [currentPrice, setCurrentPrice] = useState(0);
   console.log('Editing sale data:', formData);
 
@@ -123,7 +123,9 @@ const [formData, setFormData] = useState({
 
   const handleAddProduct = () => {
     const product = products.find(p => p.id === currentProduct);
-    if (!product || currentQty <= 0) return;
+    if (!product || currentQty <= 0) {  // Changed from currentQty <= 0
+    alert('Please select a product and enter valid quantity'); 
+    return;
     
     const availableStock = getAvailableStock(product.id);
     if (currentQty > availableStock) {
@@ -136,7 +138,7 @@ const [formData, setFormData] = useState({
       products: [...prev.products, { name: product.name, quantity: currentQty, price: currentPrice }]
     }));
     setCurrentProduct('');
-    setCurrentQty(1);
+    setCurrentQty(0.5);
     setCurrentPrice(0);
   };
 
@@ -287,7 +289,7 @@ const [formData, setFormData] = useState({
                 </div>
                  <div>
                     <label className="text-xs text-gray-400">Qty</label>
-                    <input type="number" value={currentQty} onChange={e => setCurrentQty(parseInt(e.target.value))} min="1" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
+                    <input type="number" value={currentQty} onChange={e => setCurrentQty(parseInt(e.target.value) || 0)} min="0.1" step="0.5" className="w-full bg-gray-700/50 border border-white/20 rounded-md p-2 text-gray-200" />
                 </div>
                  <Button type="button" variant="secondary" onClick={handleAddProduct} className="w-full h-10" disabled={!selectedWarehouse}>Add</Button>
             </div>
