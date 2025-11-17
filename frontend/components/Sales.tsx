@@ -53,7 +53,7 @@ const [formData, setFormData] = useState({
   status: sale?.status || 'Cash',
 });
   const [currentProduct, setCurrentProduct] = useState('');
-  const [currentQty, setCurrentQty] = useState(0.5);
+  const [currentQty, setCurrentQty] = useState(1);
   const [currentPrice, setCurrentPrice] = useState(0);
   console.log('Editing sale data:', formData);
 
@@ -145,7 +145,7 @@ const [formData, setFormData] = useState({
       products: [...prev.products, { name: product.name, quantity: currentQty, price: currentPrice }]
     }));
     setCurrentProduct('');
-    setCurrentQty(0.5);
+    setCurrentQty(1);
     setCurrentPrice(0);
   };
 
