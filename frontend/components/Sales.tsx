@@ -126,6 +126,7 @@ const [formData, setFormData] = useState({
     if (!product || currentQty <= 0) {  // Changed from currentQty <= 0
     alert('Please select a product and enter valid quantity'); 
     return;
+    }
     
     const availableStock = getAvailableStock(product.id);
     if (currentQty > availableStock) {
