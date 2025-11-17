@@ -123,12 +123,17 @@ const [formData, setFormData] = useState({
 
   const handleAddProduct = () => {
     const product = products.find(p => p.id === currentProduct);
-    const qty = parseFloat(currentQtyInput);
-    if (!product || currentQty <= 0) {  // Changed from currentQty <= 0
-    alert('Please select a product and enter valid quantity'); 
+   
+    if (!product 0) {  // Changed from currentQty <= 0
+    alert('Please select a product '); 
+    return;
+    }
+    if (currentQty <= 0 || isNaN(currentQty)) {
+    alert('Please enter a valid quantity greater than 0');
     return;
     }
     
+      
     const availableStock = getAvailableStock(product.id);
     if (currentQty > availableStock) {
         alert(`Not enough stock for ${product.name}. Only ${availableStock} available in selected warehouse.`);
@@ -137,10 +142,10 @@ const [formData, setFormData] = useState({
 
     setFormData(prev => ({
       ...prev,
-      products: [...prev.products, { name: product.name, quantity: qty, price: currentPrice }]
+      products: [...prev.products, { name: product.name, quantity: currentQty, price: currentPrice }]
     }));
     setCurrentProduct('');
-    setCurrentQtyInput('1');
+    setCurrentQtyInput('0.5');
     setCurrentPrice(0);
   };
 
