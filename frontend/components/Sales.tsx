@@ -124,7 +124,7 @@ const [formData, setFormData] = useState({
   const handleAddProduct = () => {
     const product = products.find(p => p.id === currentProduct);
    
-    if (!product 0) {  // Changed from currentQty <= 0
+    if (!product) {  // Changed from currentQty <= 0
     alert('Please select a product '); 
     return;
     }
